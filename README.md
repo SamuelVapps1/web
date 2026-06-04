@@ -34,11 +34,16 @@ web/
 │   ├── RevealOnScroll.tsx  # Scroll animation hook
 │   └── JsonLd.tsx          # JSON-LD schema component
 ├── data/
-│   ├── gallery.ts          # Gallery data (30 items)
+│   ├── gallery.ts          # Gallery data (order = array order)
+│   ├── site-images.ts      # Hero, story, about — single-photo paths
 │   ├── pricing.ts          # Pricing data
 │   └── reviews.ts          # Reviews data (placeholders)
 └── public/
-    └── images/             # Place images here
+    └── images/             # Photo assets (see „Ako pridať fotku")
+        ├── hero/           # before.jpg, after.jpg
+        ├── home/           # story.jpg
+        ├── o-nas/          # interier.jpg
+        └── galeria/        # NN-before.jpg, NN-after.jpg
 ```
 
 ## Getting Started
@@ -79,19 +84,46 @@ npm start
 
 Vercel will automatically detect Next.js and configure the build settings.
 
-## Adding Photos
+## Ako pridať fotku
 
-Photos should be placed in `public/images/` directory. Update the photo paths in:
+Všetky cesty sú v data súboroch — **neprepisuj komponenty**. Stačí súbor na disk + jeden riadok v dátach.
 
-1. **Gallery**: Edit `data/gallery.ts` and add `before` and `after` image paths
-2. **Homepage**: Update `Photo` components in `app/page.tsx`
-3. **About page**: Update `Photo` components in `app/o-nas/page.tsx`
-4. **Credentials**: Update `Photo` components in `app/o-nas/page.tsx`
+### Odporúčaný formát
 
-Example:
-```tsx
-<Photo src="/images/before-after-1-before.jpg" alt="Pred úpravou" width={600} height={700} />
+- **Pomer strán:** portrét 4:5 (dlhšia hrana ~1600 px)
+- **Formát:** `.jpg` alebo `.webp` (Next.js zvyšok zoptimalizuje)
+- **Veľkosť:** ideálne pod ~500 kB
+
+### Galéria (pred/po)
+
+1. Pomenovať súbory podľa čísla položky: `01-before.jpg` + `01-after.jpg`, `02-before.jpg` + `02-after.jpg`, …
+2. Skopírovať do `public/images/galeria/`
+3. V `data/gallery.ts` pridať jednu položku (cesty vygeneruje helper `galleryPaths`):
+
+```ts
+{ ...galleryPaths(4), breed: 'Havanský psík', case: 'Prvý strih šteňaťa', h: 280 },
 ```
+
+To vytvorí `id: '04'`, `before: '/images/galeria/04-before.jpg'`, `after: '/images/galeria/04-after.jpg'`.
+
+**Poradie v galérii = poradie v poli.** Presun položky hore/dole = zmena poradia na webe. Číslo v názve súboru je len pre prehľadnosť v priečinku.
+
+Homepage teaser „Premeny" a O nás „Z galérie" automaticky berú **prvé 3 položky** z poľa — netreba nič meniť inde.
+
+### Hero, Príbeh, O nás (jedna fotka)
+
+| Slot | Súbor | Konštanta v `data/site-images.ts` |
+|------|-------|-----------------------------------|
+| Homepage hero — Pred | `public/images/hero/before.jpg` | `heroBefore` |
+| Homepage hero — Po | `public/images/hero/after.jpg` | `heroAfter` |
+| Homepage Príbeh | `public/images/home/story.jpg` | `homeStory` |
+| O nás — interiér | `public/images/o-nas/interier.jpg` | `aboutInterior` |
+
+Buď **nahraď súbor** na danej ceste, alebo **zmeň cestu** v `data/site-images.ts`.
+
+### Chýbajúca fotka
+
+Ak súbor ešte neexistuje, `<Photo>` zobrazí placeholder v rovnakom rozmere — stránka nespadne a layout neskáče.
 
 ## Design System
 
@@ -138,14 +170,14 @@ Responsive breakpoints:
 
 The following features are prepared but not implemented:
 - **Online booking** (`/rezervacia`) — Placeholder page ready for booking app integration
-- **Gallery photos** — Data structure in place, add photos to `public/images/` and update `data/gallery.ts`
+- **Gallery photos** — pridaj súbory do `public/images/galeria/` a položky do `data/gallery.ts` (pozri „Ako pridať fotku")
 - **Reviews** — Placeholder data in `data/reviews.ts`, replace with actual Google reviews
 
 ## Punch-list pre Samuela (mimo kódu)
 
 Tieto veci treba doplniť mimo kódu pred / po deployi:
 
-- **Reálne fotky** — pridať do `public/images/` a doplniť cesty (`before`/`after`) v `data/gallery.ts`; hero a o-nas fotky v príslušných stránkach. Placeholdery držia rozmer, takže layout neskáče.
+- **Reálne fotky** — pozri sekciu „Ako pridať fotku" vyššie. Placeholdery držia rozmer, takže layout neskáče.
 - **Verbatim Google recenzie** — nahradiť placeholder v `data/reviews.ts` skutočnými menami a citátmi (teraz sú zámerne označené ako PLACEHOLDER).
 - **Cena trimovania** — v `data/pricing.ts` je `na vyžiadanie`; doplniť reálnu cenu alebo ponechať.
 - **GPS súradnice** — v `app/layout.tsx` (JSON-LD `geo`) sú približné (48.1216, 17.1045). Overiť presné súradnice prevádzky Osuského 7.

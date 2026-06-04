@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import Image from 'next/image';
 import { Image as ImageIcon } from 'lucide-react';
 
@@ -9,18 +12,22 @@ interface PhotoProps {
   className?: string;
   priority?: boolean;
   placeholder?: string;
+  sizes?: string;
 }
 
-export default function Photo({ 
-  src, 
-  alt, 
-  width, 
-  height, 
-  className = '', 
+export default function Photo({
+  src,
+  alt,
+  width,
+  height,
+  className = '',
   priority = false,
-  placeholder = 'Fotka pribudne'
+  placeholder = 'Fotka pribudne',
+  sizes = '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw',
 }: PhotoProps) {
-  if (!src) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
     return (
       <div
         className={`photo-placeholder ${className}`}
@@ -40,7 +47,8 @@ export default function Photo({
       height={height || 600}
       className={className}
       priority={priority}
-      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+      sizes={sizes}
+      onError={() => setFailed(true)}
     />
   );
 }

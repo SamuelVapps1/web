@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Photo from '@/components/Photo';
 import RevealOnScroll from '@/components/RevealOnScroll';
-import { GalleryItem } from '@/data/gallery';
+import { GalleryItem, galleryAlt } from '@/data/gallery';
 import { X, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 
 interface GalleryLightboxProps {
@@ -105,10 +105,10 @@ export default function GalleryLightbox({ items }: GalleryLightboxProps) {
             >
               <div className="g-item__pair">
                 <div className="g-item__cell">
-                  <Photo src={item.before} alt={`${item.breed} pred úpravou`} width={400} height={item.h} placeholder="" />
+                  <Photo src={item.before} alt={galleryAlt(item)} width={400} height={item.h} placeholder="" sizes="(max-width: 560px) 100vw, (max-width: 900px) 50vw, 33vw" />
                 </div>
                 <div className="g-item__cell">
-                  <Photo src={item.after} alt={`${item.breed} po úprave`} width={400} height={item.h} placeholder="" />
+                  <Photo src={item.after} alt={galleryAlt(item)} width={400} height={item.h} placeholder="" sizes="(max-width: 560px) 100vw, (max-width: 900px) 50vw, 33vw" />
                 </div>
                 <div className="g-zoom" aria-hidden="true">
                   <ZoomIn />
@@ -151,25 +151,11 @@ export default function GalleryLightbox({ items }: GalleryLightboxProps) {
 
             <div className="lb__pair">
               <div className="lb__cell">
-                {current.before ? (
-                  <Photo src={current.before} alt={`${current.breed} pred úpravou`} width={600} height={750} />
-                ) : (
-                  <div className="lb__empty">
-                    <ZoomIn aria-hidden="true" />
-                    <span>Fotka pribudne</span>
-                  </div>
-                )}
+                <Photo src={current.before} alt={galleryAlt(current)} width={600} height={750} sizes="(max-width: 768px) 100vw, 50vw" />
                 <span className="lb__tag">Pred</span>
               </div>
               <div className="lb__cell">
-                {current.after ? (
-                  <Photo src={current.after} alt={`${current.breed} po úprave`} width={600} height={750} />
-                ) : (
-                  <div className="lb__empty">
-                    <ZoomIn aria-hidden="true" />
-                    <span>Fotka pribudne</span>
-                  </div>
-                )}
+                <Photo src={current.after} alt={galleryAlt(current)} width={600} height={750} sizes="(max-width: 768px) 100vw, 50vw" />
                 <span className="lb__tag">Po</span>
               </div>
             </div>

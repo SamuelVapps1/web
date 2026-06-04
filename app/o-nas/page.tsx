@@ -3,6 +3,8 @@ import Footer from '@/components/Footer';
 import RevealOnScroll from '@/components/RevealOnScroll';
 import Photo from '@/components/Photo';
 import BookingCTA from '@/components/BookingCTA';
+import { galleryAlt, galleryTeaser } from '@/data/gallery';
+import { aboutInterior } from '@/data/site-images';
 import { Scissors, Images } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -33,7 +35,7 @@ export default function ONas() {
             <div className="story">
               <div className="story__media">
                 <div className="story__photo">
-                  <Photo src="" alt="Salón Laura zvnútra — pracovisko groomera" width={700} height={640} placeholder="" />
+                  <Photo src={aboutInterior} alt="Salón Laura zvnútra — pracovisko groomera" width={700} height={640} placeholder="" sizes="(max-width: 1060px) 100vw, 50vw" />
                 </div>
                 <div className="story__heritage">
                   <Scissors aria-hidden="true" />
@@ -63,15 +65,11 @@ export default function ONas() {
               </div>
             </RevealOnScroll>
             <div className="creds__grid">
-              <RevealOnScroll>
-                <Photo src="" alt="Ukážka práce — pred a po úprave" width={400} height={300} placeholder="" />
-              </RevealOnScroll>
-              <RevealOnScroll>
-                <Photo src="" alt="Ukážka práce — pred a po úprave" width={400} height={300} placeholder="" />
-              </RevealOnScroll>
-              <RevealOnScroll>
-                <Photo src="" alt="Ukážka práce — pred a po úprave" width={400} height={300} placeholder="" />
-              </RevealOnScroll>
+              {galleryTeaser.map((item) => (
+                <RevealOnScroll key={item.id}>
+                  <Photo src={item.after} alt={galleryAlt(item)} width={400} height={300} placeholder="" sizes="(max-width: 680px) 100vw, 33vw" />
+                </RevealOnScroll>
+              ))}
             </div>
             <div className="creds__cta">
               <Link className="btn btn--ghost" href="/galeria">

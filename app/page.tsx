@@ -3,6 +3,8 @@ import Footer from '@/components/Footer';
 import RevealOnScroll from '@/components/RevealOnScroll';
 import Photo from '@/components/Photo';
 import BookingCTA from '@/components/BookingCTA';
+import { galleryAlt, galleryTeaser } from '@/data/gallery';
+import { heroAfter, heroBefore, homeStory } from '@/data/site-images';
 import { REVIEWS } from '@/data/reviews';
 import { Scissors, Feather, Ruler, ShieldCheck, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -44,11 +46,11 @@ export default function Home() {
           <div className="hero__media">
             <div className="diptych">
               <div className="diptych__cell">
-                <Photo src="" alt="Pes pred úpravou v salóne Laura" width={600} height={700} placeholder="" priority />
+                <Photo src={heroBefore} alt="Pes pred úpravou v salóne Laura" width={600} height={700} placeholder="" priority sizes="(max-width: 1060px) 100vw, 50vw" />
                 <span className="tag">Predtým</span>
               </div>
               <div className="diptych__cell">
-                <Photo src="" alt="Pes po úprave v salóne Laura" width={600} height={700} placeholder="" />
+                <Photo src={heroAfter} alt="Pes po úprave v salóne Laura" width={600} height={700} placeholder="" sizes="(max-width: 1060px) 100vw, 50vw" />
                 <span className="tag">Potom</span>
               </div>
               <div className="badge">
@@ -128,60 +130,26 @@ export default function Home() {
               </div>
             </RevealOnScroll>
             <div className="transforms">
-              <RevealOnScroll>
-                <div className="transform">
-                  <div className="transform__pair">
-                    <div className="transform__cell">
-                      <Photo src="" alt="Pred úpravou" width={400} height={290} placeholder="" />
-                      <span className="minitag minitag--l">Pred</span>
+              {galleryTeaser.map((item) => (
+                <RevealOnScroll key={item.id}>
+                  <div className="transform">
+                    <div className="transform__pair">
+                      <div className="transform__cell">
+                        <Photo src={item.before} alt={galleryAlt(item)} width={400} height={290} placeholder="" sizes="(max-width: 680px) 100vw, 33vw" />
+                        <span className="minitag minitag--l">Pred</span>
+                      </div>
+                      <div className="transform__cell">
+                        <Photo src={item.after} alt={galleryAlt(item)} width={400} height={290} placeholder="" sizes="(max-width: 680px) 100vw, 33vw" />
+                        <span className="minitag minitag--r">Po</span>
+                      </div>
                     </div>
-                    <div className="transform__cell">
-                      <Photo src="" alt="Po úprave" width={400} height={290} placeholder="" />
-                      <span className="minitag minitag--r">Po</span>
-                    </div>
-                  </div>
-                  <div className="transform__caption">
-                    <span className="transform__breed">Kerry blue teriér</span>
-                    <span className="transform__case">Silne splstnatená srsť · 2,5 hod</span>
-                  </div>
-                </div>
-              </RevealOnScroll>
-              <RevealOnScroll>
-                <div className="transform">
-                  <div className="transform__pair">
-                    <div className="transform__cell">
-                      <Photo src="" alt="Pred úpravou" width={400} height={290} placeholder="" />
-                      <span className="minitag minitag--l">Pred</span>
-                    </div>
-                    <div className="transform__cell">
-                      <Photo src="" alt="Po úprave" width={400} height={290} placeholder="" />
-                      <span className="minitag minitag--r">Po</span>
+                    <div className="transform__caption">
+                      <span className="transform__breed">{item.breed}</span>
+                      <span className="transform__case">{item.case}</span>
                     </div>
                   </div>
-                  <div className="transform__caption">
-                    <span className="transform__breed">Pudel stredný</span>
-                    <span className="transform__case">Výstavné strihanie</span>
-                  </div>
-                </div>
-              </RevealOnScroll>
-              <RevealOnScroll>
-                <div className="transform">
-                  <div className="transform__pair">
-                    <div className="transform__cell">
-                      <Photo src="" alt="Pred úpravou" width={400} height={290} placeholder="" />
-                      <span className="minitag minitag--l">Pred</span>
-                    </div>
-                    <div className="transform__cell">
-                      <Photo src="" alt="Po úprave" width={400} height={290} placeholder="" />
-                      <span className="minitag minitag--r">Po</span>
-                    </div>
-                  </div>
-                  <div className="transform__caption">
-                    <span className="transform__breed">Jorkšírsky teriér, 14 r.</span>
-                    <span className="transform__case">Senior pes · šetrné tempo</span>
-                  </div>
-                </div>
-              </RevealOnScroll>
+                </RevealOnScroll>
+              ))}
             </div>
           </div>
         </section>
@@ -191,7 +159,7 @@ export default function Home() {
             <RevealOnScroll>
               <div className="about">
                 <div className="about__media">
-                  <Photo src="" alt="Laura pri práci v salóne" width={600} height={500} placeholder="" />
+                  <Photo src={homeStory} alt="Laura pri práci v salóne" width={600} height={500} placeholder="" sizes="(max-width: 1060px) 100vw, 50vw" />
                 </div>
                 <div className="about__body">
                   <div className="sec-head__eyebrow">
