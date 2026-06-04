@@ -1,6 +1,6 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { CalendarClock } from 'lucide-react';
+import { CalendarClock, Phone } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -23,10 +23,10 @@ export default function Rezervacia() {
             </div>
             <h1>Online rezervácie spúšťame čoskoro</h1>
             <p>
-              Zatiaľ si termín dohodnite telefonicky — radi poradíme a nájdeme čas, ktorý vám sadne.
+              Zatiaľ si termín dohodnite telefonicky — radi vám poradíme a nájdeme čas, ktorý vám sadne.
             </p>
             <a className="btn btn--primary" href="tel:+421944240116">
-              Zavolať · +421 944 240 116
+              <Phone aria-hidden="true" style={{ width: 18, height: 18 }} /> Zavolať · +421 944 240 116
             </a>
             <p className="booking__hours">
               Po – Pia · 10:00 – 13:00 a 14:00 – 18:00 · Sobota – Nedeľa · zatvorené

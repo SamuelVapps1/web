@@ -4,7 +4,7 @@ import RevealOnScroll from '@/components/RevealOnScroll';
 import Photo from '@/components/Photo';
 import BookingCTA from '@/components/BookingCTA';
 import { REVIEWS } from '@/data/reviews';
-import { Scissors, Heart, Award, Clock } from 'lucide-react';
+import { Scissors, Feather, Ruler, ShieldCheck, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
@@ -24,13 +24,13 @@ export default function Home() {
         <section className="hero">
           <div className="hero__body">
             <div className="hero__eyebrow">
-              <span className="eyebrow">30 ROKOV ZA NOŽNICAMI · PETRŽALKA</span>
+              <span className="eyebrow">30 rokov za nožnicami · Petržalka</span>
             </div>
             <h1 className="hero__title">
-              Strih prispôsobený <em>plemenu, srsti aj povahe</em> vášho psa.
+              Tridsať rokov skúseností. <em>Vidno to na každom psovi.</em>
             </h1>
             <p className="hero__lead lead">
-              Salón pre psov v Petržalke. Tridsať rokov skúseností — profesionálna úprava, ktorou váš pes nielen vyzerá, ale aj cíti sa dobre.
+              Salón pre psov v Petržalke, kde strih prispôsobíme Vášmu psovi — jeho plemenu, srsti aj povahe.
             </p>
             <div className="hero__cta">
               <Link className="btn btn--primary" href="/kontakt">Objednať sa</Link>
@@ -45,11 +45,11 @@ export default function Home() {
             <div className="diptych">
               <div className="diptych__cell">
                 <Photo src="" alt="Pes pred úpravou v salóne Laura" width={600} height={700} placeholder="" priority />
-                <span className="tag">Pred</span>
+                <span className="tag">Predtým</span>
               </div>
               <div className="diptych__cell">
                 <Photo src="" alt="Pes po úprave v salóne Laura" width={600} height={700} placeholder="" />
-                <span className="tag">Po</span>
+                <span className="tag">Potom</span>
               </div>
               <div className="badge">
                 <span className="badge__star">★</span>
@@ -60,15 +60,15 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="section">
+        <section className="section section--alt">
           <div className="wrap">
             <RevealOnScroll>
               <div className="sec-head">
                 <div className="sec-head__eyebrow">
                   <span className="eyebrow">Prečo Laura</span>
                 </div>
-                <h2>Skúsenosť, ktorou na psovi vidno</h2>
-                <p className="lead">Každý pes je iný — plne to rešpektujeme. Strih prispôsobujeme plemenu, druhu srsti, ale aj povahe a veku vášho psa.</p>
+                <h2>Skúsenosť je nenahraditeľná.</h2>
+                <p className="lead">Mladý salón ostrihá psa podľa trendu z Instagramu. Laura psa najprv prečíta — srsť, kožu, povahu — a vie, čo mu sadne. To je rozdiel medzi ostrihaným a dobre upraveným psom.</p>
               </div>
             </RevealOnScroll>
             <div className="tiles">
@@ -77,50 +77,54 @@ export default function Home() {
                   <div className="tile__icon">
                     <Scissors />
                   </div>
-                  <h3>Plemenné strihy</h3>
-                  <p>Striháme podľa štandardu plemena — alebo podľa vašich predstáv. Máme skúsenosti s rozmanitými plemenami.</p>
+                  <h3>30 rokov praxe</h3>
+                  <p>Tisíce psov, takmer každé plemeno. Žiadne učenie sa na tom Vašom.</p>
                 </div>
               </RevealOnScroll>
               <RevealOnScroll>
                 <div className="tile">
                   <div className="tile__icon">
-                    <Heart />
+                    <Feather />
                   </div>
-                  <h3>Šetrný prístup</h3>
-                  <p>Seniori a šteňa dostanú extra pozornosť. Pracujeme v pokojnom tempe, ktorý vášmu psovi vyhovuje.</p>
+                  <h3>Šetrné ruky</h3>
+                  <p>Istá ruka a tempo podľa psa. Skúsený groomer ho zbytočne nestresuje.</p>
                 </div>
               </RevealOnScroll>
               <RevealOnScroll>
                 <div className="tile">
                   <div className="tile__icon">
-                    <Award />
+                    <Ruler />
                   </div>
-                  <h3>Tridsať rokov praxe</h3>
-                  <p>Tisíce psov a takmer každé plemeno. Žiadne učenie sa na tom vašom — istota, ktorú vidno na výsledku.</p>
+                  <h3>Strih šitý psovi</h3>
+                  <p>Nie podľa fotky z internetu. Podľa toho, čo plemenu a srsti naozaj sadne — a poradíme vám.</p>
                 </div>
               </RevealOnScroll>
               <RevealOnScroll>
                 <div className="tile">
                   <div className="tile__icon">
-                    <Clock />
+                    <ShieldCheck />
                   </div>
-                  <h3>Termín na mieru</h3>
-                  <p>Objednajte sa telefonicky — nájdeme vám termín, ktorý vám vyhovuje. Necháme si čas pre vášho psa.</p>
+                  <h3>Bez gimmickov</h3>
+                  <p>Žiadne farbenie, žiadne trblietky. Len čistá, poctivá úprava.</p>
                 </div>
               </RevealOnScroll>
             </div>
           </div>
         </section>
 
-        <section className="section section--alt">
+        <section className="section">
           <div className="wrap">
             <RevealOnScroll>
-              <div className="sec-head">
-                <div className="sec-head__eyebrow">
-                  <span className="eyebrow">Pred a po</span>
+              <div className="sec-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', maxWidth: 'none', flexWrap: 'wrap', gap: '1.5rem' }}>
+                <div style={{ maxWidth: '46ch' }}>
+                  <div className="sec-head__eyebrow">
+                    <span className="eyebrow">Premeny</span>
+                  </div>
+                  <h2>Rozdiel vidno na prvý pohľad</h2>
                 </div>
-                <h2>Úprava, ktorou na psovi vidno</h2>
-                <p className="lead">Pozrite si príklady našej práce — od jednoduchých kúpeľov až po komplexné plemenné strihy.</p>
+                <Link className="link-brass" href="/galeria">
+                  Celá galéria <ArrowRight aria-hidden="true" />
+                </Link>
               </div>
             </RevealOnScroll>
             <div className="transforms">
@@ -179,25 +183,23 @@ export default function Home() {
                 </div>
               </RevealOnScroll>
             </div>
-            <div className="gallery-cta">
-              <Link className="btn btn--ghost" href="/galeria">
-                Pozrieť celú galériu
-              </Link>
-            </div>
           </div>
         </section>
 
-        <section className="section">
+        <section className="section section--alt">
           <div className="wrap">
             <RevealOnScroll>
               <div className="about">
                 <div className="about__media">
-                  <Photo src="" alt="Laura v salóne" width={600} height={500} placeholder="" />
+                  <Photo src="" alt="Laura pri práci v salóne" width={600} height={500} placeholder="" />
                 </div>
                 <div className="about__body">
+                  <div className="sec-head__eyebrow">
+                    <span className="eyebrow">Príbeh</span>
+                  </div>
                   <h2>Tridsať rokov za jedným stolom</h2>
                   <p className="about__lead lead">
-                    Žiadne striedanie personálu — tie isté ruky, ktoré poznajú takmer každé plemeno aj každú náladu.
+                    Žiadne franšízy, žiadne striedanie personálu — za tridsať rokov tie isté ruky, ktoré poznajú takmer každé plemeno a každú náladu.
                   </p>
                   <div className="about__stats">
                     <div className="about__stat">
@@ -206,7 +208,11 @@ export default function Home() {
                     </div>
                     <div className="about__stat">
                       <div className="n">100+</div>
-                      <div className="l">recenzií na Google</div>
+                      <div className="l">recenzií</div>
+                    </div>
+                    <div className="about__stat">
+                      <div className="n">13 r.</div>
+                      <div className="l">najvernejší klient</div>
                     </div>
                   </div>
                   <Link className="link-brass" href="/o-nas">
@@ -221,14 +227,14 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="section section--alt">
+        <section className="section">
           <div className="wrap">
             <RevealOnScroll>
               <div className="sec-head">
                 <div className="sec-head__eyebrow">
                   <span className="eyebrow">Recenzie</span>
                 </div>
-                <h2>Čo hovoria rodičia psov</h2>
+                <h2>Chodia k nám roky. Niektorí desaťročia.</h2>
               </div>
             </RevealOnScroll>
             <div className="reviews">

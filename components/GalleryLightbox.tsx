@@ -124,7 +124,7 @@ export default function GalleryLightbox({ items }: GalleryLightboxProps) {
       </div>
 
       <div className="gallery-end">
-        <span>Viac fotiek pribudne čoskoro</span>
+        <span>…a ďalšie pribúdajú.</span>
       </div>
 
       {isOpen && current && (

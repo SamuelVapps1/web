@@ -3,7 +3,7 @@ import Footer from '@/components/Footer';
 import RevealOnScroll from '@/components/RevealOnScroll';
 import BookingCTA from '@/components/BookingCTA';
 import { PRICING, ALA_CARTE } from '@/data/pricing';
-import { Info } from 'lucide-react';
+import { Droplets } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -23,8 +23,8 @@ export default function Cennik() {
           <div className="pagehead__eyebrow">
             <span className="eyebrow">Cenník</span>
           </div>
-          <h1>Cenník služieb</h1>
-          <p className="lead">Transparentné ceny bez skrytých poplatkov. Každý pes je iný — prípadné úpravy dohodneme pri objednaní.</p>
+          <h1>Cenník</h1>
+          <p className="lead">Strih prispôsobíme Vášmu psovi — jeho plemenu, srsti aj povahe.</p>
         </header>
 
         <div className="menu-wrap">
@@ -47,17 +47,17 @@ export default function Cennik() {
                     ))}
                   </ul>
                   {section.note && (
-                    <div className="menu-note">
-                      <Info />
-                      <span><strong>Poznámka:</strong> {section.note}</span>
-                    </div>
+                    <p className="menu-note">
+                      <Droplets />
+                      <span><strong>{section.note.split(' — ')[0]}</strong> — {section.note.split(' — ').slice(1).join(' — ')}</span>
+                    </p>
                   )}
                 </div>
               ))}
 
               <div className="menu-section menu-section--alacarte">
                 <div className="menu-label">
-                  <span className="eyebrow">{ALA_CARTE.title}</span>
+                  <span className="eyebrow">À la carte</span>
                 </div>
                 <div className="alacarte__body">
                   <h3 className="alacarte__title">{ALA_CARTE.title}</h3>

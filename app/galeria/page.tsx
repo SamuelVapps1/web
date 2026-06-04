@@ -22,8 +22,8 @@ export default function Galeria() {
           <div className="pagehead__eyebrow">
             <span className="eyebrow">Galéria</span>
           </div>
-          <h1>Galéria prác</h1>
-          <p className="lead">Pozrite sa na výsledky našej práce — od jednoduchých kúpeľov až po komplexné plemenné strihy.</p>
+          <h1>Galéria</h1>
+          <p className="lead">Tridsať rokov za nožnicami. Pozrite sa.</p>
         </header>
 
         <div className="wrap">
