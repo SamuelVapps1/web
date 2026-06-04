@@ -258,14 +258,18 @@ section { position: relative; }
 .minitag--r { right: 0.6rem; }
 
 /* ---- About teaser ------------------------------------------------------ */
-.about { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: clamp(2.5rem, 5vw, 5rem); align-items: center; }
+.about { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(2.8rem, 5vw, 5.5rem); align-items: center; }
 .about__media img { width: 100%; height: clamp(360px, 38vw, 520px); display: block;
   border-radius: var(--radius-lg); box-shadow: var(--shadow-md); object-fit: cover; }
-.about__body h2 { margin-bottom: 1.6rem; }
-.about__lead { font-size: var(--step-lead); color: var(--ink-soft); line-height: 1.6; margin-bottom: 1.4rem; }
-.about__stats { display: flex; gap: 3rem; margin: 2rem 0; }
-.about__stat .n { font-family: var(--serif-display); font-size: 2.6rem; color: var(--cognac); line-height: 1; }
-.about__stat .l { font-size: 0.82rem; color: var(--ink-mute); letter-spacing: 0.04em; margin-top: 0.4rem; }
+.about__body { padding-right: clamp(0rem, 1vw, 1rem); }
+.about__intro { display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 1rem; }
+.about__kicker { margin: 0; font-size: var(--step-small); letter-spacing: 0.1em; text-transform: uppercase; color: var(--cognac); }
+.about__body h2 { margin-bottom: 1.3rem; font-size: clamp(2.2rem, 3vw, 3.15rem); line-height: 1.06; }
+.about__lead { font-size: var(--step-lead); color: var(--ink-soft); line-height: 1.65; margin-bottom: 1.5rem; max-width: 33ch; }
+.about__stats { display: flex; gap: clamp(2rem, 4vw, 3.5rem); margin: 2.1rem 0 2.2rem; padding-top: 1.2rem; border-top: 1px solid var(--hairline); flex-wrap: wrap; }
+.about__stat { min-width: 7rem; }
+.about__stat .n { font-family: var(--serif-display); font-size: 2.8rem; color: var(--cognac); line-height: 1; }
+.about__stat .l { font-size: 0.8rem; color: var(--ink-mute); letter-spacing: 0.06em; margin-top: 0.45rem; text-transform: uppercase; }
 .link-brass {
   display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600;
   color: var(--ink); border-bottom: 1px solid var(--border-brass); padding-bottom: 2px;
@@ -275,11 +279,30 @@ section { position: relative; }
 .link-brass svg { width: 16px; height: 16px; stroke-width: 2; }
 
 /* ---- Reviews ----------------------------------------------------------- */
-.reviews { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(1rem, 2vw, 1.6rem); }
+.reviews-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1.5rem 3rem;
+  margin-bottom: clamp(2rem, 4vw, 3rem);
+}
+.reviews-head__copy { max-width: 44ch; }
+.reviews-head h2 { font-size: clamp(2.15rem, 3vw, 3.25rem); line-height: 1.06; }
+.reviews-head__note {
+  max-width: 30ch;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--step-small);
+  line-height: 1.65;
+  text-align: right;
+}
+.reviews { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(1.1rem, 2vw, 1.8rem); }
 .review {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 2rem 1.9rem; display: flex; flex-direction: column; gap: 1.1rem;
+  border-radius: var(--radius-lg); padding: 2.2rem 2rem; display: flex; flex-direction: column; gap: 1.15rem;
+  box-shadow: var(--shadow-sm); transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
+.review:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--border-brass); }
 .review__stars { color: var(--brass); letter-spacing: 0.12em; font-size: 0.95rem; }
 .review__quote { font-family: var(--serif-display); font-style: italic; font-size: 1.22rem;
   line-height: 1.4; color: var(--ink); margin: 0; }
@@ -327,6 +350,8 @@ section { position: relative; }
   .transforms, .reviews { grid-template-columns: 1fr; }
   .about, .footer__grid { grid-template-columns: 1fr; }
   .footer__grid { gap: 2rem; }
+  .reviews-head { flex-direction: column; align-items: start; }
+  .reviews-head__note { text-align: left; }
 }
 /* Tablet: hide phone number in nav (goes to sticky bar), keep links */
 @media (max-width: 860px) {
@@ -439,6 +464,19 @@ section { position: relative; }
 
   .gallery {
     gap: clamp(1.25rem, 1.8vw, 2.2rem);
+  }
+
+  .about {
+    grid-template-columns: 0.82fr 1.18fr;
+    gap: clamp(3rem, 5vw, 6rem);
+  }
+
+  .about__media img {
+    height: clamp(420px, 34vw, 600px);
+  }
+
+  .reviews {
+    gap: clamp(1.25rem, 1.8vw, 2rem);
   }
 }
 

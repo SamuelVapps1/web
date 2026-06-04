@@ -162,8 +162,11 @@ export default function Home() {
                   <Photo src={homeStory} alt="Laura pri práci v salóne" width={600} height={500} placeholder="" sizes="(max-width: 1060px) 100vw, 50vw" />
                 </div>
                 <div className="about__body">
-                  <div className="sec-head__eyebrow">
-                    <span className="eyebrow">Príbeh</span>
+                  <div className="about__intro">
+                    <div className="sec-head__eyebrow">
+                      <span className="eyebrow">Príbeh</span>
+                    </div>
+                    <p className="about__kicker">Rodinný salón s rukopisom, ktorý sa nemení.</p>
                   </div>
                   <h2>Tridsať rokov za jedným stolom</h2>
                   <p className="about__lead lead">
@@ -198,11 +201,14 @@ export default function Home() {
         <section className="section">
           <div className="wrap">
             <RevealOnScroll>
-              <div className="sec-head">
-                <div className="sec-head__eyebrow">
-                  <span className="eyebrow">Recenzie</span>
+              <div className="reviews-head">
+                <div className="reviews-head__copy">
+                  <div className="sec-head__eyebrow">
+                    <span className="eyebrow">Recenzie</span>
+                  </div>
+                  <h2>Chodia k nám roky. Niektorí desaťročia.</h2>
                 </div>
-                <h2>Chodia k nám roky. Niektorí desaťročia.</h2>
+                <p className="reviews-head__note">Skutočné spätné väzby od ľudí, ktorí sa vracajú pravidelne a odporúčajú nás ďalej.</p>
               </div>
             </RevealOnScroll>
             <div className="reviews">
