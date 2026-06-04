@@ -394,6 +394,22 @@ section { position: relative; }
   .badge { width: 92px; height: 92px; bottom: -18px; left: -14px; }
 }
 
+@media (min-width: 1600px) {
+  :root {
+    --site-max-width: 1440px;
+    --site-max-width-narrow: 1280px;
+    --site-pad-inline: clamp(1.25rem, 2vw, 2.5rem);
+  }
+
+  .hero {
+    gap: clamp(3rem, 4vw, 7rem);
+  }
+
+  .gallery {
+    gap: clamp(1.25rem, 1.8vw, 2.2rem);
+  }
+}
+
 /* ---- Photo placeholder --------------------------------------------------- */
 .photo-placeholder {
   width: 100%;
