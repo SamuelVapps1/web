@@ -413,10 +413,11 @@ section { position: relative; }
 /* ---- Gallery grid ------------------------------------------------------ */
 .gallery {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(0.8rem, 1.5vw, 1.4rem);
   align-items: start;
 }
+@media (max-width: 1200px) { .gallery { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 900px)  { .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px)  { .gallery { grid-template-columns: 1fr; } }
 
