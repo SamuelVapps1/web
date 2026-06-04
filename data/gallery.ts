@@ -11,8 +11,8 @@ function galleryPaths(n: number) {
   const id = String(n).padStart(2, '0');
   return {
     id,
-    before: `/images/galeria/${id}-before.jpg`,
-    after: `/images/galeria/${id}-after.jpg`,
+    before: `/images/galeria/${id}-before.jpeg`,
+    after: `/images/galeria/${id}-after.jpeg`,
   };
 }
 
