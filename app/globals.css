@@ -65,6 +65,11 @@
   /* ---- Motion ---------------------------------------------------------- */
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --dur:  0.45s;
+
+  /* ---- Layout widths --------------------------------------------------- */
+  --site-max-width: 1320px;
+  --site-max-width-narrow: 1200px;
+  --site-pad-inline: clamp(1rem, 2.5vw, 2rem);
 }
 
 /* =========================================================================
@@ -161,8 +166,8 @@ a:hover { color: var(--cognac-deep); }
 .btn--full { width: 100%; }
 
 /* ---- Layout containers -------------------------------------------------- */
-.wrap { max-width: 1140px; margin: 0 auto; padding-inline: clamp(1.25rem, 4vw, 3rem); }
-.wrap--narrow { max-width: 1080px; }
+.wrap { max-width: var(--site-max-width); margin: 0 auto; padding-inline: var(--site-pad-inline); }
+.wrap--narrow { max-width: var(--site-max-width-narrow); }
 
 section { position: relative; }
 .section { padding-block: clamp(4rem, 8vw, 8rem); }
@@ -183,8 +188,8 @@ section { position: relative; }
 /* ---- Top bar (shared) -------------------------------------------------- */
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 1.4rem clamp(1.25rem, 4vw, 3rem);
-  max-width: 1140px; margin: 0 auto;
+  padding: 1.4rem var(--site-pad-inline);
+  max-width: var(--site-max-width); margin: 0 auto;
   position: relative; z-index: 20;
 }
 .wordmark { display: flex; flex-direction: column; line-height: 1; text-decoration: none; }
@@ -343,8 +348,8 @@ section { position: relative; }
 
 /* ---- Page header styles ------------------------------------------------ */
 .pagehead {
-  max-width: 1140px; margin: 0 auto;
-  padding: clamp(2.5rem, 5vw, 4.5rem) clamp(1.25rem, 4vw, 3rem) clamp(1.5rem, 3vw, 2.5rem);
+  max-width: var(--site-max-width); margin: 0 auto;
+  padding: clamp(2.5rem, 5vw, 4.5rem) var(--site-pad-inline) clamp(1.5rem, 3vw, 2.5rem);
   text-align: center;
 }
 .pagehead__eyebrow { display: inline-flex; align-items: center; gap: 0.85rem; margin-bottom: 1.4rem; }
@@ -352,8 +357,9 @@ section { position: relative; }
 .pagehead .lead { max-width: 46ch; margin-inline: auto; }
 
 /* ---- Hero (locked) ------------------------------------------------------ */
-.hero { max-width: 1140px; margin: 0 auto;
-  padding: clamp(2rem, 5vw, 4.5rem) clamp(1.5rem, 5vw, 5rem) clamp(3rem, 6vw, 6rem);
+.hero {
+  max-width: var(--site-max-width); margin: 0 auto;
+  padding: clamp(2rem, 5vw, 4.5rem) var(--site-pad-inline) clamp(3rem, 6vw, 6rem);
   display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
   gap: clamp(2.5rem, 5vw, 6rem); align-items: center; }
 .hero__eyebrow { display: inline-flex; align-items: center; gap: 0.85rem; margin-bottom: 1.8rem; }
@@ -414,7 +420,7 @@ section { position: relative; }
 .gallery {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: clamp(1rem, 1.8vw, 1.8rem);
+  gap: clamp(1.15rem, 2vw, 2.1rem);
   align-items: start;
 }
 @media (max-width: 1200px) { .gallery { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
@@ -424,7 +430,7 @@ section { position: relative; }
 .g-item {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 1rem;
   cursor: pointer;
   /* button reset */
   width: 100%;
@@ -442,9 +448,9 @@ section { position: relative; }
   grid-template-columns: 1fr 1fr;
   gap: 4px;
   background: var(--brass-soft);
-  padding: 4px;
+  padding: 5px;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
   transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
@@ -474,10 +480,10 @@ section { position: relative; }
 .g-zoom svg { width: 16px; height: 16px; stroke-width: 2; }
 
 .g-item__caption {
-  display: flex; flex-direction: column; gap: 0.25rem; padding-inline: 0.15rem;
+  display: flex; flex-direction: column; gap: 0.3rem; padding-inline: 0.2rem;
 }
-.g-item__breed { font-family: var(--serif-display); font-size: 1.04rem; color: var(--ink); line-height: 1.15; }
-.g-item__case  { font-size: 0.78rem; color: var(--ink-mute); letter-spacing: 0.02em; }
+.g-item__breed { font-family: var(--serif-display); font-size: 1.08rem; color: var(--ink); line-height: 1.15; }
+.g-item__case  { font-size: 0.8rem; color: var(--ink-mute); letter-spacing: 0.02em; }
 
 @media (max-width: 560px) {
   .g-item__pair {
@@ -607,9 +613,9 @@ section { position: relative; }
 
 /* ---- Cennik menu card --------------------------------------------------- */
 .menu-wrap {
-  max-width: 680px;
+  max-width: 900px;
   margin: 0 auto;
-  padding-inline: clamp(1.25rem, 4vw, 3rem);
+  padding-inline: var(--site-pad-inline);
   padding-bottom: clamp(3rem, 6vw, 6rem);
 }
 
