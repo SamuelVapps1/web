@@ -6,27 +6,28 @@ export interface Review {
   source: string;
 }
 
-// Copy reproduced verbatim z Claude Design exportu (index.html).
-// Samuel: pred publikovaním over, že sú to reálne Google recenzie / súhlas autorov.
 export const REVIEWS: Review[] = [
   {
     id: 'r1',
-    quote: 'Chodíme k nej už 13 rokov. Náš pes sa inde triasol — tu je pokojný a vždy nádherne ostrihaný.',
-    name: 'Martina K.',
+    quote:
+      'Vrelo odporúčam. Bola som tam so psíkom prvýkrát ale určite budeme navštevovať častejšie. Milí ústretoví zamestnanci, obchod má široký sortiment, rýchle objednanie a strihanie psa presne podľa predstáv. Naozaj veľká vďaka',
+    name: 'Martina Vrlabova',
     initials: 'M',
     source: 'Google recenzia',
   },
   {
     id: 'r2',
-    quote: 'Náš kólia má veľmi náročnú srsť. Laura to zvládla za jedno popoludnie a pes bol počas celého strihu pokojný.',
-    name: 'Peter V.',
+    quote:
+      'Veľmi príjemný personál. Maximálne sa venujú Vášmu miláčikovi. Psík od nich vždy odchádza nádherne ostrihaný. Majú široký výber cez jedlo, pamlsky, obojky, oblečenie a hračky a to aj pre mačičky, hlodavce a vtáčiky. VRELO odporúča',
+    name: 'Ivana Králiková',
     initials: 'P',
     source: 'Google recenzia',
   },
   {
     id: 'r3',
-    quote: 'Profesionálka starej školy. Žiadne reči, len výsledok. Náš senior je u nej v dobrých rukách.',
-    name: 'Zuzana H.',
+    quote:
+      'Malá predajňa úplne narávaná tovarom pre domácich miláčikov a salón k tomu. Za veľmi slušné peniaze všetko možné, ak nemajú tak ochotne objednajú za ceny ktoré sú jednoducho super.',
+    name: 'Branislav Zajiček',
     initials: 'Z',
     source: 'Google recenzia',
   },
