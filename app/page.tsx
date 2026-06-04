@@ -117,8 +117,8 @@ export default function Home() {
         <section className="section">
           <div className="wrap">
             <RevealOnScroll>
-              <div className="sec-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', maxWidth: 'none', flexWrap: 'wrap', gap: '1.5rem' }}>
-                <div style={{ maxWidth: '46ch' }}>
+              <div className="premeny-head">
+                <div className="premeny-head__copy">
                   <div className="sec-head__eyebrow">
                     <span className="eyebrow">Premeny</span>
                   </div>
@@ -129,10 +129,10 @@ export default function Home() {
                 </Link>
               </div>
             </RevealOnScroll>
-            <div className="transforms">
+            <div className="transforms transforms--editorial">
               {galleryTeaser.map((item) => (
                 <RevealOnScroll key={item.id}>
-                  <div className="transform">
+                  <div className="transform transform--editorial">
                     <div className="transform__pair">
                       <div className="transform__cell">
                         <Photo src={item.before} alt={galleryAlt(item)} width={400} height={290} placeholder="" sizes="(max-width: 680px) 100vw, 33vw" />
