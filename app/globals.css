@@ -402,7 +402,39 @@ section { position: relative; }
   }
 
   .hero {
-    gap: clamp(3rem, 4vw, 7rem);
+    grid-template-columns: minmax(0, 0.84fr) minmax(0, 1.16fr);
+    gap: clamp(4rem, 5vw, 8rem);
+    padding-top: clamp(2.5rem, 4vw, 5rem);
+    padding-bottom: clamp(4rem, 6vw, 7rem);
+  }
+
+  .hero__title {
+    font-size: clamp(3.2rem, 4.4vw, 5.3rem);
+    max-width: 12ch;
+  }
+
+  .hero__lead {
+    max-width: 30ch;
+    font-size: 1.1rem;
+  }
+
+  .hero__cta {
+    margin-bottom: 3rem;
+  }
+
+  .proof {
+    gap: 1.15rem;
+  }
+
+  .diptych img {
+    height: clamp(460px, 34vw, 660px);
+  }
+
+  .badge {
+    width: 132px;
+    height: 132px;
+    bottom: -32px;
+    left: -32px;
   }
 
   .gallery {
