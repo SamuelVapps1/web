@@ -406,35 +406,6 @@ section { position: relative; }
 .pagehead__eyebrow { display: inline-flex; align-items: center; gap: 0.85rem; margin-bottom: 1.4rem; }
 .pagehead__eyebrow::before { content: ""; width: 34px; height: 1px; background: var(--brass); }
 .pagehead .lead { max-width: 46ch; margin-inline: auto; }
-.gallery-meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.9rem;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 1.2rem;
-  font-size: var(--step-small);
-  color: var(--ink-soft);
-}
-.gallery-meta__count {
-  font-weight: 600;
-  color: var(--ink);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.gallery-meta__note {
-  position: relative;
-  padding-left: 0.9rem;
-}
-.gallery-meta__note::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.55em;
-  width: 0.35rem;
-  height: 1px;
-  background: var(--brass);
-}
 
 /* ---- Hero (locked) ------------------------------------------------------ */
 .hero {

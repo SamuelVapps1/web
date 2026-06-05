@@ -24,10 +24,6 @@ export default function Galeria() {
           </div>
           <h1>Galéria</h1>
           <p className="lead">Tridsať rokov za nožnicami. Pozrite sa.</p>
-          <div className="gallery-meta">
-            <span className="gallery-meta__count">{GALLERY_ITEMS.length} premien</span>
-            <span className="gallery-meta__note">Pred a po v poradí, v akom sa objavujú na stránke.</span>
-          </div>
         </header>
 
         <div className="wrap">
