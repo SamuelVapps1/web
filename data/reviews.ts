@@ -13,7 +13,7 @@ export const REVIEWS: Review[] = [
       'Vrelo odporúčam. Bola som tam so psíkom prvýkrát ale určite budeme navštevovať častejšie. Milí ústretoví zamestnanci, obchod má široký sortiment, rýchle objednanie a strihanie psa presne podľa predstáv. Naozaj veľká vďaka',
     name: 'Martina V.',
     initials: 'M',
-    source: 'Google recenzia',
+    source: 'Google',
   },
   {
     id: 'r2',
@@ -21,7 +21,7 @@ export const REVIEWS: Review[] = [
       'Veľmi príjemný personál. Maximálne sa venujú Vášmu miláčikovi. Psík od nich vždy odchádza nádherne ostrihaný. Majú široký výber cez jedlo, pamlsky, obojky, oblečenie a hračky a to aj pre mačičky, hlodavce a vtáčiky. VRELO odporúčam',
     name: 'Ivana K.',
     initials: 'P',
-    source: 'Google recenzia',
+    source: 'Google',
   },
   {
     id: 'r3',
@@ -29,6 +29,6 @@ export const REVIEWS: Review[] = [
       'Malá predajňa úplne narvaná tovarom pre domácich miláčikov a salón k tomu. Za veľmi slušné peniaze všetko možné, ak nemajú tak ochotne objednajú za ceny ktoré sú jednoducho super.',
     name: 'Branislav Z.',
     initials: 'Z',
-    source: 'Google recenzia',
+    source: 'Google',
   },
 ];
