@@ -164,7 +164,13 @@ export default function GalleryLightbox({ items }: GalleryLightboxProps) {
               <span className="lb__breed">{current.breed}</span>
               <span className="lb__case">{current.case}</span>
             </div>
-            <div className="lb__swipe-hint" aria-hidden="true"></div>
+            <div className="lb__hints" aria-hidden="true">
+              <div className="lb__swipe-hint"></div>
+              <div className="lb__hint-row">
+                <span>Potiahnite pre ďalšiu fotku</span>
+                <span>Esc zatvorí galériu</span>
+              </div>
+            </div>
           </div>
         </div>
       )}

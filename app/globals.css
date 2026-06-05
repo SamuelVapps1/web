@@ -808,7 +808,7 @@ section { position: relative; }
 
 .lb__nav {
   position: fixed; top: 50%; transform: translateY(-50%);
-  width: 48px; height: 48px; border-radius: 50%;
+  width: 52px; height: 52px; border-radius: 50%;
   border: 1px solid rgba(246,241,231,0.28); background: rgba(17,15,12,0.6);
   color: var(--cream); display: grid; place-items: center;
   cursor: pointer; transition: border-color var(--dur) var(--ease); z-index: 110;
@@ -817,6 +817,27 @@ section { position: relative; }
 .lb__nav svg { width: 22px; height: 22px; stroke-width: 1.6; }
 .lb__nav--prev { left: clamp(0.5rem, 1.5vw, 1.2rem); }
 .lb__nav--next { right: clamp(0.5rem, 1.5vw, 1.2rem); }
+
+.lb__hints {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+  color: rgba(246,241,231,0.55);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+.lb__hint-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.lb__swipe-hint {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: rgba(246,241,231,0.28);
+}
 
 @media (max-width: 640px) {
   .lb {
@@ -842,13 +863,20 @@ section { position: relative; }
   .lb__cell:last-child  { border-radius: 0 0 calc(var(--radius-sm) - 1px) calc(var(--radius-sm) - 1px); }
   .lb__nav { display: none; }
   .lb__close { top: 0.7rem; right: 0.8rem; width: 40px; height: 40px; }
-  .lb__swipe-hint {
-    width: 36px; height: 4px; border-radius: 2px;
-    background: rgba(246,241,231,0.25); margin: 0 auto 1.2rem;
+  .lb__hints {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    margin-top: 0.9rem;
+  }
+  .lb__hint-row {
+    justify-content: flex-start;
+    gap: 0.35rem 0.8rem;
+    font-size: 0.72rem;
   }
 }
 @media (min-width: 641px) {
-  .lb__swipe-hint { display: none; }
+  .lb__hints { display: none; }
 }
 
 /* ---- Cennik menu card --------------------------------------------------- */
