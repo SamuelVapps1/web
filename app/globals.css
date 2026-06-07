@@ -701,6 +701,9 @@ section { position: relative; }
     grid-template-columns: 1fr;
     gap: 2px;
   }
+  .g-item__cell {
+    aspect-ratio: 4 / 5;
+  }
   .g-item__cell:first-child {
     border-radius: calc(var(--radius-sm) - 1px) calc(var(--radius-sm) - 1px) 0 0;
   }
@@ -708,7 +711,7 @@ section { position: relative; }
     border-radius: 0 0 calc(var(--radius-sm) - 1px) calc(var(--radius-sm) - 1px);
   }
   .g-item__cell img {
-    height: clamp(200px, 54vw, 280px) !important;
+    height: 100% !important;
   }
   .g-item:hover .g-item__pair {
     transform: none;
