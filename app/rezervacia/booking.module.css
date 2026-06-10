@@ -193,7 +193,7 @@
 .weekdayRow,
 .dayGrid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.45rem;
 }
 
@@ -236,6 +236,10 @@
   cursor: not-allowed;
 }
 
+.dayPlaceholder {
+  min-height: 4.4rem;
+}
+
 .dayNumber {
   font-size: 1rem;
   font-weight: 700;
@@ -272,12 +276,35 @@
   padding: 0.75rem 0.7rem;
   cursor: pointer;
   font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 4rem;
+  text-align: center;
 }
 
 .slotButtonSelected {
   background: var(--cognac);
   color: var(--cream);
   border-color: var(--cognac);
+}
+
+.slotButtonBusy {
+  opacity: 0.45;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.slotButtonTime {
+  font-size: 1rem;
+}
+
+.slotButtonState {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .fieldGrid {
@@ -407,7 +434,7 @@
 
 .sizeGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 0.8rem;
 }
 

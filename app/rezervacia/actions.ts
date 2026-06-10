@@ -2,14 +2,21 @@
 
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { localDateTimeToUtc } from '@/lib/time';
 import { getPrisma } from '@/lib/prisma';
 import {
+  BOOKING_ADDONS,
+  BOOKING_CUT_TYPES,
   BOOKING_PHONE_PATTERN,
-  buildBookingStart,
-  getAllowedBookingTimes,
+  BOOKING_SIZE_OPTIONS,
+  estimateReservationDurationMin,
+  getOpenBookingSlots,
   isBookingDateAllowed,
   normalizeBookingPhone,
   normalizeBookingText,
+  type BookingAddonCode,
+  type CutType,
+  type DogSize,
 } from '@/lib/booking';
 
 export type BookingSubmitState =
@@ -63,11 +70,22 @@ function getDistinctValues(values: string[]): string[] {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
+function isDogSize(value: string): value is DogSize {
+  return BOOKING_SIZE_OPTIONS.some((option) => option.value === value);
+}
+
+function isCutType(value: string): value is CutType {
+  return BOOKING_CUT_TYPES.some((option) => option.value === value);
+}
+
+function isBookingAddonCode(value: string): value is BookingAddonCode {
+  return BOOKING_ADDONS.some((addon) => addon.code === value);
+}
+
 export async function submitBooking(
   _previousState: BookingSubmitState,
   formData: FormData,
 ): Promise<BookingSubmitState> {
-  const prisma = getPrisma();
   const honeypot = normalizeBookingText(formData.get('company'));
 
   if (honeypot) {
@@ -80,13 +98,16 @@ export async function submitBooking(
   const dogNote = normalizeBookingText(formData.get('dogNote'));
   const selectedDate = normalizeBookingText(formData.get('selectedDate'));
   const selectedTime = normalizeBookingText(formData.get('selectedTime'));
+  const cutType = normalizeBookingText(formData.get('cutType'));
   const customerName = normalizeBookingText(formData.get('customerName'));
   const customerPhone = normalizeBookingPhone(normalizeBookingText(formData.get('customerPhone')));
   const customerEmail = normalizeBookingText(formData.get('customerEmail'));
-  const customerMessage = normalizeBookingText(formData.get('customerMessage'));
   const sourceCode = normalizeBookingText(formData.get('sourceCode')) || null;
-  const selectedServiceNames = getDistinctValues(
+  const rawAddonCodes = getDistinctValues(
     formData.getAll('serviceIds').map((value) => normalizeBookingText(value)),
+  );
+  const selectedAddonCodes = rawAddonCodes.filter((value): value is BookingAddonCode =>
+    isBookingAddonCode(value),
   );
 
   if (
@@ -95,15 +116,23 @@ export async function submitBooking(
     !dogSize ||
     !selectedDate ||
     !selectedTime ||
+    !cutType ||
     !customerName ||
-    !customerPhone ||
-    selectedServiceNames.length === 0
+    !customerPhone
   ) {
     return { status: 'error', message: 'Skontrolujte, či sú vyplnené všetky povinné polia.' };
   }
 
   if (!BOOKING_PHONE_PATTERN.test(customerPhone)) {
     return { status: 'error', message: 'Telefón nie je v správnom formáte.' };
+  }
+
+  if (!isDogSize(dogSize) || !isCutType(cutType)) {
+    return { status: 'error', message: 'Skontrolujte, či sú vyplnené všetky povinné polia.' };
+  }
+
+  if (rawAddonCodes.length !== selectedAddonCodes.length) {
+    return { status: 'error', message: 'Vybrané doplnky už nie sú dostupné.' };
   }
 
   const headerStore = await headers();
@@ -117,26 +146,17 @@ export async function submitBooking(
     return { status: 'error', message: 'Na tento telefón sme už prijali viac žiadostí. Skúste to neskôr.' };
   }
 
-  const services = await prisma.service.findMany({
-    where: {
-      name: {
-        in: selectedServiceNames,
-      },
-    },
-  });
-
-  if (services.length !== selectedServiceNames.length) {
-    return { status: 'error', message: 'Vybrané služby už nie sú dostupné.' };
+  if (!isBookingDateAllowed(selectedDate)) {
+    return { status: 'error', message: 'Vybraný termín nie je v povolenom rozsahu.' };
   }
 
-  const durationMin = services.reduce((total, service) => total + service.baseDurationMin, 0);
-  const availableTimes = getAllowedBookingTimes(selectedDate, durationMin);
-
-  if (!isBookingDateAllowed(selectedDate) || !availableTimes.includes(selectedTime)) {
-    return { status: 'error', message: 'Vybraný termín už nie je dostupný.' };
+  if (!getOpenBookingSlots(selectedDate).includes(selectedTime)) {
+    return { status: 'error', message: 'Vybraný čas nie je v povolenom rozsahu.' };
   }
 
-  const requestedStart = buildBookingStart(selectedDate, selectedTime);
+  const prisma = getPrisma();
+  const requestedStart = localDateTimeToUtc(selectedDate, selectedTime);
+  const durationMin = estimateReservationDurationMin(dogSize, cutType, selectedAddonCodes);
 
   try {
     await prisma.$transaction(async (transaction) => {
@@ -155,7 +175,6 @@ export async function submitBooking(
               name: customerName,
               phone: customerPhone,
               email: customerEmail || existingCustomer.email,
-              note: customerMessage || existingCustomer.note,
             },
           })
         : await transaction.customer.create({
@@ -163,7 +182,7 @@ export async function submitBooking(
               name: customerName,
               phone: customerPhone,
               email: customerEmail || null,
-              note: customerMessage || null,
+              note: null,
             },
           });
 
@@ -172,24 +191,30 @@ export async function submitBooking(
           customerId: customer.id,
           name: dogName,
           breed: dogBreed || null,
-          size: dogSize as 'SMALL' | 'MEDIUM' | 'LARGE',
+          size: dogSize,
           temperamentNote: dogNote || null,
           healthNote: null,
         },
       });
 
-      await transaction.reservation.create({
+      const reservation = await transaction.reservation.create({
         data: {
           dogId: dog.id,
-          serviceIds: selectedServiceNames,
+          serviceIds: selectedAddonCodes,
           status: 'PENDING',
           requestedStart,
           durationMin,
-          customerMessage: customerMessage || null,
+          customerMessage: null,
           internalNote: null,
           sourceCode,
         },
       });
+
+      await transaction.$executeRaw`
+        UPDATE "Reservation"
+        SET "cutType" = ${cutType}
+        WHERE "id" = ${reservation.id}
+      `;
     });
 
     revalidatePath('/rezervacia');

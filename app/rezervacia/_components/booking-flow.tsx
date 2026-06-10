@@ -1,27 +1,38 @@
 'use client';
 
-import { useActionState, useMemo, useState } from 'react';
+import { useActionState, useEffect, useMemo, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { submitBooking, type BookingSubmitState } from '../actions';
 import styles from '../booking.module.css';
 import {
+  BOOKING_ADDONS,
+  BOOKING_CUT_TYPES,
   BOOKING_PHONE_PATTERN,
-  DOG_SIZE_OPTIONS,
-  findMatchingGroomingServiceName,
+  BOOKING_SIZE_OPTIONS,
+  estimateReservationPrice,
   formatBookingCurrency,
   formatBookingDate,
-  getAllowedBookingTimes,
+  formatBookingMonthLabel,
+  getAddonPriceTotal,
+  getBasePriceForSize,
   getBookingMinDateKey,
-  getGroomingSizeFromServiceName,
-  type BookingServiceRecord,
+  getCutTypeRecord,
+  getFreeBookingSlots,
+  getOpenBookingSlots,
+  getSelectedAddonRecords,
+  isBookingDateAllowed,
+  isBookingDayBusy,
+  isBookingSlotBusy,
+  type BookingAddonCode,
+  type BookingBusyInterval,
+  type CutType,
   type DogSize,
 } from '@/lib/booking';
-
-type BookingFlowProps = {
-  services: readonly BookingServiceRecord[];
-};
+import { getBratislavaDateKey, getBratislavaWeekdayIndex } from '@/lib/time';
 
 type StepKey = 1 | 2 | 3 | 4;
+
+type CalendarCell = string | null;
 
 const STEP_DEFINITIONS = [
   {
@@ -32,12 +43,12 @@ const STEP_DEFINITIONS = [
   {
     step: 2,
     title: 'Služby',
-    hint: 'Vyberieme základ a doplnky.',
+    hint: 'Typ strihu a doplnky.',
   },
   {
     step: 3,
-    title: 'Termín',
-    hint: 'Pracovné dni a voľné časy.',
+    title: 'Preferovaný termín',
+    hint: 'Vyberiete deň a čas.',
   },
   {
     step: 4,
@@ -46,39 +57,88 @@ const STEP_DEFINITIONS = [
   },
 ] as const;
 
+const WEEKDAY_LABELS = ['Po', 'Ut', 'St', 'Št', 'Pi'] as const;
+
 const INITIAL_STATE: BookingSubmitState = { status: 'idle' };
 
-function getServiceRank(service: BookingServiceRecord): number {
-  const normalized = service.name
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase();
+function pad2(value: number): string {
+  return value.toString().padStart(2, '0');
+}
 
-  if (normalized.startsWith('strihanie maly')) {
-    return 0;
+function parseDateKey(dateKey: string): Date {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+}
+
+function getMonthAnchorKey(dateKey: string): string {
+  return `${dateKey.slice(0, 7)}-01`;
+}
+
+function addMonthsToMonthAnchorKey(monthAnchorKey: string, delta: number): string {
+  const next = parseDateKey(monthAnchorKey);
+  next.setUTCMonth(next.getUTCMonth() + delta);
+  return `${next.getUTCFullYear()}-${pad2(next.getUTCMonth() + 1)}-01`;
+}
+
+function getMonthRange(monthAnchorKey: string): { from: string; to: string } {
+  const start = parseDateKey(monthAnchorKey);
+  const end = new Date(start);
+  end.setUTCMonth(end.getUTCMonth() + 1);
+  end.setUTCDate(0);
+
+  return {
+    from: monthAnchorKey,
+    to: getBratislavaDateKey(end),
+  };
+}
+
+function buildCalendarRows(monthAnchorKey: string): CalendarCell[][] {
+  const monthStart = parseDateKey(monthAnchorKey);
+  const firstDayWeekday = getBratislavaWeekdayIndex(monthStart);
+  const monthStartWeek = new Date(monthStart);
+
+  if (firstDayWeekday === 0) {
+    monthStartWeek.setUTCDate(monthStartWeek.getUTCDate() + 1);
+  } else {
+    monthStartWeek.setUTCDate(monthStartWeek.getUTCDate() - (firstDayWeekday - 1));
   }
 
-  if (normalized.startsWith('strihanie stredny')) {
-    return 1;
+  const monthEnd = new Date(monthStart);
+  monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
+  monthEnd.setUTCDate(0);
+  const lastDayWeekday = getBratislavaWeekdayIndex(monthEnd);
+  const monthEndWeek = new Date(monthEnd);
+
+  if (lastDayWeekday === 0) {
+    monthEndWeek.setUTCDate(monthEndWeek.getUTCDate() - 2);
+  } else if (lastDayWeekday === 6) {
+    monthEndWeek.setUTCDate(monthEndWeek.getUTCDate() - 1);
+  } else if (lastDayWeekday < 5) {
+    monthEndWeek.setUTCDate(monthEndWeek.getUTCDate() + (5 - lastDayWeekday));
   }
 
-  if (normalized.startsWith('strihanie velky')) {
-    return 2;
+  const rows: CalendarCell[][] = [];
+  for (
+    let weekStart = new Date(monthStartWeek);
+    weekStart <= monthEndWeek;
+    weekStart.setUTCDate(weekStart.getUTCDate() + 7)
+  ) {
+    const row: CalendarCell[] = [];
+
+    for (let offset = 0; offset < 5; offset += 1) {
+      const cellDate = new Date(weekStart);
+      cellDate.setUTCDate(cellDate.getUTCDate() + offset);
+      const dateKey = getBratislavaDateKey(cellDate);
+      const weekday = getBratislavaWeekdayIndex(cellDate);
+      const isInMonth = dateKey.startsWith(monthAnchorKey.slice(0, 7));
+
+      row.push(weekday >= 1 && weekday <= 5 && isInMonth ? dateKey : null);
+    }
+
+    rows.push(row);
   }
 
-  if (normalized.startsWith('kupanie')) {
-    return 3;
-  }
-
-  if (normalized.startsWith('pazuriky')) {
-    return 4;
-  }
-
-  if (normalized.startsWith('cistenie usi')) {
-    return 5;
-  }
-
-  return 99;
+  return rows;
 }
 
 function Stepper({
@@ -98,7 +158,7 @@ function Stepper({
           <button
             key={item.step}
             type="button"
-            className={`${styles.stepperButton}`}
+            className={styles.stepperButton}
             onClick={() => onNavigate(item.step as StepKey)}
           >
             <span
@@ -133,33 +193,21 @@ function SubmitButton() {
   );
 }
 
-export function BookingFlow({ services }: BookingFlowProps) {
-  const orderedServices = useMemo(
-    () => [...services].sort((left, right) => getServiceRank(left) - getServiceRank(right)),
-    [services],
-  );
+function getOrderedAddonCodes(codes: BookingAddonCode[]): BookingAddonCode[] {
+  return BOOKING_ADDONS.map((addon) => addon.code).filter((code) => codes.includes(code));
+}
 
-  const groomingServiceNames = useMemo(
-    () =>
-      new Set(
-        orderedServices
-          .filter((service) => getGroomingSizeFromServiceName(service.name))
-          .map((service) => service.name),
-      ),
-    [orderedServices],
-  );
-
+export function BookingFlow() {
   const minDateKey = getBookingMinDateKey();
+  const initialMonthAnchor = getMonthAnchorKey(minDateKey);
 
   const [step, setStep] = useState<StepKey>(1);
   const [dogName, setDogName] = useState('');
   const [dogBreed, setDogBreed] = useState('');
   const [dogSize, setDogSize] = useState<DogSize>('SMALL');
   const [dogNote, setDogNote] = useState('');
-  const [selectedServiceNames, setSelectedServiceNames] = useState<string[]>(() => {
-    const baseServiceName = findMatchingGroomingServiceName(orderedServices, 'SMALL');
-    return baseServiceName ? [baseServiceName] : orderedServices.slice(0, 1).map((service) => service.name);
-  });
+  const [selectedCutType, setSelectedCutType] = useState<CutType>('ADVICE');
+  const [selectedAddonCodes, setSelectedAddonCodes] = useState<BookingAddonCode[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(minDateKey);
   const [selectedTime, setSelectedTime] = useState('');
   const [customerName, setCustomerName] = useState('');
@@ -167,40 +215,115 @@ export function BookingFlow({ services }: BookingFlowProps) {
   const [customerEmail, setCustomerEmail] = useState('');
   const [company, setCompany] = useState('');
   const [clientError, setClientError] = useState<string | null>(null);
+  const [monthAnchorKey, setMonthAnchorKey] = useState(initialMonthAnchor);
+  const [busyIntervals, setBusyIntervals] = useState<BookingBusyInterval[]>([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(true);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
 
   const [state, formAction] = useActionState(submitBooking, INITIAL_STATE);
 
-  const baseServiceName = useMemo(
-    () => findMatchingGroomingServiceName(orderedServices, dogSize),
-    [orderedServices, dogSize],
+  const monthRange = useMemo(() => getMonthRange(monthAnchorKey), [monthAnchorKey]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let isActive = true;
+
+    async function loadAvailability() {
+      setAvailabilityLoading(true);
+      setAvailabilityError(null);
+
+      try {
+        const response = await fetch(
+          `/api/availability?from=${encodeURIComponent(monthRange.from)}&to=${encodeURIComponent(monthRange.to)}`,
+          { signal: controller.signal },
+        );
+
+        if (!response.ok) {
+          throw new Error(`Availability request failed with ${response.status}`);
+        }
+
+        const payload = (await response.json()) as unknown;
+
+        if (!Array.isArray(payload)) {
+          throw new Error('Invalid availability payload');
+        }
+
+        const intervals = payload.filter((item): item is BookingBusyInterval => {
+          if (!item || typeof item !== 'object') {
+            return false;
+          }
+
+          const record = item as Partial<BookingBusyInterval>;
+          return (
+            typeof record.date === 'string' &&
+            typeof record.start === 'string' &&
+            typeof record.end === 'string'
+          );
+        });
+
+        if (isActive) {
+          setBusyIntervals(intervals);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted && isActive) {
+          console.error('Failed to load booking availability:', error);
+          setBusyIntervals([]);
+          setAvailabilityError('Obsadenosť sa nepodarilo načítať.');
+        }
+      } finally {
+        if (!controller.signal.aborted && isActive) {
+          setAvailabilityLoading(false);
+        }
+      }
+    }
+
+    void loadAvailability();
+
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
+  }, [monthRange.from, monthRange.to]);
+
+  const calendarRows = useMemo(() => buildCalendarRows(monthAnchorKey), [monthAnchorKey]);
+  const openSlots = useMemo(() => getOpenBookingSlots(selectedDate), [selectedDate]);
+  const freeSlots = useMemo(
+    () => getFreeBookingSlots(selectedDate, busyIntervals),
+    [busyIntervals, selectedDate],
+  );
+  const selectedDayBusy = useMemo(
+    () => isBookingDayBusy(selectedDate, busyIntervals),
+    [busyIntervals, selectedDate],
   );
 
-  const selectedServices = useMemo(
-    () => orderedServices.filter((service) => selectedServiceNames.includes(service.name)),
-    [orderedServices, selectedServiceNames],
+  const selectedAddonRecords = useMemo(
+    () => getSelectedAddonRecords(selectedAddonCodes),
+    [selectedAddonCodes],
+  );
+  const selectedCutTypeRecord = useMemo(
+    () => getCutTypeRecord(selectedCutType),
+    [selectedCutType],
+  );
+  const selectedSizeRecord = useMemo(
+    () => BOOKING_SIZE_OPTIONS.find((option) => option.value === dogSize) ?? BOOKING_SIZE_OPTIONS[0],
+    [dogSize],
   );
 
-  const totalPrice = useMemo(
-    () => selectedServices.reduce((total, service) => total + Number(service.basePrice), 0),
-    [selectedServices],
-  );
-
-  const totalDurationMin = useMemo(
-    () => selectedServices.reduce((total, service) => total + service.baseDurationMin, 0),
-    [selectedServices],
-  );
-
-  const availableTimes = useMemo(
-    () => getAllowedBookingTimes(selectedDate, totalDurationMin),
-    [selectedDate, totalDurationMin],
-  );
-
-  const requestedDateLabel = selectedDate ? formatBookingDate(selectedDate) : '—';
-  const requestedTimeLabel = selectedTime || '—';
-  const selectedServiceLabel =
-    selectedServices.length > 0
-      ? selectedServices.map((service) => service.name).join(', ')
-      : '—';
+  const basePrice = getBasePriceForSize(dogSize);
+  const addonPrice = getAddonPriceTotal(selectedAddonCodes);
+  const estimatedPrice = estimateReservationPrice(dogSize, selectedAddonCodes);
+  const selectedAddonLabel =
+    selectedAddonRecords.length > 0
+      ? selectedAddonRecords.map((addon) => addon.label).join(', ')
+      : 'Bez doplnkov';
+  const selectedDateLabel = selectedDate ? formatBookingDate(selectedDate) : '—';
+  const selectedTimeLabel = selectedTime || '—';
+  const monthLabel = formatBookingMonthLabel(monthAnchorKey);
+  const availabilityNote = availabilityLoading
+    ? 'Obsadenosť načítavame.'
+    : availabilityError
+      ? availabilityError
+      : 'Plne obsadené dni sú sivé a označené ako obsadené.';
 
   function canAdvanceFromStep(currentStep: StepKey): boolean {
     if (currentStep === 1) {
@@ -208,18 +331,20 @@ export function BookingFlow({ services }: BookingFlowProps) {
     }
 
     if (currentStep === 2) {
-      return selectedServiceNames.length > 0;
+      return Boolean(selectedCutType);
     }
 
     if (currentStep === 3) {
-      return Boolean(selectedDate) && Boolean(selectedTime) && availableTimes.includes(selectedTime);
+      return Boolean(selectedDate) && Boolean(selectedTime) && freeSlots.includes(selectedTime);
     }
 
     if (currentStep === 4) {
       return (
         customerName.trim().length > 0 &&
         BOOKING_PHONE_PATTERN.test(customerPhone.trim()) &&
-        selectedServiceNames.length > 0
+        Boolean(selectedDate) &&
+        Boolean(selectedTime) &&
+        Boolean(selectedCutType)
       );
     }
 
@@ -241,78 +366,24 @@ export function BookingFlow({ services }: BookingFlowProps) {
     setStep((current) => Math.max(1, current - 1) as StepKey);
   }
 
-  function setServicesAndValidateTime(nextServiceNames: string[]) {
-    const nextDuration = orderedServices.reduce((total, service) => {
-      return nextServiceNames.includes(service.name) ? total + service.baseDurationMin : total;
-    }, 0);
+  function handleToggleAddon(code: BookingAddonCode) {
+    setSelectedAddonCodes((current) => {
+      const next = current.includes(code)
+        ? current.filter((value) => value !== code)
+        : [...current, code];
 
-    const nextAvailableTimes = getAllowedBookingTimes(selectedDate, nextDuration);
-    if (selectedTime && !nextAvailableTimes.includes(selectedTime)) {
-      setSelectedTime('');
-    }
-
-    setSelectedServiceNames(nextServiceNames);
+      return getOrderedAddonCodes(next);
+    });
   }
 
-  function handleDogSizeChange(nextSize: DogSize) {
-    setDogSize(nextSize);
-    const nextBaseServiceName = findMatchingGroomingServiceName(orderedServices, nextSize);
-
-    const addonNames = selectedServiceNames.filter((name) => !groomingServiceNames.has(name));
-    const nextServiceNames = nextBaseServiceName
-      ? Array.from(new Set([nextBaseServiceName, ...addonNames]))
-      : addonNames;
-
-    setServicesAndValidateTime(nextServiceNames);
+  function handleSelectDay(dateKey: string) {
+    setSelectedDate(dateKey);
+    setSelectedTime('');
+    setMonthAnchorKey(getMonthAnchorKey(dateKey));
   }
 
-  function toggleAddon(serviceName: string) {
-    if (serviceName === baseServiceName) {
-      return;
-    }
-
-    const nextServiceNames = selectedServiceNames.includes(serviceName)
-      ? selectedServiceNames.filter((name) => name !== serviceName)
-      : [...selectedServiceNames, serviceName];
-
-    setServicesAndValidateTime(nextServiceNames);
-  }
-
-  function renderServiceCard(service: BookingServiceRecord) {
-    const groomingSize = getGroomingSizeFromServiceName(service.name);
-    const isBaseService = groomingSize !== null && service.name === baseServiceName;
-    const isLocked = groomingSize !== null && !isBaseService;
-    const isSelected = selectedServiceNames.includes(service.name);
-
-    return (
-      <label
-        key={service.name}
-        className={`${styles.serviceCard} ${isSelected ? styles.serviceCardSelected : ''} ${
-          isLocked ? styles.serviceCardLocked : ''
-        }`}
-      >
-        <input
-          className={styles.serviceInput}
-          type="checkbox"
-          name="serviceIds"
-          value={service.name}
-          checked={isSelected}
-          onChange={() => toggleAddon(service.name)}
-          disabled={isLocked}
-        />
-        <span className={styles.serviceCardCheck} aria-hidden="true" />
-        <span className={styles.serviceCardBody}>
-          <span className={styles.serviceCardTitle}>{service.name}</span>
-          <span className={styles.serviceCardMeta}>
-            {formatBookingCurrency(Number(service.basePrice))} · {service.baseDurationMin} min
-          </span>
-          {groomingSize && isBaseService ? (
-            <span className={styles.serviceCardNote}>Základ podľa veľkosti psa</span>
-          ) : null}
-          {isLocked ? <span className={styles.serviceCardNote}>Pre inú veľkosť psa</span> : null}
-        </span>
-      </label>
-    );
+  function handleMonthChange(delta: number) {
+    setMonthAnchorKey((current) => addMonthsToMonthAnchorKey(current, delta));
   }
 
   if (state.status === 'success') {
@@ -321,7 +392,7 @@ export function BookingFlow({ services }: BookingFlowProps) {
         <div className={styles.confirmationCard}>
           <p className="eyebrow">Žiadosť prijatá</p>
           <h2>Ďakujeme, vašu žiadosť sme prijali.</h2>
-          <p>Termín potvrdíme telefonicky.</p>
+          <p>Ozveme sa vám telefonicky a dohodneme termín.</p>
           <p>
             Zavolajte nám na <a href="tel:+421944240116">+421 944 240 116</a>, ak si chcete ešte
             niečo overiť.
@@ -335,6 +406,7 @@ export function BookingFlow({ services }: BookingFlowProps) {
     <div className={styles.wizardShell}>
       <form className={`${styles.panel} ${styles.panelInner}`} action={formAction}>
         <input type="hidden" name="sourceCode" value="" />
+        <input type="hidden" name="selectedDate" value={selectedDate} />
         <input type="hidden" name="selectedTime" value={selectedTime} />
         <input
           type="text"
@@ -353,7 +425,7 @@ export function BookingFlow({ services }: BookingFlowProps) {
             <>
               <div className={styles.sectionTitle}>
                 <h2>Pes</h2>
-                <span className={styles.sectionMeta}>Základné údaje o klientovi.</span>
+                <span className={styles.sectionMeta}>Základné údaje o psovi.</span>
               </div>
 
               <div className={styles.fieldGrid}>
@@ -390,7 +462,7 @@ export function BookingFlow({ services }: BookingFlowProps) {
                 <fieldset className={`${styles.field} ${styles.fieldFull}`}>
                   <legend className={styles.label}>Veľkosť</legend>
                   <div className={styles.sizeGrid}>
-                    {DOG_SIZE_OPTIONS.map((option) => (
+                    {BOOKING_SIZE_OPTIONS.map((option) => (
                       <label
                         key={option.value}
                         className={`${styles.sizeCard} ${
@@ -402,7 +474,7 @@ export function BookingFlow({ services }: BookingFlowProps) {
                           name="dogSize"
                           value={option.value}
                           checked={dogSize === option.value}
-                          onChange={() => handleDogSizeChange(option.value)}
+                          onChange={() => setDogSize(option.value)}
                         />
                         <span className={styles.sizeCardTitle}>{option.label}</span>
                         <span className={styles.sizeCardNote}>{option.note}</span>
@@ -432,34 +504,87 @@ export function BookingFlow({ services }: BookingFlowProps) {
             <>
               <div className={styles.sectionTitle}>
                 <h2>Služby</h2>
-                <span className={styles.sectionMeta}>Vyberte základ aj doplnky.</span>
-              </div>
-
-              <div className={styles.serviceSection}>
-                <div className={styles.serviceSectionHead}>
-                  <h3>Základná úprava</h3>
-                  <p>Strihanie sa prispôsobí veľkosti psa.</p>
-                </div>
-                <div className={styles.serviceGrid}>
-          {orderedServices.filter((service) => getGroomingSizeFromServiceName(service.name)).map(renderServiceCard)}
-                </div>
-              </div>
-
-              <div className={styles.serviceSection}>
-                <div className={styles.serviceSectionHead}>
-                  <h3>Doplnky</h3>
-                  <p>Kúpanie, pazúriky a čistenie uší môžete pridať podľa potreby.</p>
-                </div>
-                <div className={styles.serviceGrid}>
-                  {orderedServices.filter((service) => !getGroomingSizeFromServiceName(service.name)).map(renderServiceCard)}
-                </div>
+                <span className={styles.sectionMeta}>Vyberiete typ strihu a doplnky.</span>
               </div>
 
               <div className={styles.serviceSummary}>
                 <strong>
-                  {formatBookingCurrency(totalPrice)} · {totalDurationMin} min
+                  Orientačná cena základnej úpravy: {formatBookingCurrency(basePrice)} — konečná
+                  cena podľa stavu srsti.
                 </strong>
-                <span>Konečná cena podľa stavu srsti a povahy psa.</span>
+                <span>
+                  {selectedCutTypeRecord?.label ?? 'Neviem — poradíte mi'} · Doplnky: {selectedAddonLabel}
+                </span>
+              </div>
+
+              <fieldset className={styles.serviceSection}>
+                <div className={styles.serviceSectionHead}>
+                  <h3>Typ strihu</h3>
+                  <p>Jedna možnosť podľa toho, čo bude pre psa najvhodnejšie.</p>
+                </div>
+                <div className={styles.sizeGrid}>
+                  {BOOKING_CUT_TYPES.map((option) => (
+                    <label
+                      key={option.value}
+                      className={`${styles.sizeCard} ${
+                        selectedCutType === option.value ? styles.sizeCardSelected : ''
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="cutType"
+                        value={option.value}
+                        checked={selectedCutType === option.value}
+                        onChange={() => setSelectedCutType(option.value)}
+                      />
+                      <span className={styles.sizeCardTitle}>{option.label}</span>
+                      <span className={styles.sizeCardNote}>{option.note}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              <div className={styles.serviceSection}>
+                <div className={styles.serviceSectionHead}>
+                  <h3>Doplnky</h3>
+                  <p>Môžete pridať kúpanie, pazúriky alebo čistenie uší.</p>
+                </div>
+                <div className={styles.serviceGrid}>
+                  {BOOKING_ADDONS.map((addon) => {
+                    const isSelected = selectedAddonCodes.includes(addon.code);
+
+                    return (
+                      <label
+                        key={addon.code}
+                        className={`${styles.serviceCard} ${
+                          isSelected ? styles.serviceCardSelected : ''
+                        }`}
+                      >
+                        <input
+                          className={styles.serviceInput}
+                          type="checkbox"
+                          name="serviceIds"
+                          value={addon.code}
+                          checked={isSelected}
+                          onChange={() => handleToggleAddon(addon.code)}
+                        />
+                        <span className={styles.serviceCardCheck} aria-hidden="true" />
+                        <span className={styles.serviceCardBody}>
+                          <span className={styles.serviceCardTitle}>{addon.label}</span>
+                          <span className={styles.serviceCardMeta}>
+                            {formatBookingCurrency(addon.price)}
+                          </span>
+                          <span className={styles.serviceCardNote}>{addon.note}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className={styles.serviceSummary}>
+                <strong>Orientačne spolu: {formatBookingCurrency(estimatedPrice)}</strong>
+                <span>Konečná cena podľa stavu srsti.</span>
               </div>
             </>
           ) : null}
@@ -467,57 +592,122 @@ export function BookingFlow({ services }: BookingFlowProps) {
           {step === 3 ? (
             <>
               <div className={styles.sectionTitle}>
-                <h2>Termín</h2>
-                <span className={styles.sectionMeta}>Len Po – Pia, najskôr od zajtra.</span>
+                <h2>Preferovaný termín</h2>
+                <span className={styles.sectionMeta}>Termín vám potvrdíme telefonicky.</span>
               </div>
 
-              <div className={styles.fieldGrid}>
-                <div className={`${styles.field} ${styles.fieldFull}`}>
-                  <label className={styles.label} htmlFor="selectedDate">
-                    Deň
-                  </label>
-                  <input
-                    id="selectedDate"
-                    name="selectedDate"
-                    type="date"
-                    className={styles.input}
-                    min={minDateKey}
-                    value={selectedDate}
-                    onChange={(event) => {
-                      setSelectedDate(event.target.value);
-                      setSelectedTime('');
-                    }}
-                    required
-                  />
-                  <p className={styles.helperText}>
-                    Najskorší povolený termín je {formatBookingDate(minDateKey)}.
-                  </p>
+              <div className={styles.calendar}>
+                <div className={styles.calendarHeader}>
+                  <div>
+                    <div className={styles.monthTitle}>{monthLabel}</div>
+                    <p className={styles.helperText}>Po – Pia · 10:00 – 13:00 a 14:00 – 18:00</p>
+                  </div>
+                  <div className={styles.monthNav}>
+                    <button
+                      type="button"
+                      className={styles.monthNavButton}
+                      onClick={() => handleMonthChange(-1)}
+                      aria-label="Predchádzajúci mesiac"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.monthNavButton}
+                      onClick={() => handleMonthChange(1)}
+                      aria-label="Nasledujúci mesiac"
+                    >
+                      ›
+                    </button>
+                  </div>
                 </div>
 
-                <div className={`${styles.field} ${styles.fieldFull}`}>
-                  <span className={styles.label}>Preferovaný čas</span>
-                  <div className={styles.slotGrid}>
-                    {selectedDate && availableTimes.length > 0 ? (
-                      availableTimes.map((time) => (
+                <div className={styles.weekdayRow} aria-hidden="true">
+                  {WEEKDAY_LABELS.map((label) => (
+                    <div key={label} className={styles.weekdayCell}>
+                      {label}
+                    </div>
+                  ))}
+                </div>
+
+                <div className={styles.dayGrid}>
+                  {calendarRows.flatMap((row, rowIndex) =>
+                    row.map((dateKey, cellIndex) => {
+                      if (!dateKey) {
+                        return <span key={`empty-${rowIndex}-${cellIndex}`} className={styles.dayPlaceholder} />;
+                      }
+
+                      const isAllowed = isBookingDateAllowed(dateKey);
+                      const dayBusy = isBookingDayBusy(dateKey, busyIntervals);
+                      const isSelected = selectedDate === dateKey;
+                      const dayState = !isAllowed
+                        ? 'od zajtra'
+                        : dayBusy
+                          ? 'obsadené'
+                          : 'voľné';
+
+                      return (
+                        <button
+                          key={dateKey}
+                          type="button"
+                          className={`${styles.dayButton} ${
+                            isSelected ? styles.dayButtonSelected : ''
+                          } ${!isAllowed || dayBusy ? styles.dayButtonDisabled : ''}`}
+                          disabled={!isAllowed || dayBusy}
+                          onClick={() => handleSelectDay(dateKey)}
+                        >
+                          <span className={styles.dayNumber}>{dateKey.slice(-2)}</span>
+                          <span className={styles.dayState}>{dayState}</span>
+                        </button>
+                      );
+                    }),
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.slots}>
+                <div className={styles.serviceSectionHead}>
+                  <h3>Preferovaný čas</h3>
+                  <p>Vyberte čas, ktorý vám najviac vyhovuje.</p>
+                </div>
+                <div className={styles.slotGrid}>
+                  {openSlots.length > 0 ? (
+                    openSlots.map((time) => {
+                      const busy = isBookingSlotBusy(selectedDate, time, busyIntervals);
+                      const isSelected = selectedTime === time;
+
+                      return (
                         <button
                           key={time}
                           type="button"
                           className={`${styles.slotButton} ${
-                            selectedTime === time ? styles.slotButtonSelected : ''
-                          }`}
-                          onClick={() => setSelectedTime(time)}
+                            isSelected ? styles.slotButtonSelected : ''
+                          } ${busy ? styles.slotButtonBusy : ''}`}
+                          onClick={() => {
+                            if (!busy) {
+                              setSelectedTime(time);
+                            }
+                          }}
+                          disabled={busy}
                         >
-                          {time}
+                          <span className={styles.slotButtonTime}>{time}</span>
+                          <span className={styles.slotButtonState}>
+                            {busy ? 'obsadené' : 'voľné'}
+                          </span>
                         </button>
-                      ))
-                    ) : (
-                      <p className={styles.statusNote}>
-                        Vyberte deň, potom si zvolíte čas podľa dĺžky služieb.
-                      </p>
-                    )}
-                  </div>
+                      );
+                    })
+                  ) : (
+                    <p className={styles.statusNote}>
+                      Vyberte deň v pracovnom čase. Obsadenosť dní načítavame priebežne.
+                    </p>
+                  )}
                 </div>
               </div>
+
+              <p className={styles.statusNote}>
+                {selectedDayBusy ? 'Vybraný deň je obsadený.' : availabilityNote}
+              </p>
             </>
           ) : null}
 
@@ -533,23 +723,32 @@ export function BookingFlow({ services }: BookingFlowProps) {
                   <div className={styles.summaryItem}>
                     <span className={styles.summaryLabel}>Pes</span>
                     <span className={styles.summaryValue}>
-                      {dogName} · {dogBreed} · {dogSize.toLowerCase()}
+                      {dogName} · {dogBreed} · {selectedSizeRecord.label}
                     </span>
                   </div>
                   <div className={styles.summaryItem}>
-                    <span className={styles.summaryLabel}>Služby</span>
-                    <span className={styles.summaryValue}>{selectedServiceLabel}</span>
+                    <span className={styles.summaryLabel}>Typ strihu</span>
+                    <span className={styles.summaryValue}>
+                      {selectedCutTypeRecord?.label ?? 'Neviem — poradíte mi'}
+                    </span>
+                  </div>
+                  <div className={styles.summaryItem}>
+                    <span className={styles.summaryLabel}>Doplnky</span>
+                    <span className={styles.summaryValue}>
+                      {selectedAddonLabel}
+                      {addonPrice > 0 ? ` · ${formatBookingCurrency(addonPrice)}` : ''}
+                    </span>
                   </div>
                   <div className={styles.summaryItem}>
                     <span className={styles.summaryLabel}>Termín</span>
                     <span className={styles.summaryValue}>
-                      {requestedDateLabel} · {requestedTimeLabel}
+                      {selectedDateLabel} · {selectedTimeLabel}
                     </span>
                   </div>
                   <div className={styles.summaryItem}>
-                    <span className={styles.summaryLabel}>Spolu</span>
+                    <span className={styles.summaryLabel}>Orientačne spolu</span>
                     <span className={styles.summaryValue}>
-                      {formatBookingCurrency(totalPrice)} · {totalDurationMin} min
+                      {formatBookingCurrency(estimatedPrice)}
                     </span>
                   </div>
                 </div>
@@ -651,29 +850,32 @@ export function BookingFlow({ services }: BookingFlowProps) {
           </div>
           <div className={styles.summaryItem}>
             <span className={styles.summaryLabel}>Veľkosť</span>
+            <span className={styles.summaryValue}>{selectedSizeRecord.label}</span>
+          </div>
+          <div className={styles.summaryItem}>
+            <span className={styles.summaryLabel}>Typ strihu</span>
             <span className={styles.summaryValue}>
-              {DOG_SIZE_OPTIONS.find((option) => option.value === dogSize)?.label ?? '—'}
+              {selectedCutTypeRecord?.label ?? 'Neviem — poradíte mi'}
             </span>
           </div>
           <div className={styles.summaryItem}>
-            <span className={styles.summaryLabel}>Služby</span>
-            <span className={styles.summaryValue}>{selectedServiceLabel}</span>
+            <span className={styles.summaryLabel}>Doplnky</span>
+            <span className={styles.summaryValue}>
+              {selectedAddonLabel}
+              {addonPrice > 0 ? ` · ${formatBookingCurrency(addonPrice)}` : ''}
+            </span>
           </div>
           <div className={styles.summaryItem}>
             <span className={styles.summaryLabel}>Termín</span>
             <span className={styles.summaryValue}>
-              {requestedDateLabel} · {requestedTimeLabel}
+              {selectedDateLabel} · {selectedTimeLabel}
             </span>
           </div>
           <div className={styles.summaryItem}>
-            <span className={styles.summaryLabel}>Rozsah</span>
-            <span className={styles.summaryValue}>
-              {formatBookingCurrency(totalPrice)} · {totalDurationMin} min
-            </span>
+            <span className={styles.summaryLabel}>Orientačne spolu</span>
+            <span className={styles.summaryValue}>{formatBookingCurrency(estimatedPrice)}</span>
           </div>
-          <div className={styles.summaryHint}>
-            Konečná cena podľa stavu srsti a povahy psa.
-          </div>
+          <div className={styles.summaryHint}>Konečná cena podľa stavu srsti.</div>
         </div>
 
         <div className={styles.summaryNote}>
