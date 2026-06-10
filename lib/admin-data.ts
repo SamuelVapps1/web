@@ -461,10 +461,50 @@ export async function listAdminCalendarWeek(anchorDateKey: string): Promise<{
   };
 }
 
+export type ManualReservationCustomer = {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  note: string | null;
+  dogs: {
+    id: string;
+    name: string;
+    breed: string | null;
+    size: string;
+    temperamentNote: string | null;
+    healthNote: string | null;
+  }[];
+};
+
 export async function getAdminManualReservationContext(): Promise<{
-  customers: AdminCustomerCard[];
+  customers: ManualReservationCustomer[];
 }> {
+  const prisma = getPrisma();
+  const customers = await prisma.customer.findMany({
+    include: {
+      dogs: true,
+    },
+    orderBy: {
+      name: 'asc',
+    },
+  });
+
   return {
-    customers: await listAdminCustomers(),
+    customers: customers.map((customer) => ({
+      id: customer.id,
+      name: customer.name,
+      phone: customer.phone,
+      email: customer.email,
+      note: customer.note,
+      dogs: customer.dogs.map((dog) => ({
+        id: dog.id,
+        name: dog.name,
+        breed: dog.breed,
+        size: dog.size,
+        temperamentNote: dog.temperamentNote,
+        healthNote: dog.healthNote,
+      })),
+    })),
   };
 }

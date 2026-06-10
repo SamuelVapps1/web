@@ -10,7 +10,6 @@ import {
   updateReservation,
   type AdminActionState,
 } from '@/app/admin/actions';
-import { getDefaultDurationForSize } from '@/lib/admin-domain';
 
 const initialState: AdminActionState = { kind: 'idle' };
 type ReservationAction = (stateOrFormData: AdminActionState | FormData, maybeFormData?: FormData) => Promise<AdminActionState>;
@@ -174,7 +173,7 @@ export default function ReservationDetailClient({
   const reservationTimingDefaults = {
     id: reservation.id,
     startIso,
-    durationMin: reservation.status === 'PENDING' ? getDefaultDurationForSize(reservation.dogSize) : reservation.durationMin,
+    durationMin: reservation.durationMin,
     internalNote: reservation.internalNote,
   };
 

@@ -16,7 +16,9 @@ export default function ManualReservationForm({
     id: string;
     name: string;
     phone: string;
-    dogs: { id: string; name: string; breed: string | null; size: string }[];
+    email: string | null;
+    note: string | null;
+    dogs: { id: string; name: string; breed: string | null; size: string; temperamentNote: string | null; healthNote: string | null }[];
   }[];
   initialDate?: string;
   initialTime?: string;
@@ -64,6 +66,8 @@ export default function ManualReservationForm({
     setSelectedCustomerId(customer.id);
     setSelectedCustomerName(customer.name);
     setSelectedCustomerPhone(customer.phone);
+    setSelectedCustomerEmail(customer.email ?? '');
+    setSelectedCustomerNote(customer.note ?? '');
     setSelectedDogId('');
     setSelectedDogName('');
     setSelectedDogBreed('');
@@ -72,11 +76,13 @@ export default function ManualReservationForm({
     setSelectedHealthNote('');
   }
 
-  function selectDog(dog: { id: string; name: string; breed: string | null; size: string }) {
+  function selectDog(dog: { id: string; name: string; breed: string | null; size: string; temperamentNote: string | null; healthNote: string | null }) {
     setSelectedDogId(dog.id);
     setSelectedDogName(dog.name);
     setSelectedDogBreed(dog.breed ?? '');
     setSelectedDogSize(dog.size as 'SMALL' | 'MEDIUM' | 'LARGE');
+    setSelectedTemperamentNote(dog.temperamentNote ?? '');
+    setSelectedHealthNote(dog.healthNote ?? '');
   }
 
   return (

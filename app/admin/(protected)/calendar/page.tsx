@@ -70,7 +70,12 @@ export default async function AdminCalendarPage({
         <div className={styles.dayTimeline}>
           {slots.map((slot) => {
             const dayReservations = [...(selectedDay?.reservations ?? []), ...(selectedDay?.pending ?? [])];
-            const slotReservation = dayReservations.find((reservation) => reservation.timeLabel === slot);
+            const slotMinutes = parseInt(slot.split(':')[0], 10) * 60 + parseInt(slot.split(':')[1], 10);
+            const slotReservation = dayReservations.find((reservation) => {
+              const startMinutes = parseInt(reservation.timeLabel.split(':')[0], 10) * 60 + parseInt(reservation.timeLabel.split(':')[1], 10);
+              const endMinutes = startMinutes + reservation.durationMin;
+              return slotMinutes >= startMinutes && slotMinutes < endMinutes;
+            });
             const isLunch = slot >= ADMIN_TIME_WINDOW.lunchStart && slot < ADMIN_TIME_WINDOW.lunchEnd;
             return (
               <div key={slot} className={`${styles.timelineSlot} ${isLunch ? styles.timelineLunch : ''}`}>
