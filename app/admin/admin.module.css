@@ -260,3 +260,701 @@
     justify-content: center;
   }
 }
+
+/* -------------------------------------------------------------------------
+   Backstage views
+   ------------------------------------------------------------------------- */
+
+.dashboardPage,
+.reservationsPage,
+.detailPage,
+.calendarPage,
+.customersPage,
+.manualPage,
+.customerDetailPage {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.pageHeader,
+.heroPanel,
+.dashboardSection,
+.detailCard,
+.collisionCard,
+.metricCard,
+.listCard,
+.reservationCard,
+.customerCard,
+.historyCard,
+.searchCard,
+.checkboxCard {
+  background: rgba(251, 248, 241, 0.96);
+  border: 1px solid rgba(33, 30, 26, 0.1);
+  border-radius: 22px;
+  box-shadow: 0 22px 50px -38px rgba(33, 30, 26, 0.28);
+}
+
+.pageHeader,
+.heroPanel {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.4rem 1.5rem;
+}
+
+.heroPanel {
+  align-items: center;
+}
+
+.heroCopy {
+  max-width: 58ch;
+}
+
+.heroTitle,
+.pageTitle {
+  font-family: var(--serif-display);
+  font-size: clamp(2rem, 3.4vw, 3.35rem);
+  line-height: 1.04;
+  margin-top: 0.7rem;
+}
+
+.heroLead,
+.pageLead {
+  margin-top: 0.7rem;
+  color: #4a443c;
+  max-width: 60ch;
+}
+
+.heroActions,
+.calendarHeaderActions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.badgeButton {
+  border-color: rgba(156, 107, 61, 0.34) !important;
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.metricCard {
+  padding: 1.25rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.metricLabel,
+.sectionKicker {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #9c6b3d;
+}
+
+.metricValue {
+  font-family: var(--serif-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.metricCopy,
+.listCardMeta,
+.reservationMeta,
+.detailMeta,
+.dashboardNoteText {
+  color: #4a443c;
+}
+
+.dashboardColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.dashboardSection,
+.detailCard,
+.collisionCard,
+.metricCard,
+.listCard,
+.reservationCard,
+.customerCard,
+.historyCard,
+.searchCard,
+.checkboxCard {
+  padding: 1rem;
+}
+
+.sectionHeader,
+.listCardTop,
+.reservationTop,
+.customerCardTop,
+.calendarDayHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.sectionTitle {
+  font-family: var(--serif-display);
+  font-size: 1.55rem;
+  line-height: 1.05;
+  margin-top: 0.15rem;
+}
+
+.listStack,
+.reservationGrid,
+.customerList,
+.historyList,
+.searchList,
+.stack,
+.noteGrid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.listCardTime,
+.reservationClock,
+.detailName {
+  font-family: var(--serif-display);
+  font-size: 1.2rem;
+  line-height: 1.08;
+}
+
+.listCardDetail,
+.reservationServices,
+.reservationMeta,
+.detailMeta {
+  font-size: 0.95rem;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(156, 107, 61, 0.14);
+  color: #9c6b3d;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.callLink,
+.callLinkSecondary {
+  color: #211e1a;
+  font-weight: 700;
+}
+
+.callLink:hover,
+.callLinkSecondary:hover {
+  color: #9c6b3d;
+}
+
+.dashboardNote {
+  padding: 1rem 1.15rem;
+  border-top: 1px solid rgba(33, 30, 26, 0.08);
+}
+
+.dashboardNoteText {
+  margin-top: 0.35rem;
+}
+
+.reservationGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.reservationCard {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.reservationContact,
+.reservationActions,
+.calendarMobileNav,
+.actionsRow,
+.detailActionsRow {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.tabs,
+.calendarDaysNav {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.tabLink,
+.calendarDayNav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.7rem;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(33, 30, 26, 0.1);
+  color: #4a443c;
+  background: rgba(251, 248, 241, 0.82);
+  font-weight: 700;
+}
+
+.tabLinkActive,
+.calendarDayNavActive {
+  background: #211e1a;
+  color: #f6f1e7;
+  border-color: #211e1a;
+}
+
+.detailLayout {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 1rem;
+}
+
+.detailSidebar,
+.detailMain,
+.manualLayout {
+  display: grid;
+  gap: 1rem;
+}
+
+.detailMain {
+  align-content: start;
+}
+
+.formGrid {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
+}
+
+.field label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #4a443c;
+}
+
+.field input,
+.field select,
+.field textarea,
+.searchInput {
+  appearance: none;
+  width: 100%;
+  border: 1px solid rgba(33, 30, 26, 0.14);
+  border-radius: 16px;
+  background: #fdfbf7;
+  color: #211e1a;
+  padding: 0.92rem 1rem;
+  font: inherit;
+}
+
+.field textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.searchInput:focus {
+  outline: 2px solid rgba(156, 107, 61, 0.45);
+  outline-offset: 2px;
+}
+
+.searchInput {
+  max-width: 28rem;
+}
+
+.searchCard,
+.checkboxCard,
+.historyCard {
+  display: grid;
+  gap: 0.35rem;
+  text-align: left;
+  width: 100%;
+}
+
+.searchCard {
+  cursor: pointer;
+}
+
+.searchCardActive,
+.checkboxCardActive {
+  border-color: rgba(156, 107, 61, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(156, 107, 61, 0.2);
+}
+
+.checkboxGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.checkboxCard {
+  align-items: start;
+}
+
+.checkboxCard input {
+  margin-bottom: 0.35rem;
+}
+
+.inlineForm {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.noteGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dogCard {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  border: 1px solid rgba(33, 30, 26, 0.08);
+  border-radius: 18px;
+  background: rgba(251, 248, 241, 0.72);
+}
+
+.historyCard {
+  color: inherit;
+  text-decoration: none;
+}
+
+.historyCard:hover,
+.searchCard:hover,
+.customerCard:hover {
+  border-color: rgba(156, 107, 61, 0.38);
+}
+
+.stateBanner {
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.stateBannerSuccess {
+  background: rgba(72, 126, 72, 0.12);
+  border: 1px solid rgba(72, 126, 72, 0.2);
+}
+
+.stateBannerWarning {
+  background: rgba(156, 107, 61, 0.12);
+  border: 1px solid rgba(156, 107, 61, 0.2);
+}
+
+.stateBannerError {
+  background: rgba(139, 63, 45, 0.12);
+  border: 1px solid rgba(139, 63, 45, 0.2);
+}
+
+.stateBannerTitle {
+  font-weight: 800;
+}
+
+.stateCollisionList {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.collisionCard {
+  background: rgba(156, 107, 61, 0.08);
+  border-color: rgba(156, 107, 61, 0.18);
+}
+
+.collisionList {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+
+.collisionItem {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 16px;
+  background: rgba(251, 248, 241, 0.75);
+}
+
+.calendarWeekGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.calendarDayColumn {
+  display: grid;
+  gap: 0.7rem;
+  background: rgba(251, 248, 241, 0.92);
+  border: 1px solid rgba(33, 30, 26, 0.1);
+  border-radius: 22px;
+  padding: 1rem;
+}
+
+.calendarDayContent {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.calendarBlock {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem 0.85rem;
+  border-radius: 18px;
+  border: 1px solid rgba(33, 30, 26, 0.1);
+  color: #211e1a;
+  align-content: start;
+}
+
+.calendarBlockConfirmed {
+  background: rgba(156, 107, 61, 0.1);
+}
+
+.calendarBlockPending {
+  background: rgba(176, 141, 87, 0.08);
+  border-style: dashed;
+}
+
+.calendarLunchBand {
+  padding: 0.85rem;
+  border-radius: 18px;
+  background: rgba(33, 30, 26, 0.08);
+  color: #4a443c;
+  text-align: center;
+}
+
+.calendarMobilePanel {
+  display: none;
+}
+
+.timelineSlot {
+  display: grid;
+  grid-template-columns: 4.85rem 1fr;
+  gap: 0.7rem;
+  align-items: start;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid rgba(33, 30, 26, 0.08);
+}
+
+.timelineLunch {
+  background: rgba(33, 30, 26, 0.04);
+  border-radius: 18px;
+  padding-inline: 0.5rem;
+  margin-inline: -0.5rem;
+}
+
+.timelineTime {
+  font-weight: 700;
+  color: #4a443c;
+  padding-top: 0.85rem;
+}
+
+.timelineCard,
+.timelineFreeSlot {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.85rem;
+  border-radius: 18px;
+  border: 1px solid rgba(33, 30, 26, 0.1);
+  color: #211e1a;
+  background: rgba(251, 248, 241, 0.92);
+}
+
+.timelineCardPending {
+  border-style: dashed;
+}
+
+.timelineFreeSlot {
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
+  background: rgba(156, 107, 61, 0.06);
+}
+
+.timelineLunchLabel {
+  display: inline-flex;
+  align-items: center;
+  min-height: 72px;
+  color: #4a443c;
+}
+
+.customerSearchLayout {
+  display: grid;
+  gap: 1rem;
+}
+
+.customerList {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.customerCard {
+  color: inherit;
+  text-decoration: none;
+}
+
+.customerDetailPage .detailLayout {
+  align-items: start;
+}
+
+.manualSubmitForm {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1120px) {
+  .dashboardGrid,
+  .dashboardColumns,
+  .reservationGrid,
+  .customerList,
+  .noteGrid,
+  .checkboxGrid,
+  .calendarWeekGrid,
+  .detailLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .calendarMobilePanel {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .calendarWeekGrid {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .pageHeader,
+  .heroPanel {
+    flex-direction: column;
+    align-items: start;
+    padding: 1.15rem 1.1rem;
+  }
+
+  .heroActions,
+  .calendarHeaderActions,
+  .calendarMobileNav,
+  .actionsRow,
+  .detailActionsRow,
+  .reservationActions,
+  .reservationContact {
+    width: 100%;
+  }
+
+  .heroActions > *,
+  .calendarHeaderActions > *,
+  .calendarMobileNav > *,
+  .actionsRow > *,
+  .detailActionsRow > *,
+  .reservationActions > *,
+  .reservationContact > * {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tabs,
+  .calendarDaysNav {
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+  }
+
+  .calendarMobilePanel {
+    gap: 0.85rem;
+  }
+
+  .calendarMobileHeader {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .calendarMobileHeader h2 {
+    font-family: var(--serif-display);
+    font-size: 1.45rem;
+    line-height: 1.05;
+  }
+
+  .dayTimeline {
+    display: grid;
+    gap: 0.1rem;
+  }
+
+  .timelineSlot {
+    grid-template-columns: 4rem 1fr;
+    gap: 0.55rem;
+    padding: 0.45rem 0;
+  }
+
+  .timelineTime {
+    padding-top: 0.8rem;
+    font-size: 0.88rem;
+  }
+
+  .timelineCard,
+  .timelineFreeSlot,
+  .timelineLunchLabel {
+    min-height: 64px;
+  }
+
+  .timelineCard,
+  .timelineFreeSlot {
+    padding: 0.72rem;
+    border-radius: 16px;
+  }
+
+  .timelineLunch {
+    margin-inline: -0.35rem;
+    padding-inline: 0.35rem;
+  }
+
+  .calendarDayColumn {
+    padding: 0.9rem;
+  }
+
+  .calendarDayHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .calendarDayHeader > * {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .calendarBlock {
+    padding: 0.75rem 0.78rem;
+    border-radius: 16px;
+  }
+
+  .calendarLunchBand {
+    padding: 0.7rem 0.75rem;
+    border-radius: 16px;
+  }
+}

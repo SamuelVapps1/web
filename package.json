@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "test": "node tests/admin-paths.test.mjs",
+    "test": "node tests/admin-paths.test.mjs && node tests/reservation-collisions.test.mjs && node tests/timezone-boundaries.test.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
