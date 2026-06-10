@@ -76,11 +76,14 @@ export default async function AdminCalendarPage({
               const endMinutes = startMinutes + reservation.durationMin;
               return slotMinutes >= startMinutes && slotMinutes < endMinutes;
             });
+            const isReservationStart = slotReservation
+              ? slotMinutes === parseInt(slotReservation.timeLabel.split(':')[0], 10) * 60 + parseInt(slotReservation.timeLabel.split(':')[1], 10)
+              : false;
             const isLunch = slot >= ADMIN_TIME_WINDOW.lunchStart && slot < ADMIN_TIME_WINDOW.lunchEnd;
             return (
               <div key={slot} className={`${styles.timelineSlot} ${isLunch ? styles.timelineLunch : ''}`}>
                 <span className={styles.timelineTime}>{hourLabel(slot)}</span>
-                {slotReservation ? (
+                {isReservationStart ? (
                   <Link
                     className={`${styles.timelineCard} ${slotReservation.status === 'PENDING' ? styles.timelineCardPending : ''}`}
                     style={{ minHeight: `${Math.max(1, slotReservation.durationMin / 30) * 52}px` }}
@@ -89,6 +92,8 @@ export default async function AdminCalendarPage({
                     <strong>{slotReservation.dogName}</strong>
                     <span>{slotReservation.cutTypeLabel}</span>
                   </Link>
+                ) : slotReservation ? (
+                  null
                 ) : isLunch ? (
                   <span className={styles.timelineLunchLabel}>Obedná prestávka</span>
                 ) : (
