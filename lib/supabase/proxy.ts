@@ -15,13 +15,37 @@ type CookieSetValue = {
   };
 };
 
+function createMissingSupabaseClient() {
+  const missingConfigError = new Error(
+    'Supabase configuration is missing. Set SUPABASE_URL and SUPABASE_ANON_KEY.',
+  );
+
+  return {
+    auth: {
+      async getUser() {
+        return {
+          data: { user: null },
+          error: missingConfigError,
+        };
+      },
+    },
+  };
+}
+
 export function createSupabaseProxyClient(
   request: NextRequest,
   response: NextResponse
 ) {
+  const url = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    return createMissingSupabaseClient();
+  }
+
   return createServerClient(
-    process.env.SUPABASE_URL ?? '',
-    process.env.SUPABASE_ANON_KEY ?? '',
+    url,
+    anonKey,
     {
       cookies: {
         getAll() {
