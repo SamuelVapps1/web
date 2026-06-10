@@ -59,6 +59,8 @@ export default function CustomerSearchClient({
               <p>{customer.reservationCount} rezervácií · {customer.lastVisitLabel}</p>
             </Link>
           ))
+        ) : customers.length > 0 ? (
+          <p className={styles.emptyState}>Žiadne výsledky pre &bdquo;{query}&ldquo;.</p>
         ) : (
           <p className={styles.emptyState}>Zatiaľ žiadni zákazníci.</p>
         )}

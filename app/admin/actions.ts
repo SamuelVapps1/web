@@ -317,6 +317,16 @@ export async function confirmReservation(
   }
 
   const prisma = getPrisma();
+
+  const existing = await prisma.reservation.findUnique({
+    where: { id: parsed.data.id },
+    select: { status: true },
+  });
+
+  if (!existing || existing.status !== 'PENDING') {
+    return buildError('Túto rezerváciu už nie je možné potvrdiť.');
+  }
+
   const start = buildDateTimeFromForm(parsed.data.date, parsed.data.time);
   const end = new Date(start.getTime() + parsed.data.durationMin * 60 * 1000);
 
