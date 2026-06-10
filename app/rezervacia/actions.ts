@@ -1,123 +1,201 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { createReservation, listReservationsBetween } from '@/lib/db';
+import { getPrisma } from '@/lib/prisma';
 import {
-  getAvailableStartTimes,
-  getDefaultDurationMinutes,
-  type DogSize,
-  type ReservationRecord,
-} from '@/lib/reservations';
-import { endOfBratislavaDayUtc, localDateTimeToUtc, startOfBratislavaDayUtc } from '@/lib/time';
+  BOOKING_PHONE_PATTERN,
+  buildBookingStart,
+  getAllowedBookingTimes,
+  isBookingDateAllowed,
+  normalizeBookingPhone,
+  normalizeBookingText,
+} from '@/lib/booking';
 
-export type ReservationSubmitState =
+export type BookingSubmitState =
   | { status: 'idle' }
   | { status: 'error'; message: string }
-  | { status: 'success'; reservationId: string };
+  | { status: 'success' };
 
-const PHONE_PATTERN = /^(?:\+421|0)\s?\d{3}\s?\d{3}\s?\d{3}$/;
+type RateLimitBucket = {
+  timestamps: number[];
+};
 
-function normalizeInput(value: FormDataEntryValue | null): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
+const rateLimitStore = new Map<string, RateLimitBucket>();
 
-function normalizePhone(phone: string): string {
-  return phone.replace(/\s+/g, ' ').trim();
-}
+const REQUEST_LIMIT = {
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 5,
+} as const;
 
-function getDogSize(value: string): DogSize {
-  if (value === 'small' || value === 'large') {
-    return value;
+const PHONE_LIMIT = {
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 2,
+} as const;
+
+function takeRateLimitSlot(
+  key: string,
+  config: { windowMs: number; maxRequests: number },
+  now = Date.now(),
+): boolean {
+  const current = rateLimitStore.get(key)?.timestamps ?? [];
+  const recent = current.filter((timestamp) => now - timestamp < config.windowMs);
+
+  if (recent.length >= config.maxRequests) {
+    rateLimitStore.set(key, { timestamps: recent });
+    return false;
   }
-  return 'medium';
+
+  recent.push(now);
+  rateLimitStore.set(key, { timestamps: recent });
+  return true;
 }
 
-function isPostgresConflict(error: unknown): boolean {
-  return typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === '23P01';
+function getRequestFingerprint(headerStore: Awaited<ReturnType<typeof headers>>): string {
+  const forwardedFor = headerStore.get('x-forwarded-for')?.split(',')[0]?.trim();
+  const realIp = headerStore.get('x-real-ip')?.trim();
+  const userAgent = headerStore.get('user-agent')?.slice(0, 80) ?? 'unknown';
+
+  return `${forwardedFor ?? realIp ?? 'unknown'}:${userAgent}`;
 }
 
-export async function submitReservation(
-  _previousState: ReservationSubmitState,
+function getDistinctValues(values: string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+export async function submitBooking(
+  _previousState: BookingSubmitState,
   formData: FormData,
-): Promise<ReservationSubmitState> {
-  const selectedDate = normalizeInput(formData.get('selectedDate'));
-  const selectedTime = normalizeInput(formData.get('selectedTime'));
-  const clientName = normalizeInput(formData.get('clientName'));
-  const clientPhone = normalizePhone(normalizeInput(formData.get('clientPhone')));
-  const dogName = normalizeInput(formData.get('dogName'));
-  const dogBreed = normalizeInput(formData.get('dogBreed'));
-  const dogSize = getDogSize(normalizeInput(formData.get('dogSize')));
-  const service = normalizeInput(formData.get('service'));
-  const coatState = normalizeInput(formData.get('coatState'));
-  const temperament = normalizeInput(formData.get('temperament'));
-  const notes = normalizeInput(formData.get('notes'));
-  const startsAtValue = normalizeInput(formData.get('startsAt'));
-  const endsAtValue = normalizeInput(formData.get('endsAt'));
-  const utmSource = normalizeInput(formData.get('utmSource')) || null;
-  const utmMedium = normalizeInput(formData.get('utmMedium')) || null;
-  const utmCampaign = normalizeInput(formData.get('utmCampaign')) || null;
-  const discountCode = normalizeInput(formData.get('discountCode')) || null;
+): Promise<BookingSubmitState> {
+  const prisma = getPrisma();
+  const honeypot = normalizeBookingText(formData.get('company'));
 
-  if (!selectedDate || !selectedTime) {
-    return { status: 'error', message: 'Vybraný termín už nie je dostupný.' };
+  if (honeypot) {
+    return { status: 'error', message: 'Žiadosť sa nepodarilo odoslať.' };
   }
 
-  if (!clientName || !clientPhone || !dogName || !dogBreed || !service || !coatState || !temperament) {
+  const dogName = normalizeBookingText(formData.get('dogName'));
+  const dogBreed = normalizeBookingText(formData.get('dogBreed'));
+  const dogSize = normalizeBookingText(formData.get('dogSize'));
+  const dogNote = normalizeBookingText(formData.get('dogNote'));
+  const selectedDate = normalizeBookingText(formData.get('selectedDate'));
+  const selectedTime = normalizeBookingText(formData.get('selectedTime'));
+  const customerName = normalizeBookingText(formData.get('customerName'));
+  const customerPhone = normalizeBookingPhone(normalizeBookingText(formData.get('customerPhone')));
+  const customerEmail = normalizeBookingText(formData.get('customerEmail'));
+  const customerMessage = normalizeBookingText(formData.get('customerMessage'));
+  const sourceCode = normalizeBookingText(formData.get('sourceCode')) || null;
+  const selectedServiceIds = getDistinctValues(
+    formData.getAll('serviceIds').map((value) => normalizeBookingText(value)),
+  );
+
+  if (
+    !dogName ||
+    !dogBreed ||
+    !dogSize ||
+    !selectedDate ||
+    !selectedTime ||
+    !customerName ||
+    !customerPhone ||
+    selectedServiceIds.length === 0
+  ) {
     return { status: 'error', message: 'Skontrolujte, či sú vyplnené všetky povinné polia.' };
   }
 
-  if (!PHONE_PATTERN.test(clientPhone)) {
+  if (!BOOKING_PHONE_PATTERN.test(customerPhone)) {
     return { status: 'error', message: 'Telefón nie je v správnom formáte.' };
   }
 
-  const startsAt = startsAtValue ? new Date(startsAtValue) : localDateTimeToUtc(selectedDate, selectedTime);
-  const duration = getDefaultDurationMinutes(dogSize);
-  const endsAt = endsAtValue ? new Date(endsAtValue) : new Date(startsAt.getTime() + duration * 60 * 1000);
+  const headerStore = await headers();
+  const requestFingerprint = getRequestFingerprint(headerStore);
 
-  if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime()) || endsAt <= startsAt) {
+  if (!takeRateLimitSlot(`request:${requestFingerprint}`, REQUEST_LIMIT)) {
+    return { status: 'error', message: 'Žiadosť sa odosiela príliš často. Skúste to znovu o chvíľu.' };
+  }
+
+  if (!takeRateLimitSlot(`phone:${customerPhone}`, PHONE_LIMIT)) {
+    return { status: 'error', message: 'Na tento telefón sme už prijali viac žiadostí. Skúste to neskôr.' };
+  }
+
+  const services = await prisma.service.findMany({
+    where: {
+      id: {
+        in: selectedServiceIds,
+      },
+    },
+  });
+
+  if (services.length !== selectedServiceIds.length) {
+    return { status: 'error', message: 'Vybrané služby už nie sú dostupné.' };
+  }
+
+  const durationMin = services.reduce((total, service) => total + service.baseDurationMin, 0);
+  const availableTimes = getAllowedBookingTimes(selectedDate, durationMin);
+
+  if (!isBookingDateAllowed(selectedDate) || !availableTimes.includes(selectedTime)) {
     return { status: 'error', message: 'Vybraný termín už nie je dostupný.' };
   }
 
-  const dayStart = startOfBratislavaDayUtc(selectedDate);
-  const dayEnd = endOfBratislavaDayUtc(selectedDate);
-  const dayReservations: ReservationRecord[] = await listReservationsBetween(dayStart, dayEnd);
-  const availableTimes = getAvailableStartTimes(selectedDate, dayReservations, dogSize);
-
-  if (!availableTimes.includes(selectedTime)) {
-    return { status: 'error', message: 'Vybraný termín už nie je dostupný.' };
-  }
+  const requestedStart = buildBookingStart(selectedDate, selectedTime);
 
   try {
-    const reservation = await createReservation({
-      type: 'booking',
-      status: 'pending',
-      startsAt,
-      endsAt,
-      clientName,
-      clientPhone,
-      dogName,
-      dogBreed,
-      dogSize,
-      service,
-      coatState,
-      temperament,
-      notes: notes || null,
-      utmSource,
-      utmMedium,
-      utmCampaign,
-      discountCode,
+    await prisma.$transaction(async (transaction) => {
+      const existingCustomer = await transaction.customer.findFirst({
+        where: {
+          phone: customerPhone,
+        },
+      });
+
+      const customer = existingCustomer
+        ? await transaction.customer.update({
+            where: {
+              id: existingCustomer.id,
+            },
+            data: {
+              name: customerName,
+              phone: customerPhone,
+              email: customerEmail || existingCustomer.email,
+              note: customerMessage || existingCustomer.note,
+            },
+          })
+        : await transaction.customer.create({
+            data: {
+              name: customerName,
+              phone: customerPhone,
+              email: customerEmail || null,
+              note: customerMessage || null,
+            },
+          });
+
+      const dog = await transaction.dog.create({
+        data: {
+          customerId: customer.id,
+          name: dogName,
+          breed: dogBreed || null,
+          size: dogSize as 'SMALL' | 'MEDIUM' | 'LARGE',
+          temperamentNote: dogNote || null,
+          healthNote: null,
+        },
+      });
+
+      await transaction.reservation.create({
+        data: {
+          dogId: dog.id,
+          serviceIds: selectedServiceIds,
+          status: 'PENDING',
+          requestedStart,
+          durationMin,
+          customerMessage: customerMessage || null,
+          internalNote: null,
+          sourceCode,
+        },
+      });
     });
 
     revalidatePath('/rezervacia');
-    revalidatePath('/diar');
-
-    return { status: 'success', reservationId: reservation.id };
+    return { status: 'success' };
   } catch (error) {
-    if (isPostgresConflict(error)) {
-      return { status: 'error', message: 'Vybraný termín sa už medzitým obsadil.' };
-    }
-
-    return { status: 'error', message: 'Rezerváciu sa nepodarilo uložiť.' };
+    console.error('Failed to create reservation request:', error);
+    return { status: 'error', message: 'Žiadosť sa nepodarilo uložiť. Skúste to, prosím, znova.' };
   }
 }
-
