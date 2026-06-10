@@ -85,7 +85,7 @@ export async function submitBooking(
   const customerEmail = normalizeBookingText(formData.get('customerEmail'));
   const customerMessage = normalizeBookingText(formData.get('customerMessage'));
   const sourceCode = normalizeBookingText(formData.get('sourceCode')) || null;
-  const selectedServiceIds = getDistinctValues(
+  const selectedServiceNames = getDistinctValues(
     formData.getAll('serviceIds').map((value) => normalizeBookingText(value)),
   );
 
@@ -97,7 +97,7 @@ export async function submitBooking(
     !selectedTime ||
     !customerName ||
     !customerPhone ||
-    selectedServiceIds.length === 0
+    selectedServiceNames.length === 0
   ) {
     return { status: 'error', message: 'Skontrolujte, či sú vyplnené všetky povinné polia.' };
   }
@@ -119,13 +119,13 @@ export async function submitBooking(
 
   const services = await prisma.service.findMany({
     where: {
-      id: {
-        in: selectedServiceIds,
+      name: {
+        in: selectedServiceNames,
       },
     },
   });
 
-  if (services.length !== selectedServiceIds.length) {
+  if (services.length !== selectedServiceNames.length) {
     return { status: 'error', message: 'Vybrané služby už nie sú dostupné.' };
   }
 
@@ -181,7 +181,7 @@ export async function submitBooking(
       await transaction.reservation.create({
         data: {
           dogId: dog.id,
-          serviceIds: selectedServiceIds,
+          serviceIds: selectedServiceNames,
           status: 'PENDING',
           requestedStart,
           durationMin,

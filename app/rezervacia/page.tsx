@@ -1,12 +1,9 @@
 import type { Metadata } from 'next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { getPrisma } from '@/lib/prisma';
+import { BOOKING_SERVICES } from '@/lib/booking';
 import { BookingFlow } from './_components/booking-flow';
 import styles from './booking.module.css';
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: 'Rezervácia termínu',
@@ -14,17 +11,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/rezervacia' },
 };
 
-export default async function RezervaciaPage() {
-  const prisma = getPrisma();
-  const services = await prisma.service.findMany();
-
-  const serializedServices = services.map((service) => ({
-    id: service.id,
-    name: service.name,
-    basePrice: Number(service.basePrice),
-    baseDurationMin: service.baseDurationMin,
-  }));
-
+export default function RezervaciaPage() {
   return (
     <>
       <Header />
@@ -41,10 +28,11 @@ export default async function RezervaciaPage() {
         </section>
 
         <section className={styles.content}>
-          <BookingFlow services={serializedServices} />
+          <BookingFlow services={BOOKING_SERVICES} />
         </section>
       </main>
       <Footer />
     </>
   );
 }
+

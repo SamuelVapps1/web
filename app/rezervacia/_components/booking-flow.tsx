@@ -7,7 +7,7 @@ import styles from '../booking.module.css';
 import {
   BOOKING_PHONE_PATTERN,
   DOG_SIZE_OPTIONS,
-  findMatchingGroomingServiceId,
+  findMatchingGroomingServiceName,
   formatBookingCurrency,
   formatBookingDate,
   getAllowedBookingTimes,
@@ -18,7 +18,7 @@ import {
 } from '@/lib/booking';
 
 type BookingFlowProps = {
-  services: BookingServiceRecord[];
+  services: readonly BookingServiceRecord[];
 };
 
 type StepKey = 1 | 2 | 3 | 4;
@@ -139,12 +139,12 @@ export function BookingFlow({ services }: BookingFlowProps) {
     [services],
   );
 
-  const groomingServiceIds = useMemo(
+  const groomingServiceNames = useMemo(
     () =>
       new Set(
         orderedServices
           .filter((service) => getGroomingSizeFromServiceName(service.name))
-          .map((service) => service.id),
+          .map((service) => service.name),
       ),
     [orderedServices],
   );
@@ -156,9 +156,9 @@ export function BookingFlow({ services }: BookingFlowProps) {
   const [dogBreed, setDogBreed] = useState('');
   const [dogSize, setDogSize] = useState<DogSize>('SMALL');
   const [dogNote, setDogNote] = useState('');
-  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(() => {
-    const baseServiceId = findMatchingGroomingServiceId(orderedServices, 'SMALL');
-    return baseServiceId ? [baseServiceId] : orderedServices.slice(0, 1).map((service) => service.id);
+  const [selectedServiceNames, setSelectedServiceNames] = useState<string[]>(() => {
+    const baseServiceName = findMatchingGroomingServiceName(orderedServices, 'SMALL');
+    return baseServiceName ? [baseServiceName] : orderedServices.slice(0, 1).map((service) => service.name);
   });
   const [selectedDate, setSelectedDate] = useState<string>(minDateKey);
   const [selectedTime, setSelectedTime] = useState('');
@@ -170,14 +170,14 @@ export function BookingFlow({ services }: BookingFlowProps) {
 
   const [state, formAction] = useActionState(submitBooking, INITIAL_STATE);
 
-  const baseServiceId = useMemo(
-    () => findMatchingGroomingServiceId(orderedServices, dogSize),
+  const baseServiceName = useMemo(
+    () => findMatchingGroomingServiceName(orderedServices, dogSize),
     [orderedServices, dogSize],
   );
 
   const selectedServices = useMemo(
-    () => orderedServices.filter((service) => selectedServiceIds.includes(service.id)),
-    [orderedServices, selectedServiceIds],
+    () => orderedServices.filter((service) => selectedServiceNames.includes(service.name)),
+    [orderedServices, selectedServiceNames],
   );
 
   const totalPrice = useMemo(
@@ -208,7 +208,7 @@ export function BookingFlow({ services }: BookingFlowProps) {
     }
 
     if (currentStep === 2) {
-      return selectedServiceIds.length > 0;
+      return selectedServiceNames.length > 0;
     }
 
     if (currentStep === 3) {
@@ -219,7 +219,7 @@ export function BookingFlow({ services }: BookingFlowProps) {
       return (
         customerName.trim().length > 0 &&
         BOOKING_PHONE_PATTERN.test(customerPhone.trim()) &&
-        selectedServiceIds.length > 0
+        selectedServiceNames.length > 0
       );
     }
 
@@ -241,9 +241,9 @@ export function BookingFlow({ services }: BookingFlowProps) {
     setStep((current) => Math.max(1, current - 1) as StepKey);
   }
 
-  function setServicesAndValidateTime(nextServiceIds: string[]) {
+  function setServicesAndValidateTime(nextServiceNames: string[]) {
     const nextDuration = orderedServices.reduce((total, service) => {
-      return nextServiceIds.includes(service.id) ? total + service.baseDurationMin : total;
+      return nextServiceNames.includes(service.name) ? total + service.baseDurationMin : total;
     }, 0);
 
     const nextAvailableTimes = getAllowedBookingTimes(selectedDate, nextDuration);
@@ -251,42 +251,42 @@ export function BookingFlow({ services }: BookingFlowProps) {
       setSelectedTime('');
     }
 
-    setSelectedServiceIds(nextServiceIds);
+    setSelectedServiceNames(nextServiceNames);
   }
 
   function handleDogSizeChange(nextSize: DogSize) {
     setDogSize(nextSize);
-    const nextBaseServiceId = findMatchingGroomingServiceId(orderedServices, nextSize);
+    const nextBaseServiceName = findMatchingGroomingServiceName(orderedServices, nextSize);
 
-    const addonIds = selectedServiceIds.filter((id) => !groomingServiceIds.has(id));
-    const nextServiceIds = nextBaseServiceId
-      ? Array.from(new Set([nextBaseServiceId, ...addonIds]))
-      : addonIds;
+    const addonNames = selectedServiceNames.filter((name) => !groomingServiceNames.has(name));
+    const nextServiceNames = nextBaseServiceName
+      ? Array.from(new Set([nextBaseServiceName, ...addonNames]))
+      : addonNames;
 
-    setServicesAndValidateTime(nextServiceIds);
+    setServicesAndValidateTime(nextServiceNames);
   }
 
-  function toggleAddon(serviceId: string) {
-    if (serviceId === baseServiceId) {
+  function toggleAddon(serviceName: string) {
+    if (serviceName === baseServiceName) {
       return;
     }
 
-    const nextServiceIds = selectedServiceIds.includes(serviceId)
-      ? selectedServiceIds.filter((id) => id !== serviceId)
-      : [...selectedServiceIds, serviceId];
+    const nextServiceNames = selectedServiceNames.includes(serviceName)
+      ? selectedServiceNames.filter((name) => name !== serviceName)
+      : [...selectedServiceNames, serviceName];
 
-    setServicesAndValidateTime(nextServiceIds);
+    setServicesAndValidateTime(nextServiceNames);
   }
 
   function renderServiceCard(service: BookingServiceRecord) {
     const groomingSize = getGroomingSizeFromServiceName(service.name);
-    const isBaseService = groomingSize !== null && service.id === baseServiceId;
+    const isBaseService = groomingSize !== null && service.name === baseServiceName;
     const isLocked = groomingSize !== null && !isBaseService;
-    const isSelected = selectedServiceIds.includes(service.id);
+    const isSelected = selectedServiceNames.includes(service.name);
 
     return (
       <label
-        key={service.id}
+        key={service.name}
         className={`${styles.serviceCard} ${isSelected ? styles.serviceCardSelected : ''} ${
           isLocked ? styles.serviceCardLocked : ''
         }`}
@@ -295,9 +295,9 @@ export function BookingFlow({ services }: BookingFlowProps) {
           className={styles.serviceInput}
           type="checkbox"
           name="serviceIds"
-          value={service.id}
+          value={service.name}
           checked={isSelected}
-          onChange={() => toggleAddon(service.id)}
+          onChange={() => toggleAddon(service.name)}
           disabled={isLocked}
         />
         <span className={styles.serviceCardCheck} aria-hidden="true" />
@@ -440,7 +440,9 @@ export function BookingFlow({ services }: BookingFlowProps) {
                   <h3>Základná úprava</h3>
                   <p>Strihanie sa prispôsobí veľkosti psa.</p>
                 </div>
-                <div className={styles.serviceGrid}>{orderedServices.filter((service) => getGroomingSizeFromServiceName(service.name)).map(renderServiceCard)}</div>
+                <div className={styles.serviceGrid}>
+          {orderedServices.filter((service) => getGroomingSizeFromServiceName(service.name)).map(renderServiceCard)}
+                </div>
               </div>
 
               <div className={styles.serviceSection}>
@@ -449,9 +451,7 @@ export function BookingFlow({ services }: BookingFlowProps) {
                   <p>Kúpanie, pazúriky a čistenie uší môžete pridať podľa potreby.</p>
                 </div>
                 <div className={styles.serviceGrid}>
-                  {orderedServices
-                    .filter((service) => !getGroomingSizeFromServiceName(service.name))
-                    .map(renderServiceCard)}
+                  {orderedServices.filter((service) => !getGroomingSizeFromServiceName(service.name)).map(renderServiceCard)}
                 </div>
               </div>
 

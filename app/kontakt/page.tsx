@@ -2,6 +2,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import RevealOnScroll from '@/components/RevealOnScroll';
 import BookingCTA from '@/components/BookingCTA';
+import Link from 'next/link';
 import { MapPin, Phone, Clock } from 'lucide-react';
 import type { Metadata } from 'next';
 
@@ -77,6 +78,23 @@ export default function Kontakt() {
                   <a className="btn btn--primary btn--full" href="tel:+421944240116">
                     Objednať sa telefonicky
                   </a>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: '1rem',
+                    display: 'flex',
+                    gap: '0.85rem',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <span style={{ color: 'var(--ink-soft)', fontSize: '0.95rem' }}>
+                    Alebo si rezervujte termín online:
+                  </span>
+                  <Link className="btn btn--ghost" href="/rezervacia">
+                    Rezervovať termín
+                  </Link>
                 </div>
               </div>
 

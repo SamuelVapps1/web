@@ -12,7 +12,7 @@ import {
 export type DogSize = 'SMALL' | 'MEDIUM' | 'LARGE';
 
 export type BookingServiceRecord = {
-  id: string;
+  code: string;
   name: string;
   basePrice: number;
   baseDurationMin: number;
@@ -46,6 +46,45 @@ export const DOG_SIZE_OPTIONS: Array<{
     value: 'LARGE',
     label: 'Veľký',
     note: 'Pre väčšie psy a dlhší čas úpravy.',
+  },
+] as const;
+
+export const BOOKING_SERVICES: BookingServiceRecord[] = [
+  {
+    code: 'groom-small',
+    name: 'Strihanie malý',
+    basePrice: 40,
+    baseDurationMin: 60,
+  },
+  {
+    code: 'groom-medium',
+    name: 'Strihanie stredný',
+    basePrice: 50,
+    baseDurationMin: 90,
+  },
+  {
+    code: 'groom-large',
+    name: 'Strihanie veľký',
+    basePrice: 60,
+    baseDurationMin: 120,
+  },
+  {
+    code: 'bath',
+    name: 'Kúpanie',
+    basePrice: 15,
+    baseDurationMin: 30,
+  },
+  {
+    code: 'nails',
+    name: 'Pazúriky',
+    basePrice: 5,
+    baseDurationMin: 10,
+  },
+  {
+    code: 'ears',
+    name: 'Čistenie uší',
+    basePrice: 5,
+    baseDurationMin: 10,
   },
 ] as const;
 
@@ -142,11 +181,9 @@ export function getGroomingSizeFromServiceName(serviceName: string): DogSize | n
   return null;
 }
 
-export function findMatchingGroomingServiceId(
+export function findMatchingGroomingServiceName(
   services: BookingServiceRecord[],
   size: DogSize,
 ): string | null {
-  return (
-    services.find((service) => getGroomingSizeFromServiceName(service.name) === size)?.id ?? null
-  );
+  return services.find((service) => getGroomingSizeFromServiceName(service.name) === size)?.name ?? null;
 }
