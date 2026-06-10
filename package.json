@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "postinstall": "prisma generate",
     "test": "node tests/admin-paths.test.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
