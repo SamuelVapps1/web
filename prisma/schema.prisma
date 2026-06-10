@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+enum DogSize {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  DONE
+  CANCELLED
+}
+
+model Customer {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  phone     String
+  email     String?
+  note      String?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  dogs Dog[]
+}
+
+model Dog {
+  id              String   @id @default(uuid()) @db.Uuid
+  customerId      String   @db.Uuid
+  name            String
+  breed           String?
+  size            DogSize
+  temperamentNote String?
+  healthNote      String?
+
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  reservations Reservation[]
+
+  @@index([customerId])
+}
+
+model Service {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @unique
+  basePrice       Decimal  @db.Decimal(10, 2)
+  baseDurationMin Int
+}
+
+model Reservation {
+  id              String            @id @default(uuid()) @db.Uuid
+  dogId           String            @db.Uuid
+  serviceIds      String[]
+  status          ReservationStatus @default(PENDING)
+  requestedStart  DateTime          @db.Timestamptz(6)
+  confirmedStart  DateTime?         @db.Timestamptz(6)
+  durationMin     Int
+  customerMessage String?
+  internalNote    String?
+  sourceCode      String?
+  createdAt       DateTime          @default(now()) @db.Timestamptz(6)
+
+  dog Dog @relation(fields: [dogId], references: [id], onDelete: Cascade)
+
+  @@index([dogId])
+}
