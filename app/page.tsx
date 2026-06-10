@@ -228,7 +228,7 @@ export default function Home() {
                 <RevealOnScroll key={review.id}>
                   <div className="review">
                     <span className="review__stars">★★★★★</span>
-                    <p className="review__quote">"{review.quote}"</p>
+                    <p className="review__quote">&ldquo;{review.quote}&rdquo;</p>
                     <div className="review__meta">
                       <div className="review__avatar">{review.initials}</div>
                       <div>
