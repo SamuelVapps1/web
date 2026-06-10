@@ -1,20 +1,7 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter } from "next/font/google";
+import type { CSSProperties } from "react";
 import "./globals.css";
 import JsonLd from "@/components/JsonLd";
-
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin", "latin-ext"],
-  style: ["normal", "italic"],
-  display: "swap",
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin", "latin-ext"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://laurasalon.sk"),
@@ -92,7 +79,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="sk" className={`${fraunces.variable} ${inter.variable}`}>
+    <html
+      lang="sk"
+      style={
+        {
+          '--font-fraunces': 'Georgia, "Times New Roman", serif',
+          '--font-inter': 'Inter, system-ui, sans-serif',
+        } as CSSProperties
+      }
+    >
       <body>
         <JsonLd data={jsonLd} />
         {children}

@@ -1,40 +1,72 @@
+import type { Metadata } from 'next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { CalendarClock, Phone } from 'lucide-react';
-import type { Metadata } from 'next';
+import BookingWizard from './_components/booking-wizard';
+import styles from './booking.module.css';
+import { listReservationsBetween } from '@/lib/db';
+import { addDaysToDateKey, endOfBratislavaDayUtc, getBratislavaDateKey, startOfBratislavaDayUtc } from '@/lib/time';
+import { serializeReservationRecord, type SerializedReservationRecord } from '@/lib/reservations';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Rezervácia termínu',
-  description:
-    'Online rezervácie spúšťame čoskoro. Zatiaľ si termín dohodnite telefonicky na +421 944 240 116.',
+  description: 'Vyberte termín a povedzte nám o vašom psovi. Ozveme sa s potvrdením.',
   alternates: { canonical: '/rezervacia' },
 };
 
-export default function Rezervacia() {
+function getQueryValue(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+
+  return value ?? null;
+}
+
+export default async function RezervaciaPage({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
+  const todayDateKey = getBratislavaDateKey();
+  const queryStart = startOfBratislavaDayUtc(todayDateKey);
+  const queryEnd = endOfBratislavaDayUtc(addDaysToDateKey(todayDateKey, 365));
+
+  let reservations: SerializedReservationRecord[] = [];
+  try {
+    const rows = await listReservationsBetween(queryStart, queryEnd);
+    reservations = rows.map(serializeReservationRecord);
+  } catch {
+    reservations = [];
+  }
+
+  const utmSource = getQueryValue(searchParams.utm_source);
+  const utmMedium = getQueryValue(searchParams.utm_medium);
+  const utmCampaign = getQueryValue(searchParams.utm_campaign);
+  const discountCode = getQueryValue(searchParams.discount_code);
+
   return (
     <>
       <Header />
-
-      <main>
-        <div className="booking">
-          <div className="booking__card">
-            <div className="booking__icon">
-              <CalendarClock aria-hidden="true" />
-            </div>
-            <h1>Online rezervácie spúšťame čoskoro</h1>
-            <p>
-              Zatiaľ si termín dohodnite telefonicky — radi vám poradíme a nájdeme čas, ktorý vám sadne.
-            </p>
-            <a className="btn btn--primary" href="tel:+421944240116">
-              <Phone aria-hidden="true" style={{ width: 18, height: 18 }} /> Zavolať · +421 944 240 116
-            </a>
-            <p className="booking__hours">
-              Po – Pia · 10:00 – 13:00 a 14:00 – 18:00 · Sobota – Nedeľa · zatvorené
-            </p>
+      <main className={styles.page}>
+        <section className={styles.hero}>
+          <div className={styles.heroCard}>
+            <h1>Rezervácia termínu</h1>
+            <p className={styles.subtitle}>Vyberte termín a povedzte nám o vašom psovi. Ozveme sa s potvrdením.</p>
           </div>
-        </div>
-      </main>
+        </section>
 
+        <section className={styles.content}>
+          <BookingWizard
+            reservations={reservations}
+            todayDateKey={todayDateKey}
+            utmSource={utmSource}
+            utmMedium={utmMedium}
+            utmCampaign={utmCampaign}
+            discountCode={discountCode}
+          />
+        </section>
+      </main>
       <Footer />
     </>
   );
