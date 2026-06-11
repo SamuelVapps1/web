@@ -27,10 +27,11 @@ export default function CustomerSearchClient({
     }
 
     return customers.filter((customer) => {
+      const tags = customer.tags ?? [];
       const haystack = [
         customer.name,
         customer.phone,
-        ...customer.tags,
+        ...tags,
         ...customer.dogs.map((dog) => dog.name),
       ]
         .join(' ')
@@ -58,7 +59,7 @@ export default function CustomerSearchClient({
                 <strong>{customer.name}</strong>
                 <span>{customer.phone}</span>
               </div>
-              <p className={styles.customerTagSummary}>{getCustomerTagSummary(customer.tags)}</p>
+              <p className={styles.customerTagSummary}>{getCustomerTagSummary(customer.tags ?? [])}</p>
               <p>{customer.dogs.map((dog) => dog.name).join(', ') || 'Bez psov'}</p>
               <p>{customer.reservationCount} rezervácií · {customer.lastVisitLabel}</p>
             </Link>

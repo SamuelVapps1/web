@@ -151,15 +151,18 @@ export default async function AdminCustomerDetailPage({
                 <div className={`${styles.field} ${styles.fieldFull}`}>
                   <label>Tagy</label>
                   <div className={styles.tagGrid}>
-                    {ADMIN_CUSTOMER_TAGS.map((tag) => {
-                      const active = customer.tags.includes(tag.value);
-                      return (
-                        <label key={tag.value} className={`${styles.tagChip} ${active ? styles.tagChipActive : ''}`}>
-                          <input type="checkbox" name="tags" value={tag.value} defaultChecked={active} />
-                          <span>{tag.label}</span>
-                        </label>
-                      );
-                    })}
+                    {(() => {
+                      const customerTags = customer.tags ?? [];
+                      return ADMIN_CUSTOMER_TAGS.map((tag) => {
+                        const active = customerTags.includes(tag.value);
+                        return (
+                          <label key={tag.value} className={`${styles.tagChip} ${active ? styles.tagChipActive : ''}`}>
+                            <input type="checkbox" name="tags" value={tag.value} defaultChecked={active} />
+                            <span>{tag.label}</span>
+                          </label>
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
                 <button className="btn btn--primary" type="submit">

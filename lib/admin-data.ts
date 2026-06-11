@@ -230,7 +230,7 @@ function mapCustomer(record: CustomerRelation): AdminCustomerCard {
     phone: record.phone,
     email: record.email,
     note: record.note,
-    tags: record.tags,
+    tags: Array.isArray(record.tags) ? record.tags.filter((tag): tag is string => typeof tag === 'string') : [],
     dogs: record.dogs.map((dog) => ({
       id: dog.id,
       name: dog.name,
