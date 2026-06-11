@@ -1,4 +1,5 @@
-import { BOOKING_ADDONS, BOOKING_CUT_TYPES, BOOKING_SIZE_OPTIONS } from '@/lib/booking';
+import { BOOKING_ADDONS, BOOKING_CUT_TYPES } from '@/lib/booking';
+import { getDogSizeLabel, getReservationStatusLabel } from '@/lib/admin-labels.js';
 import { formatTimeKey, getBratislavaDateKey, isWeekendDateKey, localDateTimeToUtc, minutesToTimeKey, timeKeyToMinutes } from '@/lib/time';
 
 export const ADMIN_TIME_WINDOW = {
@@ -63,13 +64,12 @@ export function getCustomerTagSummary(tags: string[] | null | undefined): string
   return labels.length > 0 ? labels.join(' · ') : 'Bez tagov';
 }
 
-export function getDogSizeLabel(value: string | null | undefined): string {
-  return BOOKING_SIZE_OPTIONS.find((option) => option.value === value)?.label ?? 'Neznáma veľkosť';
-}
-
 export function getCutTypeLabel(value: string | null | undefined): string {
   return BOOKING_CUT_TYPES.find((item) => item.value === value)?.label ?? 'Neznámy typ strihu';
 }
+
+export { getDogSizeLabel };
+export { getReservationStatusLabel };
 
 export function getAddonLabels(serviceIds: string[] | null | undefined): string {
   if (!serviceIds || serviceIds.length === 0) {

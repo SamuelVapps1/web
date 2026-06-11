@@ -19,13 +19,6 @@ function formatTelHref(phone: string): string {
   return `tel:${phone.replace(/\s+/g, '')}`;
 }
 
-function getStatusLabel(status: string) {
-  if (status === 'CONFIRMED') return 'Potvrdená';
-  if (status === 'PENDING') return 'Čaká';
-  if (status === 'DONE') return 'Hotová';
-  return 'Zrušená';
-}
-
 export default async function AdminReservationsPage({
   searchParams,
 }: {
@@ -73,7 +66,7 @@ export default async function AdminReservationsPage({
                     {reservation.dogName} · {reservation.dogSizeLabel} · {reservation.cutTypeLabel}
                   </p>
                 </div>
-                <span className={styles.statusPill}>{getStatusLabel(reservation.status)}</span>
+                <span className={styles.statusPill}>{reservation.statusLabel}</span>
               </div>
 
               <p className={styles.reservationServices}>{reservation.serviceLabel}</p>

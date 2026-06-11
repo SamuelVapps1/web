@@ -3,7 +3,7 @@ import 'server-only';
 import type { ReservationStatus, Prisma } from '@prisma/client';
 import { getPrisma } from '@/lib/prisma';
 import { addDaysToDateKey, endOfBratislavaDayUtc, formatBratislavaDate, formatBratislavaDateTime, formatTimeKey, getBratislavaDateKey, localDateTimeToUtc, startOfBratislavaDayUtc } from '@/lib/time';
-import { getAddonLabels, getCutTypeLabel, getDogSizeLabel, getEffectiveReservationEnd, getEffectiveReservationStart, getMonthLabel, getWeekRangeLabel, shiftDateKey, shiftMonthKey, type AdminCalendarView, type AdminReservationTab } from '@/lib/admin-domain';
+import { getAddonLabels, getCutTypeLabel, getDogSizeLabel, getEffectiveReservationEnd, getEffectiveReservationStart, getMonthLabel, getReservationStatusLabel, getWeekRangeLabel, shiftDateKey, shiftMonthKey, type AdminCalendarView, type AdminReservationTab } from '@/lib/admin-domain';
 
 type ReservationRelation = Prisma.ReservationGetPayload<{
   include: {
@@ -60,6 +60,7 @@ const customerInclude = {
 export type AdminReservationCard = {
   id: string;
   status: ReservationStatus;
+  statusLabel: string;
   createdAt: string;
   requestedStart: string;
   confirmedStart: string | null;
@@ -109,6 +110,7 @@ export type AdminCustomerCard = {
     name: string;
     breed: string | null;
     size: string;
+    sizeLabel: string;
   }[];
   reservationCount: number;
   lastVisitLabel: string;
@@ -128,6 +130,7 @@ export type AdminCustomerDetail = {
     name: string;
     breed: string | null;
     size: string;
+    sizeLabel: string;
     note: string | null;
     temperamentNote: string | null;
     coatType: string | null;
@@ -144,6 +147,7 @@ export type AdminReservationDetail = AdminReservationCard & {
   requestedDateLabel: string;
   requestedStartIso: string;
   confirmedStartIso: string | null;
+  availabilityReservations: AdminReservationCard[];
   collisions: {
     id: string;
     customerName: string;
@@ -181,6 +185,7 @@ function mapReservation(record: ReservationRelation): AdminReservationCard {
   return {
     id: record.id,
     status: record.status,
+    statusLabel: getReservationStatusLabel(record.status),
     createdAt: record.createdAt.toISOString(),
     requestedStart: record.requestedStart.toISOString(),
     confirmedStart: record.confirmedStart?.toISOString() ?? null,
@@ -236,6 +241,7 @@ function mapCustomer(record: CustomerRelation): AdminCustomerCard {
       name: dog.name,
       breed: dog.breed,
       size: dog.size,
+      sizeLabel: getDogSizeLabel(dog.size),
     })),
     reservationCount: allReservations.length,
     lastVisitAt: lastVisit ? (lastVisit.confirmedStart ?? lastVisit.requestedStart).toISOString() : null,
@@ -255,6 +261,7 @@ function mapCustomerDetail(record: CustomerRelation): AdminCustomerDetail {
       name: dog.name,
       breed: dog.breed,
       size: dog.size,
+      sizeLabel: getDogSizeLabel(dog.size),
       note: dog.note,
       temperamentNote: dog.temperamentNote,
       coatType: dog.coatType,
@@ -280,6 +287,31 @@ function mapCustomerDetail(record: CustomerRelation): AdminCustomerDetail {
         },
       } as ReservationRelation)),
   };
+}
+
+async function loadConfirmedReservationsInRange(startKey: string, endKey: string): Promise<AdminReservationCard[]> {
+  const prisma = getPrisma();
+  const rangeStart = startOfBratislavaDayUtc(startKey);
+  const rangeEnd = endOfBratislavaDayUtc(endKey);
+
+  const reservations = await prisma.reservation.findMany({
+    where: {
+      status: 'CONFIRMED',
+      OR: [{ requestedStart: { lt: rangeEnd } }, { confirmedStart: { lt: rangeEnd } }],
+    },
+    include: reservationInclude,
+    orderBy: {
+      requestedStart: 'asc',
+    },
+  });
+
+  return reservations
+    .filter((reservation) => {
+      const start = reservation.confirmedStart ?? reservation.requestedStart;
+      const end = new Date(start.getTime() + reservation.durationMin * 60 * 1000);
+      return start < rangeEnd && end > rangeStart;
+    })
+    .map(mapReservation);
 }
 
 function getWeekRange(anchorDateKey: string) {
@@ -406,6 +438,12 @@ export async function getAdminReservationDetail(id: string): Promise<AdminReserv
   }
 
   const mapped = mapReservation(reservation);
+  const selectedStart = reservation.confirmedStart ?? reservation.requestedStart;
+  const availabilityWindowStart = shiftDateKey(getBratislavaDateKey(selectedStart), -30);
+  const availabilityWindowEnd = shiftDateKey(getBratislavaDateKey(selectedStart), 30);
+  const availabilityReservations = (
+    await loadConfirmedReservationsInRange(availabilityWindowStart, availabilityWindowEnd)
+  ).filter((item) => item.id !== id);
   const collisions = await prisma.reservation.findMany({
     where: {
       status: 'CONFIRMED',
@@ -423,6 +461,7 @@ export async function getAdminReservationDetail(id: string): Promise<AdminReserv
     requestedTimeLabel: formatTimeKey(reservation.requestedStart),
     requestedStartIso: reservation.requestedStart.toISOString(),
     confirmedStartIso: reservation.confirmedStart?.toISOString() ?? null,
+    availabilityReservations,
     collisions: collisions
       .filter((item) => {
         const start = item.confirmedStart ?? item.requestedStart;

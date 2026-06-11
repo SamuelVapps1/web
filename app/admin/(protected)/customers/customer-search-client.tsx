@@ -13,7 +13,7 @@ export default function CustomerSearchClient({
     name: string;
     phone: string;
     tags: string[];
-    dogs: { id: string; name: string; breed: string | null; size: string }[];
+    dogs: { id: string; name: string; breed: string | null; size: string; sizeLabel: string }[];
     reservationCount: number;
     lastVisitLabel: string;
   }[];
@@ -60,7 +60,9 @@ export default function CustomerSearchClient({
                 <span>{customer.phone}</span>
               </div>
               <p className={styles.customerTagSummary}>{getCustomerTagSummary(customer.tags ?? [])}</p>
-              <p>{customer.dogs.map((dog) => dog.name).join(', ') || 'Bez psov'}</p>
+              <p>
+                {customer.dogs.map((dog) => `${dog.name} · ${dog.sizeLabel}`).join(', ') || 'Bez psov'}
+              </p>
               <p>{customer.reservationCount} rezervácií · {customer.lastVisitLabel}</p>
             </Link>
           ))

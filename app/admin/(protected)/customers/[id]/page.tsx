@@ -177,40 +177,43 @@ export default async function AdminCustomerDetailPage({
           <article className={styles.detailCard}>
             <p className={styles.sectionKicker}>Psy</p>
             <div className={styles.stack}>
-              {customer.dogs.map((dog) => (
-                <article key={dog.id} className={styles.profileCard}>
-                  <div className={styles.profileCardHeader}>
+              {customer.dogs.map((dog, index) => (
+                <details key={dog.id} className={styles.dogAccordion} open={index === 0}>
+                  <summary className={styles.dogAccordionSummary}>
                     <div>
                       <h2 className={styles.detailName}>{dog.name}</h2>
                       <p className={styles.detailMeta}>
-                        {dog.breed ?? 'Bez plemena'} · {dog.size}
+                        {dog.breed ?? 'Bez plemena'} · {dog.sizeLabel}
                       </p>
                     </div>
-                  </div>
+                    <span className={styles.dogAccordionMeta}>Upraviť</span>
+                  </summary>
 
-                  <DogProfileForm
-                    customerId={customer.id}
-                    dog={dog}
-                    submitLabel="Uložiť psa"
-                  />
+                  <div className={styles.dogAccordionBody}>
+                    <DogProfileForm
+                      customerId={customer.id}
+                      dog={dog}
+                      submitLabel="Uložiť psa"
+                    />
 
-                  <div className={styles.profileHistory}>
-                    <p className={styles.sectionKicker}>História psa</p>
-                    {dog.reservations.length > 0 ? (
-                      <div className={styles.historyList}>
-                        {dog.reservations.map((reservation) => (
-                          <Link key={reservation.id} className={styles.historyCard} href={`/admin/reservations/${reservation.id}`}>
-                            <strong>{reservation.startLabel}</strong>
-                            <span>{reservation.cutTypeLabel} · {reservation.serviceLabel}</span>
-                            <span>{reservation.status}</span>
-                          </Link>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className={styles.emptyState}>Tento pes ešte nemá žiadnu rezerváciu.</p>
-                    )}
+                    <div className={styles.profileHistory}>
+                      <p className={styles.sectionKicker}>História psa</p>
+                      {dog.reservations.length > 0 ? (
+                        <div className={styles.historyList}>
+                          {dog.reservations.map((reservation) => (
+                            <Link key={reservation.id} className={styles.historyCard} href={`/admin/reservations/${reservation.id}`}>
+                              <strong>{reservation.startLabel}</strong>
+                              <span>{reservation.cutTypeLabel} · {reservation.serviceLabel}</span>
+                              <span>{reservation.statusLabel}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className={styles.emptyState}>Tento pes ešte nemá žiadnu rezerváciu.</p>
+                      )}
+                    </div>
                   </div>
-                </article>
+                </details>
               ))}
             </div>
           </article>
@@ -243,7 +246,9 @@ export default async function AdminCustomerDetailPage({
                     <span>
                       {reservation.dogName} · {reservation.cutTypeLabel}
                     </span>
-                    <span>{reservation.internalNote ?? 'Bez internej poznámky'}</span>
+                    <span>
+                      {reservation.serviceLabel} · {reservation.statusLabel}
+                    </span>
                   </Link>
                 ))
               ) : (

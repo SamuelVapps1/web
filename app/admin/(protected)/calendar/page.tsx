@@ -198,7 +198,7 @@ export default async function AdminCalendarPage({
                       <strong>{reservation.timeLabel}</strong>
                       <span>{reservation.dogName}</span>
                       <small>
-                        {reservation.status} · {reservation.cutTypeLabel}
+                        {reservation.statusLabel} · {reservation.cutTypeLabel}
                       </small>
                     </Link>
                   ))}
@@ -255,7 +255,7 @@ export default async function AdminCalendarPage({
                   {reservation.customerName} / {reservation.dogName}
                 </span>
                 <span>
-                  {reservation.status} · {reservation.cutTypeLabel}
+                  {reservation.statusLabel} · {reservation.cutTypeLabel}
                 </span>
               </Link>
             ))

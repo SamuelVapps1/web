@@ -17,7 +17,7 @@ export default function ManualReservationForm({
     id: string;
     name: string;
     phone: string;
-    dogs: { id: string; name: string; breed: string | null; size: string }[];
+    dogs: { id: string; name: string; breed: string | null; size: string; sizeLabel: string }[];
   }[];
   initialDate?: string;
   initialTime?: string;
@@ -73,7 +73,7 @@ export default function ManualReservationForm({
     setSelectedHealthNote('');
   }
 
-  function selectDog(dog: { id: string; name: string; breed: string | null; size: string }) {
+  function selectDog(dog: { id: string; name: string; breed: string | null; size: string; sizeLabel: string }) {
     setSelectedDogId(dog.id);
     setSelectedDogName(dog.name);
     setSelectedDogBreed(dog.breed ?? '');
@@ -140,7 +140,7 @@ export default function ManualReservationForm({
                   onClick={() => selectDog(dog)}
                 >
                   <strong>{dog.name}</strong>
-                  <span>{dog.breed ?? 'Bez plemena'} · {dog.size}</span>
+                  <span>{dog.breed ?? 'Bez plemena'} · {dog.sizeLabel}</span>
                 </button>
               ))}
           </div>

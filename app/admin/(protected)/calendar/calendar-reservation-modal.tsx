@@ -13,7 +13,7 @@ export default function CalendarReservationModal({
     id: string;
     name: string;
     phone: string;
-    dogs: { id: string; name: string; breed: string | null; size: string }[];
+    dogs: { id: string; name: string; breed: string | null; size: string; sizeLabel: string }[];
   }[];
   initialDate: string;
   initialTime: string;

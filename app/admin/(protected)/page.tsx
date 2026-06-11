@@ -9,13 +9,6 @@ function formatTelHref(phone: string): string {
   return `tel:${phone.replace(/\s+/g, '')}`;
 }
 
-function getStatusLabel(status: string) {
-  if (status === 'CONFIRMED') return 'Potvrdená';
-  if (status === 'PENDING') return 'Čaká';
-  if (status === 'DONE') return 'Hotová';
-  return 'Zrušená';
-}
-
 function ReservationList({
   title,
   items,
@@ -45,7 +38,7 @@ function ReservationList({
                     {reservation.dogName} · {reservation.cutTypeLabel}
                   </p>
                 </div>
-                <span className={styles.statusPill}>{getStatusLabel(reservation.status)}</span>
+                <span className={styles.statusPill}>{reservation.statusLabel}</span>
               </div>
               <div className={styles.listCardBody}>
                 <p className={styles.listCardDetail}>{reservation.serviceLabel}</p>

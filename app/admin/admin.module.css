@@ -710,6 +710,80 @@
   gap: 0.3rem;
 }
 
+.fieldHint {
+  margin: 0;
+  color: #4a443c;
+  font-size: 0.82rem;
+}
+
+.availabilityBanner {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 16px;
+  border: 1px solid rgba(156, 107, 61, 0.22);
+  background: rgba(156, 107, 61, 0.08);
+}
+
+.availabilityTitle {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9c6b3d;
+}
+
+.availabilityFree {
+  margin: 0;
+  padding: 0.85rem 0.95rem;
+  border-radius: 16px;
+  border: 1px solid rgba(72, 126, 72, 0.18);
+  background: rgba(72, 126, 72, 0.08);
+  color: #33543a;
+  font-weight: 600;
+}
+
+.slotGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 0.5rem;
+}
+
+.slotButton {
+  display: grid;
+  gap: 0.15rem;
+  justify-items: center;
+  padding: 0.7rem 0.55rem;
+  border: 1px solid rgba(33, 30, 26, 0.14);
+  border-radius: 14px;
+  background: #fdfbf7;
+  color: #211e1a;
+  cursor: pointer;
+}
+
+.slotButtonBusy {
+  background: rgba(156, 107, 61, 0.08);
+  border-color: rgba(156, 107, 61, 0.22);
+  color: #6a5b4b;
+}
+
+.slotButtonActive {
+  background: #211e1a;
+  border-color: #211e1a;
+  color: #f6f1e7;
+}
+
+.slotButtonTime {
+  font-weight: 700;
+}
+
+.slotButtonState {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .collisionCard {
   background: rgba(156, 107, 61, 0.08);
   border-color: rgba(156, 107, 61, 0.18);
@@ -852,6 +926,7 @@
 
 .customerDetailPage .detailLayout {
   align-items: start;
+  grid-template-columns: minmax(300px, 0.84fr) minmax(0, 1.16fr);
 }
 
 .profileForm {
@@ -868,6 +943,42 @@
   background: rgba(251, 248, 241, 0.72);
 }
 
+.dogAccordion {
+  border: 1px solid rgba(33, 30, 26, 0.08);
+  border-radius: 18px;
+  background: rgba(251, 248, 241, 0.72);
+  overflow: hidden;
+}
+
+.dogAccordionSummary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+}
+
+.dogAccordionSummary::-webkit-details-marker {
+  display: none;
+}
+
+.dogAccordionMeta {
+  flex: none;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9c6b3d;
+}
+
+.dogAccordionBody {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0 1rem 1rem;
+}
+
 .profileCardHeader {
   display: flex;
   justify-content: space-between;
@@ -877,7 +988,7 @@
 
 .profileHistory {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.55rem;
 }
 
 .tagGrid {
@@ -907,6 +1018,201 @@
   border-color: rgba(156, 107, 61, 0.45);
   background: rgba(156, 107, 61, 0.12);
   color: #211e1a;
+}
+
+.customerDetailPage .pageHeader {
+  align-items: start;
+  padding: 1rem 1.15rem;
+}
+
+.customerDetailPage .pageHeader > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.customerDetailPage .pageTitle {
+  margin-top: 0.2rem;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+}
+
+.customerDetailPage .pageLead {
+  margin-top: 0.15rem;
+}
+
+.customerDetailPage .customerTagSummary {
+  margin-top: 0.2rem;
+}
+
+.customerDetailPage .detailCard,
+.customerDetailPage .profileCard,
+.customerDetailPage .dogAccordion,
+.customerDetailPage .historyCard {
+  box-shadow: 0 18px 38px -30px rgba(33, 30, 26, 0.28);
+}
+
+.customerDetailPage .detailCard {
+  padding: 0.85rem;
+}
+
+.customerDetailPage .profileCard {
+  padding: 0.85rem;
+}
+
+.customerDetailPage .formGrid {
+  gap: 0.65rem;
+}
+
+.customerDetailPage .field input,
+.customerDetailPage .field select,
+.customerDetailPage .field textarea,
+.customerDetailPage .searchInput {
+  padding: 0.72rem 0.85rem;
+  border-radius: 14px;
+}
+
+.customerDetailPage .field textarea {
+  min-height: 86px;
+}
+
+.customerDetailPage .historyList {
+  gap: 0.55rem;
+}
+
+.customerDetailPage .historyCard {
+  padding: 0.75rem 0.85rem;
+  gap: 0.2rem;
+  grid-template-columns: 1fr;
+}
+
+.customerDetailPage .historyCard strong {
+  font-size: 0.94rem;
+}
+
+.customerDetailPage .historyCard span {
+  font-size: 0.88rem;
+}
+
+.customerDetailPage .profileHistory {
+  margin-top: 0.1rem;
+}
+
+.customerDetailPage .stack {
+  gap: 0.7rem;
+}
+
+.customerDetailPage .detailMain {
+  gap: 0.8rem;
+}
+
+.customerDetailPage .detailSidebar {
+  gap: 0.8rem;
+}
+
+.customerDetailPage .detailCard .sectionKicker {
+  margin-bottom: 0.1rem;
+}
+
+.customerDetailPage .detailMeta {
+  font-size: 0.9rem;
+}
+
+.customerDetailPage .detailName {
+  font-size: 1.15rem;
+}
+
+.customerDetailPage .dogAccordionBody .profileForm {
+  gap: 0.65rem;
+}
+
+.customerDetailPage .profileCardHeader,
+.customerDetailPage .dogAccordionSummary {
+  align-items: center;
+}
+
+.customerDetailPage .tagChip {
+  padding: 0.45rem 0.7rem;
+}
+
+.customerDetailPage .actionsRow {
+  margin-top: 0.1rem;
+}
+
+.customerDetailPage .emptyState {
+  font-size: 0.9rem;
+}
+
+.customerDetailPage .availabilityBanner {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 16px;
+  border: 1px solid rgba(156, 107, 61, 0.22);
+  background: rgba(156, 107, 61, 0.08);
+}
+
+.customerDetailPage .availabilityTitle {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9c6b3d;
+}
+
+.customerDetailPage .availabilityFree {
+  margin: 0;
+  padding: 0.85rem 0.95rem;
+  border-radius: 16px;
+  border: 1px solid rgba(72, 126, 72, 0.18);
+  background: rgba(72, 126, 72, 0.08);
+  color: #33543a;
+  font-weight: 600;
+}
+
+.customerDetailPage .fieldHint {
+  margin: 0;
+  color: #4a443c;
+  font-size: 0.82rem;
+}
+
+.customerDetailPage .slotGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 0.5rem;
+}
+
+.customerDetailPage .slotButton {
+  display: grid;
+  gap: 0.15rem;
+  justify-items: center;
+  padding: 0.7rem 0.55rem;
+  border: 1px solid rgba(33, 30, 26, 0.14);
+  border-radius: 14px;
+  background: #fdfbf7;
+  color: #211e1a;
+  cursor: pointer;
+}
+
+.customerDetailPage .slotButtonBusy {
+  background: rgba(156, 107, 61, 0.08);
+  border-color: rgba(156, 107, 61, 0.22);
+  color: #6a5b4b;
+}
+
+.customerDetailPage .slotButtonActive {
+  background: #211e1a;
+  border-color: #211e1a;
+  color: #f6f1e7;
+}
+
+.customerDetailPage .slotButtonTime {
+  font-weight: 700;
+}
+
+.customerDetailPage .slotButtonState {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .calendarMonthGrid {
