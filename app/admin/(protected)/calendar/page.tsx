@@ -70,20 +70,12 @@ export default async function AdminCalendarPage({
         <div className={styles.dayTimeline}>
           {slots.map((slot) => {
             const dayReservations = [...(selectedDay?.reservations ?? []), ...(selectedDay?.pending ?? [])];
-            const slotMinutes = parseInt(slot.split(':')[0], 10) * 60 + parseInt(slot.split(':')[1], 10);
-            const slotReservation = dayReservations.find((reservation) => {
-              const startMinutes = parseInt(reservation.timeLabel.split(':')[0], 10) * 60 + parseInt(reservation.timeLabel.split(':')[1], 10);
-              const endMinutes = startMinutes + reservation.durationMin;
-              return slotMinutes >= startMinutes && slotMinutes < endMinutes;
-            });
-            const isReservationStart = slotReservation
-              ? slotMinutes === parseInt(slotReservation.timeLabel.split(':')[0], 10) * 60 + parseInt(slotReservation.timeLabel.split(':')[1], 10)
-              : false;
+            const slotReservation = dayReservations.find((reservation) => reservation.timeLabel === slot);
             const isLunch = slot >= ADMIN_TIME_WINDOW.lunchStart && slot < ADMIN_TIME_WINDOW.lunchEnd;
-            return (
-              <div key={slot} className={`${styles.timelineSlot} ${isLunch ? styles.timelineLunch : ''}`}>
-                <span className={styles.timelineTime}>{hourLabel(slot)}</span>
-                {isReservationStart ? (
+            if (slotReservation) {
+              return (
+                <div key={slot} className={`${styles.timelineSlot} ${isLunch ? styles.timelineLunch : ''}`}>
+                  <span className={styles.timelineTime}>{hourLabel(slot)}</span>
                   <Link
                     className={`${styles.timelineCard} ${slotReservation.status === 'PENDING' ? styles.timelineCardPending : ''}`}
                     style={{ minHeight: `${Math.max(1, slotReservation.durationMin / 30) * 52}px` }}
@@ -92,15 +84,25 @@ export default async function AdminCalendarPage({
                     <strong>{slotReservation.dogName}</strong>
                     <span>{slotReservation.cutTypeLabel}</span>
                   </Link>
-                ) : slotReservation ? (
-                  null
-                ) : isLunch ? (
+                </div>
+              );
+            }
+
+            if (isLunch) {
+              return (
+                <div key={slot} className={`${styles.timelineSlot} ${styles.timelineLunch}`}>
+                  <span className={styles.timelineTime}>{hourLabel(slot)}</span>
                   <span className={styles.timelineLunchLabel}>Obedná prestávka</span>
-                ) : (
-                  <Link className={styles.timelineFreeSlot} href={`/admin/reservations/new?date=${selectedDay?.dateKey ?? anchorDate}&time=${slot}`}>
-                    Voľné
-                  </Link>
-                )}
+                </div>
+              );
+            }
+
+            return (
+              <div key={slot} className={styles.timelineSlot}>
+                <span className={styles.timelineTime}>{hourLabel(slot)}</span>
+                <Link className={styles.timelineFreeSlot} href={`/admin/reservations/new?date=${selectedDay?.dateKey ?? anchorDate}&time=${slot}`}>
+                  Voľné
+                </Link>
               </div>
             );
           })}
