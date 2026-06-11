@@ -6,7 +6,7 @@ import styles from './booking.module.css';
 
 export const metadata: Metadata = {
   title: 'Rezervácia termínu',
-  description: 'Pošlite nám žiadosť o termín online. Potvrdenie vybavíme telefonicky.',
+  description: 'Pošlite nám žiadosť o termín online. Termín vám potvrdíme.',
   alternates: { canonical: '/rezervacia' },
 };
 
@@ -15,17 +15,6 @@ export default function RezervaciaPage() {
     <>
       <Header />
       <main className={styles.page}>
-        <section className={styles.hero}>
-          <div className={styles.heroCard}>
-            <p className={styles.eyebrow}>Rezervácie</p>
-            <h1>Pošlite nám žiadosť o termín online</h1>
-            <p className={styles.subtitle}>
-              My si profil psa a služby spracujeme hneď po odoslaní. Termín potvrdíme telefonicky
-              a ak bude treba, doladíme detaily ešte pred návštevou.
-            </p>
-          </div>
-        </section>
-
         <section className={styles.content}>
           <BookingFlow />
         </section>

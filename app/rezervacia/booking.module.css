@@ -71,34 +71,60 @@
 
 .stepper {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.7rem;
   margin-bottom: 1.2rem;
 }
 
-.stepperItem {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
+.stepperCurrent {
+  display: grid;
+  gap: 0.45rem;
   padding: 0.85rem 0.95rem;
   border-radius: var(--radius-md);
-  border: 1px solid transparent;
+  border: 1px solid rgba(156, 107, 61, 0.2);
+  background: rgba(156, 107, 61, 0.06);
 }
 
-.stepperItemActive {
-  background: rgba(156, 107, 61, 0.08);
-  border-color: rgba(156, 107, 61, 0.22);
+.stepperHeading {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
 }
 
-.stepperButton {
-  appearance: none;
+.stepperDots {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.stepperDot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
   border: 0;
+  background: rgba(156, 107, 61, 0.22);
   padding: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  width: 100%;
   cursor: pointer;
+}
+
+.stepperDotActive {
+  background: var(--cognac);
+  width: 0.65rem;
+}
+
+.stepProgress {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+
+.stepKicker {
+  margin: 0 0 0.2rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cognac);
 }
 
 .stepNumber {

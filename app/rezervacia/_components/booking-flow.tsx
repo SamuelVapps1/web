@@ -57,7 +57,7 @@ const STEP_DEFINITIONS = [
   {
     step: 4,
     title: 'Kontakt',
-    hint: 'Pošleme potvrdenie telefonicky.',
+    hint: 'Termín vám potvrdíme.',
   },
 ] as const;
 
@@ -151,42 +151,32 @@ function buildCalendarRows(monthAnchorKey: string): CalendarCell[][] {
 
 function Stepper({
   activeStep,
-  onNavigate,
 }: {
   activeStep: StepKey;
-  onNavigate: (step: StepKey) => void;
 }) {
+  const active = STEP_DEFINITIONS.find((item) => item.step === activeStep);
+
   return (
     <nav className={styles.stepper} aria-label="Postup rezervácie">
-      {STEP_DEFINITIONS.map((item) => {
-        const isActive = activeStep === item.step;
-        const isComplete = activeStep > item.step;
+      <div className={styles.stepperCurrent}>
+        <div className={styles.stepperHeading}>
+          <span className={styles.stepNumber}>{activeStep}</span>
+          <div className={styles.stepText}>
+            <span className={styles.stepLabel}>{active?.title}</span>
+            <span className={styles.stepHint}>{active?.hint}</span>
+          </div>
+        </div>
+        <p className={styles.stepProgress}>Krok {activeStep} zo 4</p>
+      </div>
 
-        return (
-          <button
+      <div className={styles.stepperDots} aria-hidden="true">
+        {STEP_DEFINITIONS.map((item) => (
+          <span
             key={item.step}
-            type="button"
-            className={styles.stepperButton}
-            onClick={() => onNavigate(item.step as StepKey)}
-          >
-            <span
-              className={`${styles.stepperItem} ${isActive ? styles.stepperItemActive : ''}`}
-            >
-              <span
-                className={`${styles.stepNumber} ${
-                  isActive || isComplete ? styles.stepNumberActive : ''
-                }`}
-              >
-                {item.step}
-              </span>
-              <span className={styles.stepText}>
-                <span className={styles.stepLabel}>{item.title}</span>
-                <span className={styles.stepHint}>{item.hint}</span>
-              </span>
-            </span>
-          </button>
-        );
-      })}
+            className={`${styles.stepperDot} ${activeStep === item.step ? styles.stepperDotActive : ''}`}
+          />
+        ))}
+      </div>
     </nav>
   );
 }
@@ -236,6 +226,10 @@ export function BookingFlow() {
   const [state, formAction] = useActionState(submitBooking, INITIAL_STATE);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const stepContentRef = useRef<HTMLElement | null>(null);
+  const stepOneTargetRef = useRef<HTMLInputElement | null>(null);
+  const stepTwoTargetRef = useRef<HTMLInputElement | null>(null);
+  const stepThreeTargetRef = useRef<HTMLButtonElement | null>(null);
+  const stepFourTargetRef = useRef<HTMLDivElement | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
   const phoneInputRef = useRef<HTMLInputElement | null>(null);
   const emailInputRef = useRef<HTMLInputElement | null>(null);
@@ -261,22 +255,50 @@ export function BookingFlow() {
   }, []);
 
   useEffect(() => {
-    const container = stepContentRef.current;
-    if (!container) {
+    const stickyHeaderOffset = 112;
+
+    const scrollAndFocus = (target: HTMLElement | null) => {
+      if (!target) {
+        return;
+      }
+
+      const top = window.scrollY + target.getBoundingClientRect().top - stickyHeaderOffset;
+      window.scrollTo({
+        top: Math.max(0, top),
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      });
+
+      window.setTimeout(() => {
+        target.focus({ preventScroll: true });
+      }, prefersReducedMotion ? 0 : 50);
+    };
+
+    if (step === 1) {
+      scrollAndFocus(stepOneTargetRef.current);
       return;
     }
 
-    container.scrollIntoView({
-      behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      block: 'start',
-    });
+    if (step === 2) {
+      scrollAndFocus(stepTwoTargetRef.current);
+      return;
+    }
 
-    const focusTarget = container.querySelector<HTMLElement>(
-      'input:not([type="hidden"]):not([disabled]), button:not([disabled]), select:not([disabled]), textarea:not([disabled])',
-    );
+    if (step === 3) {
+      scrollAndFocus(stepThreeTargetRef.current);
+      return;
+    }
 
-    focusTarget?.focus({ preventScroll: true });
+    scrollAndFocus(stepFourTargetRef.current);
+    window.setTimeout(() => {
+      nameInputRef.current?.focus({ preventScroll: true });
+    }, prefersReducedMotion ? 0 : 60);
   }, [prefersReducedMotion, step]);
+
+  useEffect(() => {
+    if (step === 3) {
+      stepThreeTargetRef.current = null;
+    }
+  }, [monthAnchorKey, step]);
 
   useEffect(() => {
     if (state.status !== 'error') {
@@ -443,21 +465,22 @@ export function BookingFlow() {
   }
 
   function focusFirstInteractiveInStep() {
-    const container = stepContentRef.current;
-    if (!container) {
+    if (step === 1) {
+      stepOneTargetRef.current?.focus({ preventScroll: true });
       return;
     }
 
-    container.scrollIntoView({
-      behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      block: 'start',
-    });
+    if (step === 2) {
+      stepTwoTargetRef.current?.focus({ preventScroll: true });
+      return;
+    }
 
-    const firstInteractive = container.querySelector<HTMLElement>(
-      'input:not([type="hidden"]):not([disabled]), button:not([disabled]), select:not([disabled]), textarea:not([disabled])',
-    );
+    if (step === 3) {
+      stepThreeTargetRef.current?.focus({ preventScroll: true });
+      return;
+    }
 
-    firstInteractive?.focus({ preventScroll: true });
+    stepFourTargetRef.current?.focus({ preventScroll: true });
   }
 
   function focusFirstContactError(errors: BookingContactFieldErrors) {
@@ -531,9 +554,9 @@ export function BookingFlow() {
     return (
       <section className={styles.confirmation} aria-live="polite">
         <div className={styles.confirmationCard}>
-          <p className="eyebrow">Žiadosť prijatá</p>
+          <p className="eyebrow">ŽIADOSŤ PRIJATÁ</p>
           <h2>Ďakujeme, vašu žiadosť sme prijali.</h2>
-          <p>Ozveme sa vám telefonicky a dohodneme termín.</p>
+          <p>Termín vám potvrdíme. Ak bude treba niečo doladiť, ozveme sa vám.</p>
           <p>
             Zavolajte nám na <a href="tel:+421944240116">+421 944 240 116</a>, ak si chcete ešte
             niečo overiť.
@@ -568,20 +591,16 @@ export function BookingFlow() {
           onChange={(event) => setCompany(event.target.value)}
         />
 
-        <Stepper
-          activeStep={step}
-          onNavigate={(targetStep) => {
-            setClientFieldErrors({});
-            setServiceFieldError(null);
-            setStep(targetStep);
-          }}
-        />
+        <Stepper activeStep={step} />
 
         <div className={styles.body}>
           {step === 1 ? (
             <>
               <div className={styles.sectionTitle}>
-                <h2>Pes</h2>
+                <div>
+                  <p className={styles.stepKicker}>Krok 1 zo 4</p>
+                  <h2>Pes</h2>
+                </div>
                 <span className={styles.sectionMeta}>Základné údaje o psovi.</span>
               </div>
 
@@ -591,6 +610,7 @@ export function BookingFlow() {
                     Meno psa
                   </label>
                   <input
+                    ref={stepOneTargetRef}
                     id="dogName"
                     name="dogName"
                     className={styles.input}
@@ -660,7 +680,10 @@ export function BookingFlow() {
           {step === 2 ? (
             <>
               <div className={styles.sectionTitle}>
-                <h2>Služby</h2>
+                <div>
+                  <p className={styles.stepKicker}>Krok 2 zo 4</p>
+                  <h2>Služby</h2>
+                </div>
                 <span className={styles.sectionMeta}>Vyberiete typ strihu a doplnky.</span>
               </div>
 
@@ -691,6 +714,7 @@ export function BookingFlow() {
                       }`}
                     >
                       <input
+                        ref={option === BOOKING_CUT_TYPES[0] ? stepTwoTargetRef : undefined}
                         type="radio"
                         name="cutType"
                         value={option.value}
@@ -760,8 +784,11 @@ export function BookingFlow() {
           {step === 3 ? (
             <>
               <div className={styles.sectionTitle}>
-                <h2>Preferovaný termín</h2>
-                <span className={styles.sectionMeta}>Termín vám potvrdíme telefonicky.</span>
+                <div>
+                  <p className={styles.stepKicker}>Krok 3 zo 4</p>
+                  <h2>Termín</h2>
+                </div>
+                <span className={styles.sectionMeta}>Termín vám potvrdíme.</span>
               </div>
 
               <div ref={stepContentRef as unknown as RefObject<HTMLDivElement>} className={styles.calendar}>
@@ -821,6 +848,15 @@ export function BookingFlow() {
                           className={`${styles.dayButton} ${
                             isSelected ? styles.dayButtonSelected : ''
                           } ${!isAllowed || dayBusy ? styles.dayButtonDisabled : ''}`}
+                          ref={
+                            stepThreeTargetRef.current === null && isAllowed && !dayBusy
+                              ? (node) => {
+                                  if (node && stepThreeTargetRef.current === null) {
+                                    stepThreeTargetRef.current = node;
+                                  }
+                                }
+                              : undefined
+                          }
                           disabled={!isAllowed || dayBusy}
                           onClick={() => handleSelectDay(dateKey)}
                         >
@@ -882,11 +918,14 @@ export function BookingFlow() {
           {step === 4 ? (
             <>
               <div className={styles.sectionTitle}>
-                <h2>Kontakt</h2>
+                <div>
+                  <p className={styles.stepKicker}>Krok 4 zo 4</p>
+                  <h2>Kontakt</h2>
+                </div>
                 <span className={styles.sectionMeta}>Skontrolujte súhrn a odošlite žiadosť.</span>
               </div>
 
-              <div className={styles.summaryBox}>
+              <div ref={stepFourTargetRef} className={styles.summaryBox} tabIndex={-1}>
                 <div className={styles.summaryGrid}>
                   <div className={styles.summaryItem}>
                     <span className={styles.summaryLabel}>Pes</span>
@@ -991,7 +1030,7 @@ export function BookingFlow() {
                     required
                   />
                   <p id="customerPhone-hint" className={styles.helperText}>
-                    Telefónne číslo potrebujeme na potvrdenie termínu — ozveme sa vám.
+                    Telefónne číslo potrebujeme na potvrdenie termínu.
                   </p>
                   {visibleFieldErrors.customerPhone ? (
                     <p id="customerPhone-error" className={styles.fieldError}>
