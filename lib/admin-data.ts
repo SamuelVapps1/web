@@ -147,6 +147,7 @@ export type AdminReservationDetail = AdminReservationCard & {
   requestedDateLabel: string;
   requestedStartIso: string;
   confirmedStartIso: string | null;
+  nowIso: string;
   availabilityReservations: AdminReservationCard[];
   collisions: {
     id: string;
@@ -314,6 +315,20 @@ async function loadConfirmedReservationsInRange(startKey: string, endKey: string
     .map(mapReservation);
 }
 
+function mergeReservationLists(...lists: AdminReservationCard[][]): AdminReservationCard[] {
+  const byId = new Map<string, AdminReservationCard>();
+
+  for (const list of lists) {
+    for (const reservation of list) {
+      byId.set(reservation.id, reservation);
+    }
+  }
+
+  return [...byId.values()].sort(
+    (left, right) => new Date(right.requestedStart).getTime() - new Date(left.requestedStart).getTime(),
+  );
+}
+
 function getWeekRange(anchorDateKey: string) {
   const monday = (() => {
     const date = new Date(localDateTimeToUtc(anchorDateKey, '12:00'));
@@ -441,8 +456,11 @@ export async function getAdminReservationDetail(id: string): Promise<AdminReserv
   const selectedStart = reservation.confirmedStart ?? reservation.requestedStart;
   const availabilityWindowStart = shiftDateKey(getBratislavaDateKey(selectedStart), -30);
   const availabilityWindowEnd = shiftDateKey(getBratislavaDateKey(selectedStart), 30);
-  const availabilityReservations = (
-    await loadConfirmedReservationsInRange(availabilityWindowStart, availabilityWindowEnd)
+  const todayKey = getBratislavaDateKey();
+  const futureWindowEnd = shiftDateKey(todayKey, 1095);
+  const availabilityReservations = mergeReservationLists(
+    await loadConfirmedReservationsInRange(availabilityWindowStart, availabilityWindowEnd),
+    await loadConfirmedReservationsInRange(todayKey, futureWindowEnd),
   ).filter((item) => item.id !== id);
   const collisions = await prisma.reservation.findMany({
     where: {
@@ -461,6 +479,7 @@ export async function getAdminReservationDetail(id: string): Promise<AdminReserv
     requestedTimeLabel: formatTimeKey(reservation.requestedStart),
     requestedStartIso: reservation.requestedStart.toISOString(),
     confirmedStartIso: reservation.confirmedStart?.toISOString() ?? null,
+    nowIso: new Date().toISOString(),
     availabilityReservations,
     collisions: collisions
       .filter((item) => {

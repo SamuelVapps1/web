@@ -716,6 +716,52 @@
   font-size: 0.82rem;
 }
 
+.freeSlotsPanel {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border-radius: 18px;
+  border: 1px solid rgba(33, 30, 26, 0.12);
+  background: rgba(251, 248, 241, 0.95);
+}
+
+.freeSlotsHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.freeSlotsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.5rem;
+}
+
+.freeSlotChip {
+  display: grid;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.7rem 0.8rem;
+  border-radius: 14px;
+  border: 1px solid rgba(33, 30, 26, 0.14);
+  background: #fffdf9;
+  color: #211e1a;
+  text-align: left;
+  cursor: pointer;
+}
+
+.freeSlotChipSelected {
+  background: #211e1a;
+  border-color: #211e1a;
+  color: #f6f1e7;
+}
+
+.freeSlotChipLabel {
+  font-weight: 700;
+  line-height: 1.25;
+}
+
 .availabilityBanner {
   display: grid;
   gap: 0.45rem;

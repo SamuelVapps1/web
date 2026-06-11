@@ -23,6 +23,20 @@ export type ScheduleReservation = ScheduleCandidate & {
   phone: string;
 };
 
+export type NextFreeWorkingSlot = {
+  dateKey: string;
+  timeKey: string;
+  start: Date;
+  end: Date;
+};
+
+export type NextFreeWorkingSlotsParams = {
+  startAt: Date;
+  durationMin: number;
+  reservations: ScheduleReservation[];
+  limit?: number;
+};
+
 export declare const ADMIN_TIME_WINDOW: {
   readonly start: '10:00';
   readonly lunchStart: '13:00';
@@ -35,3 +49,4 @@ export declare function fitsSalonHours(start: Date, end: Date): boolean;
 export declare function buildWorkingDaySlots(): string[];
 export declare function hasReservationCollision(candidate: ScheduleCandidate, reservations: ScheduleCandidate[]): boolean;
 export declare function findReservationCollisions(candidate: ScheduleCandidate, reservations: ScheduleReservation[]): ReservationCollisionDTO[];
+export declare function findNextFreeWorkingSlots(params: NextFreeWorkingSlotsParams): NextFreeWorkingSlot[];

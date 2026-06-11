@@ -10,7 +10,7 @@ import {
   updateReservation,
   type AdminActionState,
 } from '@/app/admin/actions';
-import { buildWorkingDaySlots, findReservationCollisions } from '@/lib/admin-schedule.js';
+import { buildWorkingDaySlots, findNextFreeWorkingSlots, findReservationCollisions } from '@/lib/admin-schedule.js';
 import { getBratislavaDateKey, localDateTimeToUtc } from '@/lib/time';
 import { getCustomerTagSummary, getDefaultDurationForSize } from '@/lib/admin-domain';
 
@@ -35,6 +35,21 @@ function toTimeInputValue(iso: string): string {
     minute: '2-digit',
     hourCycle: 'h23',
   }).format(new Date(iso));
+}
+
+const freeSlotLabelFormatter = new Intl.DateTimeFormat('sk-SK', {
+  timeZone: 'Europe/Bratislava',
+  weekday: 'long',
+  day: 'numeric',
+  month: 'numeric',
+});
+
+function capitalizeFirstLetter(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function formatFreeSlotLabel(date: Date, timeKey: string): string {
+  return `${capitalizeFirstLetter(freeSlotLabelFormatter.format(date))} · ${timeKey}`;
 }
 
 function toReservationDateTime(dateKey: string, timeKey: string, durationMin: number) {
@@ -78,6 +93,7 @@ function ReservationTimingForm({
     startIso: string;
     durationMin: number;
     internalNote: string | null;
+    nowIso: string;
     availabilityReservations: {
       id: string;
       status: string;
@@ -97,6 +113,7 @@ function ReservationTimingForm({
   const [selectedDate, setSelectedDate] = useState(() => toDateInputValue(reservation.startIso));
   const [selectedTime, setSelectedTime] = useState(() => toTimeInputValue(reservation.startIso));
   const [selectedDuration, setSelectedDuration] = useState(reservation.durationMin);
+  const [availabilityCursor, setAvailabilityCursor] = useState(() => new Date(reservation.nowIso));
   const durationOptions = useMemo(() => Array.from({ length: 8 }, (_, index) => (index + 1) * 30), []);
   const workingSlots = useMemo(() => buildWorkingDaySlots(), []);
 
@@ -130,6 +147,17 @@ function ReservationTimingForm({
     [confirmedReservations, selectedWindow],
   );
 
+  const nextFreeSlots = useMemo(
+    () =>
+      findNextFreeWorkingSlots({
+        startAt: availabilityCursor,
+        durationMin: selectedDuration,
+        reservations: confirmedReservations,
+        limit: 6,
+      }),
+    [availabilityCursor, confirmedReservations, selectedDuration],
+  );
+
   const slotBusyMap = useMemo(() => {
     const entries = workingSlots.map((slot) => {
       const candidate = toReservationDateTime(selectedDate, slot, 30);
@@ -147,6 +175,50 @@ function ReservationTimingForm({
         <input type="hidden" name="date" value={selectedDate} />
         <input type="hidden" name="time" value={selectedTime} />
         <input type="hidden" name="durationMin" value={selectedDuration} />
+        <div className={`${styles.field} ${styles.fieldFull}`}>
+          <div className={styles.freeSlotsPanel}>
+            <div className={styles.freeSlotsHeader}>
+              <div>
+                <p className={styles.sectionKicker}>Najbližšie voľné termíny</p>
+                <p className={styles.fieldHint}>Voľné termíny podľa aktuálneho trvania. Klikni na termín a predvyplní sa dole.</p>
+              </div>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => {
+                  const lastSlot = nextFreeSlots[nextFreeSlots.length - 1];
+                  if (!lastSlot) {
+                    return;
+                  }
+
+                  setAvailabilityCursor(new Date(lastSlot.end.getTime() + 30 * 60 * 1000));
+                }}
+              >
+                Ďalšie termíny
+              </button>
+            </div>
+            <div className={styles.freeSlotsGrid}>
+              {nextFreeSlots.map((slot) => {
+                const isSelected = selectedDate === slot.dateKey && selectedTime === slot.timeKey;
+
+                return (
+                  <button
+                    key={`${slot.dateKey}-${slot.timeKey}`}
+                    type="button"
+                    className={`${styles.freeSlotChip} ${isSelected ? styles.freeSlotChipSelected : ''}`}
+                    aria-pressed={isSelected}
+                    onClick={() => {
+                      setSelectedDate(slot.dateKey);
+                      setSelectedTime(slot.timeKey);
+                    }}
+                  >
+                    <span className={styles.freeSlotChipLabel}>{formatFreeSlotLabel(slot.start, slot.timeKey)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
         <div className={styles.field}>
           <label htmlFor={`${reservation.id}-date`}>Dátum</label>
           <input
@@ -275,6 +347,7 @@ export default function ReservationDetailClient({
     startLabel: string;
     requestedStartIso: string;
     confirmedStartIso: string | null;
+    nowIso: string;
     dogSize: string;
     durationMin: number;
     internalNote: string | null;
@@ -322,6 +395,7 @@ export default function ReservationDetailClient({
     startIso,
     durationMin: reservation.status === 'PENDING' ? getDefaultDurationForSize(reservation.dogSize) : reservation.durationMin,
     internalNote: reservation.internalNote,
+    nowIso: reservation.nowIso,
     availabilityReservations: reservation.availabilityReservations,
   };
 
