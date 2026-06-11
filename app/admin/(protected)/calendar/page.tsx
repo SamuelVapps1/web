@@ -76,8 +76,11 @@ export default async function AdminCalendarPage({
               const endMinutes = startMinutes + reservation.durationMin;
               return slotMinutes >= startMinutes && slotMinutes < endMinutes;
             });
+            const reservationStartMinutes = slotReservation
+              ? parseInt(slotReservation.timeLabel.split(':')[0], 10) * 60 + parseInt(slotReservation.timeLabel.split(':')[1], 10)
+              : 0;
             const isReservationStart = slotReservation
-              ? slotMinutes === parseInt(slotReservation.timeLabel.split(':')[0], 10) * 60 + parseInt(slotReservation.timeLabel.split(':')[1], 10)
+              ? slotMinutes <= reservationStartMinutes && reservationStartMinutes < slotMinutes + 30
               : false;
             const isLunch = slot >= ADMIN_TIME_WINDOW.lunchStart && slot < ADMIN_TIME_WINDOW.lunchEnd;
             return (
