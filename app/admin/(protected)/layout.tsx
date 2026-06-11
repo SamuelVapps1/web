@@ -20,10 +20,12 @@ export default async function ProtectedAdminLayout({
   return (
     <div className={styles.shell}>
       <header className={styles.topbar}>
-        <div className={styles.brand}>
-          <div className={styles.brand__title}>Backstage</div>
-          <div className={styles.brand__sub}>Admin pre salón</div>
-        </div>
+        <Link className={styles.brandLink} href="/admin" aria-label="Backstage / Admin pre salón">
+          <div className={styles.brand}>
+            <div className={styles.brand__title}>Backstage</div>
+            <div className={styles.brand__sub}>Admin pre salón</div>
+          </div>
+        </Link>
 
         <nav className={styles.nav} aria-label="Admin navigácia">
           {navItems.map((item) => (

@@ -1,7 +1,6 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import RevealOnScroll from '@/components/RevealOnScroll';
-import BookingCTA from '@/components/BookingCTA';
 import Link from 'next/link';
 import { MapPin, Phone, Clock } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -26,6 +25,25 @@ export default function Kontakt() {
           <h1>Kontakt</h1>
           <p className="lead">Sme v Petržalke. Termín si dohodnite telefonicky — radi poradíme.</p>
         </header>
+
+        <div className="wrap" style={{ paddingBottom: 0 }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.85rem',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              marginBottom: '1.25rem',
+            }}
+          >
+            <a className="btn btn--primary btn--full" href="tel:+421944240116">
+              Objednať sa telefonicky
+            </a>
+            <Link className="btn btn--ghost" href="/rezervacia">
+              Rezervovať termín
+            </Link>
+          </div>
+        </div>
 
         <div className="wrap">
           <RevealOnScroll>
@@ -74,28 +92,6 @@ export default function Kontakt() {
                   </div>
                 </div>
 
-                <div className="contact__cta">
-                  <a className="btn btn--primary btn--full" href="tel:+421944240116">
-                    Objednať sa telefonicky
-                  </a>
-                </div>
-
-                <div
-                  style={{
-                    marginTop: '1rem',
-                    display: 'flex',
-                    gap: '0.85rem',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <span style={{ color: 'var(--ink-soft)', fontSize: '0.95rem' }}>
-                    Alebo si rezervujte termín online:
-                  </span>
-                  <Link className="btn btn--ghost" href="/rezervacia">
-                    Rezervovať termín
-                  </Link>
-                </div>
               </div>
 
               <div className="contact__map">
@@ -160,7 +156,6 @@ export default function Kontakt() {
           </section>
         </div>
 
-        <BookingCTA />
       </main>
 
       <Footer />

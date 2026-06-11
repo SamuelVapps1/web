@@ -230,6 +230,7 @@ export function BookingFlow() {
   const stepTwoTargetRef = useRef<HTMLInputElement | null>(null);
   const stepThreeTargetRef = useRef<HTMLButtonElement | null>(null);
   const stepFourTargetRef = useRef<HTMLDivElement | null>(null);
+  const confirmationCardRef = useRef<HTMLDivElement | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
   const phoneInputRef = useRef<HTMLInputElement | null>(null);
   const emailInputRef = useRef<HTMLInputElement | null>(null);
@@ -253,6 +254,27 @@ export function BookingFlow() {
       media.removeEventListener('change', sync);
     };
   }, []);
+
+  useEffect(() => {
+    if (state.status !== 'success') {
+      return;
+    }
+
+    const target = confirmationCardRef.current;
+    if (!target) {
+      return;
+    }
+
+    const offset = 112;
+    const top = window.scrollY + target.getBoundingClientRect().top - offset;
+    window.requestAnimationFrame(() => {
+      window.scrollTo({
+        top: Math.max(0, top),
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      });
+      target.focus({ preventScroll: true });
+    });
+  }, [prefersReducedMotion, state.status]);
 
   useEffect(() => {
     const stickyHeaderOffset = 112;
@@ -553,7 +575,7 @@ export function BookingFlow() {
   if (state.status === 'success') {
     return (
       <section className={styles.confirmation} aria-live="polite">
-        <div className={styles.confirmationCard}>
+        <div ref={confirmationCardRef} className={styles.confirmationCard} tabIndex={-1}>
           <p className="eyebrow">ŽIADOSŤ PRIJATÁ</p>
           <h2>Ďakujeme, vašu žiadosť sme prijali.</h2>
           <p>Termín vám potvrdíme. Ak bude treba niečo doladiť, ozveme sa vám.</p>
