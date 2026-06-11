@@ -92,7 +92,7 @@ export async function submitBooking(
   _previousState: BookingSubmitState,
   formData: FormData,
 ): Promise<BookingSubmitState> {
-  const honeypot = normalizeBookingText(formData.get('company'));
+  const honeypot = normalizeBookingText(formData.get('contact_time'));
 
   if (honeypot) {
     return { status: 'success' };
@@ -171,36 +171,55 @@ export async function submitBooking(
         },
       });
 
-      const customer = existingCustomer
-        ? await transaction.customer.update({
-            where: {
-              id: existingCustomer.id,
-            },
-            data: {
-              name: customerName,
-              phone: normalizedPhone,
-              email: normalizedEmail || null,
-            },
-          })
-        : await transaction.customer.create({
-            data: {
-              name: customerName,
-              phone: normalizedPhone,
-              email: normalizedEmail || null,
-              note: null,
-            },
-          });
+      let customer = existingCustomer;
+      if (!customer) {
+        customer = await transaction.customer.create({
+          data: {
+            name: customerName,
+            phone: normalizedPhone,
+            email: normalizedEmail || null,
+            note: null,
+          },
+        });
+      } else if (!customer.email && normalizedEmail) {
+        customer = await transaction.customer.update({
+          where: {
+            id: customer.id,
+          },
+          data: {
+            email: normalizedEmail,
+          },
+        });
+      }
 
-      const dog = await transaction.dog.create({
-        data: {
+      const submittedCustomerName = customerName.trim();
+      const internalNote =
+        existingCustomer && submittedCustomerName && submittedCustomerName.toLowerCase() !== existingCustomer.name.toLowerCase()
+          ? `Vo formulári uviedol meno: ${submittedCustomerName}`
+          : null;
+
+      const existingDog = await transaction.dog.findFirst({
+        where: {
           customerId: customer.id,
-          name: dogName,
-          breed: dogBreed || null,
-          size: dogSize,
-          temperamentNote: dogNote || null,
-          healthNote: null,
+          name: {
+            equals: dogName,
+            mode: 'insensitive',
+          },
         },
       });
+
+      const dog = existingDog
+        ? existingDog
+        : await transaction.dog.create({
+            data: {
+              customerId: customer.id,
+              name: dogName,
+              breed: dogBreed || null,
+              size: dogSize,
+              temperamentNote: dogNote || null,
+              healthNote: null,
+            },
+          });
 
       const reservation = await transaction.reservation.create({
         data: {
@@ -210,7 +229,7 @@ export async function submitBooking(
           requestedStart,
           durationMin,
           customerMessage: null,
-          internalNote: null,
+          internalNote,
           sourceCode,
         },
       });

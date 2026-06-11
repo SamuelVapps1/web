@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState, useActionState } from 'react';
 import styles from '../../../admin.module.css';
 import { createManualReservation, type AdminActionState } from '@/app/admin/actions';
@@ -245,6 +246,11 @@ export default function ManualReservationForm({
           <div className={`${styles.stateBanner} ${state.kind === 'error' ? styles.stateBannerError : state.kind === 'warning' ? styles.stateBannerWarning : styles.stateBannerSuccess}`}>
             <p className={styles.stateBannerTitle}>{state.kind === 'error' ? 'Nepodarilo sa uložiť' : state.kind === 'warning' ? 'Uložené s upozornením' : 'Uložené'}</p>
             <p>{state.message}</p>
+            {'link' in state && state.link ? (
+              <Link className="btn btn--ghost" href={state.link.href}>
+                {state.link.label}
+              </Link>
+            ) : null}
             {state.kind === 'warning' && state.collisions.length > 0 ? (
               <ul className={styles.stateCollisionList}>
                 {state.collisions.map((collision) => (

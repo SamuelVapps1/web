@@ -9,6 +9,7 @@ import { getPrisma } from '@/lib/prisma';
 import { requireAdminUser } from '@/lib/admin-session';
 import { ADMIN_CUSTOMER_TAGS } from '@/lib/admin-domain';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { isValidSlovakPhone, normalizeSlovakPhone } from '@/lib/validation/phone';
 import {
   buildDateTimeFromForm,
   findReservationCollisions,
@@ -17,7 +18,6 @@ import {
   type ScheduleReservation,
 } from '@/lib/admin-schedule.js';
 
-const phonePattern = /^(?:\+421|0)\s?\d{3}\s?\d{3}\s?\d{3}$/;
 const cutTypeValues = BOOKING_CUT_TYPES.map((item) => item.value) as [string, ...string[]];
 const addonValues = BOOKING_ADDONS.map((item) => item.code) as [string, ...string[]];
 const dogSizeValues = ['SMALL', 'MEDIUM', 'LARGE'] as const;
@@ -25,11 +25,16 @@ const noteTargetValues = ['customer', 'dog', 'reservation'] as const;
 const noteKindValues = ['temperament', 'health'] as const;
 const customerTagValues = ADMIN_CUSTOMER_TAGS.map((item) => item.value) as [string, ...string[]];
 
+type ActionLink = {
+  href: string;
+  label: string;
+};
+
 export type AdminActionState =
-  | { kind: 'idle' }
-  | { kind: 'success'; message: string }
-  | { kind: 'error'; message: string }
-  | { kind: 'warning'; message: string; collisions: ReservationCollisionDTO[] };
+  | { kind: 'idle'; link?: ActionLink }
+  | { kind: 'success'; message: string; link?: ActionLink }
+  | { kind: 'error'; message: string; link?: ActionLink }
+  | { kind: 'warning'; message: string; collisions: ReservationCollisionDTO[]; link?: ActionLink };
 
 export type AdminLoginState = {
   error?: string;
@@ -100,20 +105,6 @@ const noteSchema = z.object({
   kind: z.enum(noteKindValues).optional(),
   note: z.string().trim().max(4000).optional().or(z.literal('')),
 });
-
-function normalizePhone(value: string): string {
-  const digits = value.replace(/\D/g, '');
-
-  if (digits.length === 12 && digits.startsWith('421')) {
-    return `+421 ${digits.slice(3, 6)} ${digits.slice(6, 9)} ${digits.slice(9, 12)}`;
-  }
-
-  if (digits.length === 10 && digits.startsWith('0')) {
-    return `+421 ${digits.slice(1, 4)} ${digits.slice(4, 7)} ${digits.slice(7, 10)}`;
-  }
-
-  return value.trim();
-}
 
 function normalizeText(value: FormDataEntryValue | null): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -266,12 +257,47 @@ function buildSuccess(message: string): AdminActionState {
   return { kind: 'success', message };
 }
 
-function buildError(message: string): AdminActionState {
-  return { kind: 'error', message };
+function buildError(message: string, link?: ActionLink): AdminActionState {
+  return link ? { kind: 'error', message, link } : { kind: 'error', message };
 }
 
-function buildWarning(message: string, collisions: ReservationCollisionDTO[]): AdminActionState {
-  return { kind: 'warning', message, collisions };
+function buildWarning(
+  message: string,
+  collisions: ReservationCollisionDTO[],
+  link?: ActionLink,
+): AdminActionState {
+  return link ? { kind: 'warning', message, collisions, link } : { kind: 'warning', message, collisions };
+}
+
+function normalizeCustomerPhone(value: string): string {
+  return normalizeSlovakPhone(value);
+}
+
+function isCustomerPhoneValid(value: string): boolean {
+  return isValidSlovakPhone(value);
+}
+
+function buildDuplicateCustomerState(customer: { id: string; name: string }): AdminActionState {
+  return buildError('Zákazník s týmto číslom už existuje', {
+    href: `/admin/customers/${customer.id}`,
+    label: `Otvoriť profil ${customer.name}`,
+  });
+}
+
+function collectCustomerDogDrafts(formData: FormData) {
+  const dogNames = formData.getAll('dogName').map((value) => normalizeText(value));
+  const dogBreeds = formData.getAll('dogBreed').map((value) => normalizeText(value));
+  const dogSizes = formData.getAll('dogSize').map((value) => normalizeText(value));
+  const dogNotes = formData.getAll('dogNote').map((value) => normalizeOptionalText(normalizeText(value)));
+
+  return dogNames
+    .map((name, index) => ({
+      name,
+      breed: dogBreeds[index] ?? '',
+      size: dogSizes[index] ?? 'MEDIUM',
+      note: dogNotes[index] ?? null,
+    }))
+    .filter((dog) => dog.name.length > 0);
 }
 
 export async function loginAdmin(
@@ -497,23 +523,47 @@ export async function createCustomer(
     return buildError(getErrorMessage(parsed.error, 'Zákazníka sa nepodarilo uložiť.'));
   }
 
-  if (!phonePattern.test(normalizePhone(parsed.data.phone))) {
+  const normalizedPhone = normalizeCustomerPhone(parsed.data.phone);
+  if (!isCustomerPhoneValid(normalizedPhone)) {
     return buildError('Telefón nie je v správnom formáte.');
   }
 
   const prisma = getPrisma();
+  const existingCustomer = await prisma.customer.findFirst({
+    where: {
+      phone: normalizedPhone,
+    },
+  });
+
+  if (existingCustomer) {
+    return buildDuplicateCustomerState(existingCustomer);
+  }
+
+  const dogDrafts = collectCustomerDogDrafts(formData);
   const customer = await prisma.customer.create({
     data: {
       name: parsed.data.name,
-      phone: normalizePhone(parsed.data.phone),
+      phone: normalizedPhone,
       email: normalizeOptionalText(parsed.data.email),
       note: normalizeOptionalText(parsed.data.note),
       tags: parsed.data.tags,
     },
   });
 
+  if (dogDrafts.length > 0) {
+    await prisma.dog.createMany({
+      data: dogDrafts.map((dog) => ({
+        customerId: customer.id,
+        name: dog.name,
+        breed: normalizeOptionalText(dog.breed),
+        size: dog.size as 'SMALL' | 'MEDIUM' | 'LARGE',
+        note: normalizeOptionalText(dog.note),
+      })),
+    });
+  }
+
   refreshAdminViews();
-  return buildSuccess(`Zákazník ${customer.name} bol pridaný.`);
+  redirect(`/admin/customers/${customer.id}`);
 }
 
 export async function updateCustomer(
@@ -537,7 +587,8 @@ export async function updateCustomer(
     return buildError('Zákazníka sa nepodarilo uložiť.');
   }
 
-  if (!phonePattern.test(normalizePhone(parsed.data.phone))) {
+  const normalizedPhone = normalizeCustomerPhone(parsed.data.phone);
+  if (!isCustomerPhoneValid(normalizedPhone)) {
     return buildError('Telefón nie je v správnom formáte.');
   }
 
@@ -546,7 +597,7 @@ export async function updateCustomer(
     where: { id: parsed.data.id },
     data: {
       name: parsed.data.name,
-      phone: normalizePhone(parsed.data.phone),
+      phone: normalizedPhone,
       email: normalizeOptionalText(parsed.data.email),
       note: normalizeOptionalText(parsed.data.note),
       tags: parsed.data.tags,
@@ -739,8 +790,8 @@ export async function createManualReservation(
   }
 
   const prisma = getPrisma();
-  const customerPhone = normalizePhone(parsed.data.customerPhone);
-  if (!phonePattern.test(customerPhone)) {
+  const customerPhone = normalizeCustomerPhone(parsed.data.customerPhone);
+  if (!isCustomerPhoneValid(customerPhone)) {
     return buildError('Telefón nie je v správnom formáte.');
   }
 
@@ -757,6 +808,15 @@ export async function createManualReservation(
   const healthNote = parsed.data.healthNote ?? '';
   const groomingNotes = parsed.data.groomingNotes ?? '';
 
+  const submittedCustomerName = parsed.data.customerName.trim();
+  const existingCustomer = parsed.data.customerId
+    ? await prisma.customer.findUnique({
+        where: { id: parsed.data.customerId },
+      })
+    : await prisma.customer.findFirst({
+        where: { phone: customerPhone },
+      });
+
   const customer = parsed.data.customerId
     ? await prisma.customer.update({
         where: { id: parsed.data.customerId },
@@ -767,14 +827,23 @@ export async function createManualReservation(
           note: normalizeOptionalText(parsed.data.customerNote),
         },
       })
-    : await prisma.customer.create({
-        data: {
-          name: parsed.data.customerName,
-          phone: customerPhone,
-          email: normalizeOptionalText(parsed.data.customerEmail),
-          note: normalizeOptionalText(parsed.data.customerNote),
-        },
-      });
+    : existingCustomer
+      ? existingCustomer.email || !normalizeOptionalText(parsed.data.customerEmail)
+        ? existingCustomer
+        : await prisma.customer.update({
+            where: { id: existingCustomer.id },
+            data: {
+              email: normalizeOptionalText(parsed.data.customerEmail),
+            },
+          })
+      : await prisma.customer.create({
+          data: {
+            name: parsed.data.customerName,
+            phone: customerPhone,
+            email: normalizeOptionalText(parsed.data.customerEmail),
+            note: normalizeOptionalText(parsed.data.customerNote),
+          },
+        });
 
   const dogProfileData = {
     customerId: customer.id,
@@ -785,17 +854,39 @@ export async function createManualReservation(
     ...(temperamentNote.trim() ? { temperamentNote: normalizeOptionalText(temperamentNote) } : {}),
     ...(coatType.trim() ? { coatType: normalizeOptionalText(coatType) } : {}),
     ...(healthNote.trim() ? { healthNote: normalizeOptionalText(healthNote) } : {}),
-    ...(groomingNotes.trim() ? { groomingNotes: normalizeOptionalText(groomingNotes) } : {}),
+      ...(groomingNotes.trim() ? { groomingNotes: normalizeOptionalText(groomingNotes) } : {}),
   };
+
+  const existingDog = parsed.data.dogId
+    ? null
+    : await prisma.dog.findFirst({
+        where: {
+          customerId: customer.id,
+          name: {
+            equals: parsed.data.dogName,
+            mode: 'insensitive',
+          },
+        },
+      });
 
   const dog = parsed.data.dogId
     ? await prisma.dog.update({
         where: { id: parsed.data.dogId },
         data: dogProfileData,
       })
-    : await prisma.dog.create({
-        data: dogProfileData,
-      });
+    : existingDog
+      ? existingDog
+      : await prisma.dog.create({
+          data: dogProfileData,
+        });
+
+  const baseInternalNote = normalizeOptionalText(parsed.data.internalNote);
+  const internalNote =
+    existingCustomer && parsed.data.customerId
+      ? baseInternalNote
+      : existingCustomer && submittedCustomerName && submittedCustomerName.toLowerCase() !== existingCustomer.name.toLowerCase()
+        ? [baseInternalNote, `Vo formulári uviedol meno: ${submittedCustomerName}`].filter(Boolean).join('\n')
+        : baseInternalNote;
 
   const reservation = await prisma.reservation.create({
     data: {
@@ -807,7 +898,7 @@ export async function createManualReservation(
       cutType: parsed.data.cutType as CutType,
       durationMin: parsed.data.durationMin,
       customerMessage: null,
-      internalNote: normalizeOptionalText(parsed.data.internalNote),
+      internalNote: internalNote || null,
     },
     include: {
       dog: {

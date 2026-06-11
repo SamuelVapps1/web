@@ -5,7 +5,8 @@ import type { ReactNode } from 'react';
 import styles from '../../admin.module.css';
 import { getBratislavaDateKey } from '@/lib/time';
 import { ADMIN_TIME_WINDOW, buildWorkingDaySlots } from '@/lib/admin-schedule.js';
-import { listAdminCalendarRange } from '@/lib/admin-data';
+import { getAdminManualReservationContext, listAdminCalendarRange } from '@/lib/admin-data';
+import CalendarReservationModal from './calendar-reservation-modal';
 
 function hourLabel(time: string) {
   return time;
@@ -30,16 +31,22 @@ function ViewButton({
 export default async function AdminCalendarPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ date?: string; day?: string; view?: string }>;
+  searchParams?: Promise<{ date?: string; day?: string; view?: string; reservationDate?: string; reservationTime?: string }>;
 }) {
   const params = (await searchParams) ?? {};
   const view = params.view === 'month' ? 'month' : 'week';
   const anchorDate = params.date ?? getBratislavaDateKey();
   const data = await listAdminCalendarRange(anchorDate, view);
+  const reservationContext = await getAdminManualReservationContext();
   const dayParam = params.day && data.days.some((day) => day.dateKey === params.day) ? params.day : data.days.find((day) => day.isCurrentMonth)?.dateKey ?? data.days[0]?.dateKey;
   const selectedDay = data.days.find((day) => day.dateKey === dayParam) ?? data.days[0];
+  const reservationDate = params.reservationDate ?? '';
+  const reservationTime = params.reservationTime ?? '';
   const slots = buildWorkingDaySlots();
   const historyReservations = data.days.flatMap((day) => day.history).slice(0, 12);
+  const closeHref = `/admin/calendar?date=${anchorDate}&view=${view}${dayParam ? `&day=${dayParam}` : ''}`;
+  const baseReservationHref = `/admin/calendar?date=${anchorDate}&view=${view}${selectedDay ? `&day=${selectedDay.dateKey}` : ''}`;
+  const showReservationModal = Boolean(reservationDate && reservationTime);
 
   return (
     <div className={styles.calendarPage}>
@@ -59,7 +66,7 @@ export default async function AdminCalendarPage({
           <Link className="btn btn--ghost" href={`/admin/calendar?date=${getBratislavaDateKey()}&view=${view}`}>
             Dnes
           </Link>
-          <Link className="btn btn--primary" href="/admin/reservations/new">
+          <Link className="btn btn--primary" href={`${baseReservationHref}&reservationDate=${selectedDay?.dateKey ?? anchorDate}&reservationTime=10:00`}>
             + Nová rezervácia
           </Link>
         </div>
@@ -135,7 +142,7 @@ export default async function AdminCalendarPage({
                 return (
                   <div key={slot} className={styles.timelineSlot}>
                     <span className={styles.timelineTime}>{hourLabel(slot)}</span>
-                    <Link className={styles.timelineFreeSlot} href={`/admin/reservations/new?date=${selectedDay?.dateKey ?? anchorDate}&time=${slot}`}>
+                    <Link className={styles.timelineFreeSlot} href={`${baseReservationHref}&reservationDate=${selectedDay?.dateKey ?? anchorDate}&reservationTime=${slot}`}>
                       Voľné
                     </Link>
                   </div>
@@ -149,7 +156,7 @@ export default async function AdminCalendarPage({
               <article key={day.dateKey} className={styles.calendarDayColumn}>
                 <div className={styles.calendarDayHeader}>
                   <h3>{day.label}</h3>
-                  <Link className="btn btn--ghost" href={`/admin/reservations/new?date=${day.dateKey}`}>
+                  <Link className="btn btn--ghost" href={`${baseReservationHref}&reservationDate=${day.dateKey}&reservationTime=10:00`}>
                     + Rezervácia
                   </Link>
                 </div>
@@ -214,7 +221,7 @@ export default async function AdminCalendarPage({
                     <strong>{day.label}</strong>
                     <span>{day.reservations.length + day.pending.length + day.history.length} položiek</span>
                   </div>
-                  <Link className="btn btn--ghost" href={`/admin/reservations/new?date=${day.dateKey}`}>
+                  <Link className="btn btn--ghost" href={`${baseReservationHref}&reservationDate=${day.dateKey}&reservationTime=10:00`}>
                     +
                   </Link>
                 </div>
@@ -257,6 +264,15 @@ export default async function AdminCalendarPage({
           )}
         </div>
       </section>
+
+      {showReservationModal ? (
+        <CalendarReservationModal
+          closeHref={closeHref}
+          customers={reservationContext.customers}
+          initialDate={reservationDate}
+          initialTime={reservationTime}
+        />
+      ) : null}
     </div>
   );
 }

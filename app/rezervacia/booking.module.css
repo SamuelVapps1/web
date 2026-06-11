@@ -593,6 +593,10 @@
   background: rgba(246, 241, 231, 0.95);
 }
 
+.serviceSummaryHidden {
+  display: none;
+}
+
 .serviceSummary strong {
   font-family: var(--serif-display);
   font-size: 1.15rem;

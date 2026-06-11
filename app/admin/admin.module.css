@@ -954,6 +954,37 @@
   flex-wrap: wrap;
 }
 
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  padding: 1rem;
+  background: rgba(21, 17, 13, 0.52);
+  backdrop-filter: blur(8px);
+  display: grid;
+  place-items: center;
+}
+
+.modalSheet {
+  width: min(100%, 1100px);
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 2vw, 1.25rem);
+  border-radius: 24px;
+  background: rgba(251, 248, 241, 0.98);
+  border: 1px solid rgba(33, 30, 26, 0.12);
+  box-shadow: 0 28px 70px -36px rgba(21, 17, 13, 0.55);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+}
+
 @media (max-width: 1120px) {
   .dashboardGrid,
   .dashboardColumns,

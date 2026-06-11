@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
+import { useActionState, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useFormStatus } from 'react-dom';
 import { submitBooking, type BookingSubmitState } from '../actions';
 import styles from '../booking.module.css';
@@ -218,7 +218,7 @@ export function BookingFlow() {
   const [dogBreed, setDogBreed] = useState('');
   const [dogSize, setDogSize] = useState<DogSize>('SMALL');
   const [dogNote, setDogNote] = useState('');
-  const [selectedCutType, setSelectedCutType] = useState<CutType>('ADVICE');
+  const [selectedCutType, setSelectedCutType] = useState<CutType | ''>('');
   const [selectedAddonCodes, setSelectedAddonCodes] = useState<BookingAddonCode[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(minDateKey);
   const [selectedTime, setSelectedTime] = useState('');
@@ -227,12 +227,15 @@ export function BookingFlow() {
   const [customerEmail, setCustomerEmail] = useState('');
   const [company, setCompany] = useState('');
   const [clientFieldErrors, setClientFieldErrors] = useState<BookingContactFieldErrors>({});
+  const [serviceFieldError, setServiceFieldError] = useState<string | null>(null);
   const [monthAnchorKey, setMonthAnchorKey] = useState(initialMonthAnchor);
   const [busyIntervals, setBusyIntervals] = useState<BookingBusyInterval[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(true);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
 
   const [state, formAction] = useActionState(submitBooking, INITIAL_STATE);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const stepContentRef = useRef<HTMLElement | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
   const phoneInputRef = useRef<HTMLInputElement | null>(null);
   const emailInputRef = useRef<HTMLInputElement | null>(null);
@@ -244,6 +247,36 @@ export function BookingFlow() {
   const hasClientFieldErrors = Object.keys(clientFieldErrors).length > 0;
   const visibleFieldErrors = hasClientFieldErrors ? clientFieldErrors : serverFieldErrors;
   const visibleFormError = hasClientFieldErrors ? null : serverFormError;
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => setPrefersReducedMotion(media.matches);
+
+    sync();
+    media.addEventListener('change', sync);
+
+    return () => {
+      media.removeEventListener('change', sync);
+    };
+  }, []);
+
+  useEffect(() => {
+    const container = stepContentRef.current;
+    if (!container) {
+      return;
+    }
+
+    container.scrollIntoView({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+
+    const focusTarget = container.querySelector<HTMLElement>(
+      'input:not([type="hidden"]):not([disabled]), button:not([disabled]), select:not([disabled]), textarea:not([disabled])',
+    );
+
+    focusTarget?.focus({ preventScroll: true });
+  }, [prefersReducedMotion, step]);
 
   useEffect(() => {
     if (state.status !== 'error') {
@@ -261,7 +294,7 @@ export function BookingFlow() {
               ? emailInputRef.current
               : null;
 
-      input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      input?.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'center' });
       input?.focus({ preventScroll: true });
       return;
     }
@@ -270,7 +303,10 @@ export function BookingFlow() {
       return;
     }
 
-    formErrorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    formErrorRef.current?.scrollIntoView({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      block: 'center',
+    });
     formErrorRef.current?.focus();
   }, [serverFieldErrors, serverFormError, state.status]);
 
@@ -406,6 +442,24 @@ export function BookingFlow() {
     return true;
   }
 
+  function focusFirstInteractiveInStep() {
+    const container = stepContentRef.current;
+    if (!container) {
+      return;
+    }
+
+    container.scrollIntoView({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+
+    const firstInteractive = container.querySelector<HTMLElement>(
+      'input:not([type="hidden"]):not([disabled]), button:not([disabled]), select:not([disabled]), textarea:not([disabled])',
+    );
+
+    firstInteractive?.focus({ preventScroll: true });
+  }
+
   function focusFirstContactError(errors: BookingContactFieldErrors) {
     const firstErrorField = getFirstContactErrorField(errors);
     const input =
@@ -417,12 +471,17 @@ export function BookingFlow() {
             ? emailInputRef.current
             : null;
 
-    input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    input?.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'center' });
     input?.focus({ preventScroll: true });
   }
 
   function goNext() {
     if (!canAdvanceFromStep(step)) {
+      if (step === 2) {
+        setServiceFieldError('Vyberte typ strihu.');
+        focusFirstInteractiveInStep();
+      }
+
       if (step === 4) {
         const contactValidation = validateBookingContactFields({
           customerName,
@@ -438,11 +497,13 @@ export function BookingFlow() {
     }
 
     setClientFieldErrors({});
+    setServiceFieldError(null);
     setStep((current) => Math.min(4, current + 1) as StepKey);
   }
 
   function goBack() {
     setClientFieldErrors({});
+    setServiceFieldError(null);
     setStep((current) => Math.max(1, current - 1) as StepKey);
   }
 
@@ -498,15 +559,23 @@ export function BookingFlow() {
         ))}
         <input
           type="text"
-          name="company"
+          name="contact_time"
           tabIndex={-1}
           autoComplete="off"
+          aria-hidden="true"
           className={styles.honeypot}
           value={company}
           onChange={(event) => setCompany(event.target.value)}
         />
 
-        <Stepper activeStep={step} onNavigate={(targetStep) => setStep(targetStep)} />
+        <Stepper
+          activeStep={step}
+          onNavigate={(targetStep) => {
+            setClientFieldErrors({});
+            setServiceFieldError(null);
+            setStep(targetStep);
+          }}
+        />
 
         <div className={styles.body}>
           {step === 1 ? (
@@ -516,7 +585,7 @@ export function BookingFlow() {
                 <span className={styles.sectionMeta}>Základné údaje o psovi.</span>
               </div>
 
-              <div className={styles.fieldGrid}>
+              <div ref={stepContentRef as unknown as RefObject<HTMLDivElement>} className={styles.fieldGrid}>
                 <div className={styles.field}>
                   <label className={styles.label} htmlFor="dogName">
                     Meno psa
@@ -595,7 +664,7 @@ export function BookingFlow() {
                 <span className={styles.sectionMeta}>Vyberiete typ strihu a doplnky.</span>
               </div>
 
-              <div className={styles.serviceSummary}>
+              <div className={`${styles.serviceSummary} ${styles.serviceSummaryHidden}`}>
                 <strong>
                   Orientačná cena základnej úpravy: {formatBookingCurrency(basePrice)} — konečná
                   cena podľa stavu srsti.
@@ -605,7 +674,10 @@ export function BookingFlow() {
                 </span>
               </div>
 
-              <fieldset className={styles.serviceSection}>
+              <fieldset
+                ref={stepContentRef as unknown as RefObject<HTMLFieldSetElement>}
+                className={styles.serviceSection}
+              >
                 <div className={styles.serviceSectionHead}>
                   <h3>Typ strihu</h3>
                   <p>Jedna možnosť podľa toho, čo bude pre psa najvhodnejšie.</p>
@@ -623,7 +695,10 @@ export function BookingFlow() {
                         name="cutType"
                         value={option.value}
                         checked={selectedCutType === option.value}
-                        onChange={() => setSelectedCutType(option.value)}
+                        onChange={() => {
+                          setSelectedCutType(option.value);
+                          setServiceFieldError(null);
+                        }}
                       />
                       <span className={styles.sizeCardTitle}>{option.label}</span>
                       <span className={styles.sizeCardNote}>{option.note}</span>
@@ -684,7 +759,7 @@ export function BookingFlow() {
                 <span className={styles.sectionMeta}>Termín vám potvrdíme telefonicky.</span>
               </div>
 
-              <div className={styles.calendar}>
+              <div ref={stepContentRef as unknown as RefObject<HTMLDivElement>} className={styles.calendar}>
                 <div className={styles.calendarHeader}>
                   <div>
                     <div className={styles.monthTitle}>{monthLabel}</div>
@@ -842,7 +917,7 @@ export function BookingFlow() {
                 </div>
               </div>
 
-              <div className={styles.fieldGrid}>
+              <div ref={stepContentRef as unknown as RefObject<HTMLDivElement>} className={styles.fieldGrid}>
                 <div className={styles.field}>
                   <label className={styles.label} htmlFor="customerName">
                     Meno
