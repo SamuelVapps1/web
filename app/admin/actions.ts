@@ -273,6 +273,20 @@ function normalizeCustomerPhone(value: string): string {
   return normalizeSlovakPhone(value);
 }
 
+function formatSpacedPhone(compactPhone: string): string | null {
+  const match = compactPhone.match(/^\+421(\d{3})(\d{3})(\d{3})$/);
+  return match ? `+421 ${match[1]} ${match[2]} ${match[3]}` : null;
+}
+
+function getPhoneLookupVariants(normalizedPhone: string): string[] {
+  const variants = [normalizedPhone];
+  const spaced = formatSpacedPhone(normalizedPhone);
+  if (spaced) {
+    variants.push(spaced);
+  }
+  return variants;
+}
+
 function isCustomerPhoneValid(value: string): boolean {
   return isValidSlovakPhone(value);
 }
@@ -529,9 +543,10 @@ export async function createCustomer(
   }
 
   const prisma = getPrisma();
+  const phoneVariants = getPhoneLookupVariants(normalizedPhone);
   const existingCustomer = await prisma.customer.findFirst({
     where: {
-      phone: normalizedPhone,
+      phone: { in: phoneVariants },
     },
   });
 
@@ -809,12 +824,13 @@ export async function createManualReservation(
   const groomingNotes = parsed.data.groomingNotes ?? '';
 
   const submittedCustomerName = parsed.data.customerName.trim();
+  const phoneVariants = getPhoneLookupVariants(customerPhone);
   const existingCustomer = parsed.data.customerId
     ? await prisma.customer.findUnique({
         where: { id: parsed.data.customerId },
       })
     : await prisma.customer.findFirst({
-        where: { phone: customerPhone },
+        where: { phone: { in: phoneVariants } },
       });
 
   const customer = parsed.data.customerId
@@ -875,7 +891,10 @@ export async function createManualReservation(
         data: dogProfileData,
       })
     : existingDog
-      ? existingDog
+      ? await prisma.dog.update({
+          where: { id: existingDog.id },
+          data: dogProfileData,
+        })
       : await prisma.dog.create({
           data: dogProfileData,
         });

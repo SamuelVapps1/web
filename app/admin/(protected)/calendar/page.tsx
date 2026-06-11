@@ -36,17 +36,17 @@ export default async function AdminCalendarPage({
   const params = (await searchParams) ?? {};
   const view = params.view === 'month' ? 'month' : 'week';
   const anchorDate = params.date ?? getBratislavaDateKey();
-  const data = await listAdminCalendarRange(anchorDate, view);
-  const reservationContext = await getAdminManualReservationContext();
-  const dayParam = params.day && data.days.some((day) => day.dateKey === params.day) ? params.day : data.days.find((day) => day.isCurrentMonth)?.dateKey ?? data.days[0]?.dateKey;
-  const selectedDay = data.days.find((day) => day.dateKey === dayParam) ?? data.days[0];
   const reservationDate = params.reservationDate ?? '';
   const reservationTime = params.reservationTime ?? '';
+  const showReservationModal = Boolean(reservationDate && reservationTime);
+  const data = await listAdminCalendarRange(anchorDate, view);
+  const reservationContext = showReservationModal ? await getAdminManualReservationContext() : null;
+  const dayParam = params.day && data.days.some((day) => day.dateKey === params.day) ? params.day : data.days.find((day) => day.isCurrentMonth)?.dateKey ?? data.days[0]?.dateKey;
+  const selectedDay = data.days.find((day) => day.dateKey === dayParam) ?? data.days[0];
   const slots = buildWorkingDaySlots();
   const historyReservations = data.days.flatMap((day) => day.history).slice(0, 12);
   const closeHref = `/admin/calendar?date=${anchorDate}&view=${view}${dayParam ? `&day=${dayParam}` : ''}`;
   const baseReservationHref = `/admin/calendar?date=${anchorDate}&view=${view}${selectedDay ? `&day=${selectedDay.dateKey}` : ''}`;
-  const showReservationModal = Boolean(reservationDate && reservationTime);
 
   return (
     <div className={styles.calendarPage}>
@@ -265,7 +265,7 @@ export default async function AdminCalendarPage({
         </div>
       </section>
 
-      {showReservationModal ? (
+      {showReservationModal && reservationContext ? (
         <CalendarReservationModal
           closeHref={closeHref}
           customers={reservationContext.customers}

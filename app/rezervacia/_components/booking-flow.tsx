@@ -705,6 +705,11 @@ export function BookingFlow() {
                     </label>
                   ))}
                 </div>
+                {serviceFieldError ? (
+                  <p className={styles.fieldError} role="alert">
+                    {serviceFieldError}
+                  </p>
+                ) : null}
               </fieldset>
 
               <div className={styles.serviceSection}>

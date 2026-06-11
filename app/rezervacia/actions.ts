@@ -21,6 +21,20 @@ import {
   type BookingContactFieldErrors,
 } from '@/lib/validation/phone';
 
+function formatSpacedPhone(compactPhone: string): string | null {
+  const match = compactPhone.match(/^\+421(\d{3})(\d{3})(\d{3})$/);
+  return match ? `+421 ${match[1]} ${match[2]} ${match[3]}` : null;
+}
+
+function getPhoneLookupVariants(normalizedPhone: string): string[] {
+  const variants = [normalizedPhone];
+  const spaced = formatSpacedPhone(normalizedPhone);
+  if (spaced) {
+    variants.push(spaced);
+  }
+  return variants;
+}
+
 export type BookingSubmitState =
   | { status: 'idle' }
   | { status: 'error'; fieldErrors: BookingContactFieldErrors; formError?: string }
@@ -165,9 +179,10 @@ export async function submitBooking(
 
   try {
     await prisma.$transaction(async (transaction) => {
+      const phoneVariants = getPhoneLookupVariants(normalizedPhone);
       const existingCustomer = await transaction.customer.findFirst({
         where: {
-          phone: normalizedPhone,
+          phone: { in: phoneVariants },
         },
       });
 
@@ -209,7 +224,14 @@ export async function submitBooking(
       });
 
       const dog = existingDog
-        ? existingDog
+        ? await transaction.dog.update({
+            where: { id: existingDog.id },
+            data: {
+              breed: dogBreed || null,
+              size: dogSize,
+              temperamentNote: dogNote || null,
+            },
+          })
         : await transaction.dog.create({
             data: {
               customerId: customer.id,
