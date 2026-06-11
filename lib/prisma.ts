@@ -13,31 +13,60 @@ function sanitizeConnectionString(raw: string): string {
   return raw.trim().replace(/^["']+|["']+$/g, '');
 }
 
-function parseConnectionString(connectionString: string): URL {
-  return new URL(connectionString);
+function getConnectionHost(connectionString: string): string {
+  try {
+    return new URL(connectionString).hostname;
+  } catch {
+    return '';
+  }
+}
+
+function isUsableConnectionString(connectionString: string | undefined): boolean {
+  if (!connectionString) {
+    return false;
+  }
+
+  const host = getConnectionHost(connectionString);
+  return Boolean(host) && host !== 'base';
+}
+
+function resolveConnectionString(): { value: string; source: 'DATABASE_URL' | 'DIRECT_URL' } {
+  const databaseUrl = process.env.DATABASE_URL;
+  const directUrl = process.env.DIRECT_URL;
+
+  if (isUsableConnectionString(databaseUrl)) {
+    return { value: sanitizeConnectionString(databaseUrl as string), source: 'DATABASE_URL' };
+  }
+
+  if (isUsableConnectionString(directUrl)) {
+    return { value: sanitizeConnectionString(directUrl as string), source: 'DIRECT_URL' };
+  }
+
+  if (databaseUrl) {
+    return { value: sanitizeConnectionString(databaseUrl), source: 'DATABASE_URL' };
+  }
+
+  if (directUrl) {
+    return { value: sanitizeConnectionString(directUrl), source: 'DIRECT_URL' };
+  }
+
+  throw new Error('DATABASE_URL or DIRECT_URL is required to initialize Prisma.');
 }
 
 function createPrismaClient() {
-  const rawDatabaseUrl = process.env.DATABASE_URL;
+  const { value: connectionString, source } = resolveConnectionString();
+  const host = getConnectionHost(connectionString);
 
-  if (!rawDatabaseUrl) {
-    throw new Error('DATABASE_URL is required to initialize Prisma.');
+  if (process.env.NODE_ENV !== 'production') {
+    console.info(`[prisma] using ${source} host=${host || 'unknown'}`);
+  } else if (source === 'DIRECT_URL' || host === 'base') {
+    console.warn(`[prisma] using ${source} host=${host || 'unknown'}`);
   }
 
-  const connectionString = sanitizeConnectionString(rawDatabaseUrl);
-  const parsed = parseConnectionString(connectionString);
-  const user = parsed.username || 'unknown';
-  const host = parsed.hostname || 'unknown';
-  const port = parsed.port || 'unknown';
-
-  console.info(`[prisma] user=${user} host=${host} port=${port}`);
-
   if (!globalForPrisma.pool) {
-    const pool = new Pool({
+    globalForPrisma.pool = new Pool({
       connectionString,
     });
-
-    globalForPrisma.pool = pool;
   }
 
   const pool = globalForPrisma.pool;
