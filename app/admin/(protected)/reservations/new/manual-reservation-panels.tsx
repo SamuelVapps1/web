@@ -443,7 +443,7 @@ export function DogStep({ customers, state, stateAction }: DogStepProps) {
     <section className={styles.detailCard}>
       <p className={styles.sectionKicker}>2. Pes</p>
 
-      {!selectedCustomer ? (
+      {!selectedCustomer && state.customerMode !== 'new' ? (
         <p className={styles.emptyState}>Najprv vyber zákazníka alebo vytvor nového.</p>
       ) : (
         <>
