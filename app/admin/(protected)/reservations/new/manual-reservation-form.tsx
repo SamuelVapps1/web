@@ -13,7 +13,7 @@ import {
   type ManualReservationCustomer,
   type ManualReservationState,
 } from './manual-reservation-panels';
-import { getBratislavaDateKey } from '@/lib/time';
+import { getBratislavaDateKey, localDateTimeToUtc } from '@/lib/time';
 
 const initialState: AdminActionState = { kind: 'idle' };
 
@@ -38,7 +38,16 @@ function createBlankCustomerDraft(): ManualReservationState['customerDraft'] {
 }
 
 function createBlankDogDraft(): ManualReservationState['dogDraft'] {
-  return { name: '', breed: '', size: 'MEDIUM', note: '', temperamentNote: '', healthNote: '' };
+  return {
+    name: '',
+    breed: '',
+    size: 'MEDIUM',
+    note: '',
+    temperamentNote: '',
+    coatType: '',
+    healthNote: '',
+    groomingNotes: '',
+  };
 }
 
 function createInitialReservationDraft(initialDate?: string, initialTime?: string): ManualReservationState['reservationDraft'] {
@@ -68,7 +77,9 @@ export default function ManualReservationForm({
   const [customerDraft, setCustomerDraft] = useState(createBlankCustomerDraft);
   const [dogDraft, setDogDraft] = useState(createBlankDogDraft);
   const [reservationDraft, setReservationDraft] = useState(() => createInitialReservationDraft(initialDate, initialTime));
-  const [availabilityCursor, setAvailabilityCursor] = useState(() => new Date());
+  const [availabilityCursor, setAvailabilityCursor] = useState(() =>
+    localDateTimeToUtc(getInitialDate(initialDate), initialTime ?? '10:00'),
+  );
 
   const stateAction = {
     setCustomerMode,

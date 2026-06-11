@@ -227,6 +227,7 @@ export function BookingFlow() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const stepContentRef = useRef<HTMLElement | null>(null);
   const stepOneTargetRef = useRef<HTMLInputElement | null>(null);
+  const stepTwoHeadingRef = useRef<HTMLFieldSetElement | null>(null);
   const stepTwoTargetRef = useRef<HTMLInputElement | null>(null);
   const stepThreeTargetRef = useRef<HTMLButtonElement | null>(null);
   const stepFourTargetRef = useRef<HTMLDivElement | null>(null);
@@ -279,7 +280,7 @@ export function BookingFlow() {
   useEffect(() => {
     const stickyHeaderOffset = 112;
 
-    const scrollAndFocus = (target: HTMLElement | null) => {
+    const scrollAndFocus = (target: HTMLElement | null, focusTarget?: HTMLElement | null) => {
       if (!target) {
         return;
       }
@@ -291,7 +292,7 @@ export function BookingFlow() {
       });
 
       window.setTimeout(() => {
-        target.focus({ preventScroll: true });
+        (focusTarget ?? target).focus({ preventScroll: true });
       }, prefersReducedMotion ? 0 : 50);
     };
 
@@ -301,7 +302,7 @@ export function BookingFlow() {
     }
 
     if (step === 2) {
-      scrollAndFocus(stepTwoTargetRef.current);
+      scrollAndFocus(stepTwoHeadingRef.current, stepTwoTargetRef.current);
       return;
     }
 
@@ -720,7 +721,7 @@ export function BookingFlow() {
               </div>
 
               <fieldset
-                ref={stepContentRef as unknown as RefObject<HTMLFieldSetElement>}
+                ref={stepTwoHeadingRef as unknown as RefObject<HTMLFieldSetElement>}
                 className={styles.serviceSection}
               >
                 <div className={styles.serviceSectionHead}>

@@ -3,7 +3,8 @@ import 'server-only';
 import type { ReservationStatus, Prisma } from '@prisma/client';
 import { getPrisma } from '@/lib/prisma';
 import { addDaysToDateKey, endOfBratislavaDayUtc, formatBratislavaDate, formatBratislavaDateTime, formatTimeKey, getBratislavaDateKey, localDateTimeToUtc, startOfBratislavaDayUtc } from '@/lib/time';
-import { getAddonLabels, getCutTypeLabel, getDogSizeLabel, getEffectiveReservationEnd, getEffectiveReservationStart, getMonthLabel, getReservationStatusLabel, getWeekRangeLabel, shiftDateKey, shiftMonthKey, type AdminCalendarView, type AdminReservationTab } from '@/lib/admin-domain';
+import { getEffectiveReservationEnd, getEffectiveReservationStart, getMonthLabel, getWeekRangeLabel, shiftDateKey, shiftMonthKey, type AdminCalendarView, type AdminReservationTab } from '@/lib/admin-domain';
+import { getAddonLabels, getCutTypeLabel, getDogSizeLabel, getReservationStatusLabel } from '@/lib/admin-label-mapping';
 
 type ReservationRelation = Prisma.ReservationGetPayload<{
   include: {
@@ -111,6 +112,11 @@ export type AdminCustomerCard = {
     breed: string | null;
     size: string;
     sizeLabel: string;
+    note?: string | null;
+    temperamentNote?: string | null;
+    coatType?: string | null;
+    healthNote?: string | null;
+    groomingNotes?: string | null;
   }[];
   reservationCount: number;
   lastVisitLabel: string;
@@ -248,6 +254,11 @@ function mapCustomer(record: CustomerRelation): AdminCustomerCard {
       breed: dog.breed,
       size: dog.size,
       sizeLabel: getDogSizeLabel(dog.size),
+      note: dog.note,
+      temperamentNote: dog.temperamentNote,
+      coatType: dog.coatType,
+      healthNote: dog.healthNote,
+      groomingNotes: dog.groomingNotes,
     })),
     reservationCount: allReservations.length,
     lastVisitAt: lastVisit ? (lastVisit.confirmedStart ?? lastVisit.requestedStart).toISOString() : null,

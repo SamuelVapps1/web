@@ -22,13 +22,14 @@ function normalizeQuery(value) {
 
 export function findCustomerMatches(customers, query) {
   const normalized = normalizeQuery(query);
+  const normalizedPhoneQuery = normalizePhoneLookup(query);
 
   if (!normalized) {
     return customers;
   }
 
   return customers.filter((customer) => {
-    const haystack = [
+    const nameHaystack = [
       customer.name,
       customer.phone,
       ...(customer.dogs ?? []).map((dog) => dog.name),
@@ -36,7 +37,12 @@ export function findCustomerMatches(customers, query) {
       .join(' ')
       .toLowerCase();
 
-    return haystack.includes(normalized);
+    const customerPhone = normalizePhoneLookup(customer.phone);
+
+    return (
+      nameHaystack.includes(normalized) ||
+      (normalizedPhoneQuery.length > 0 && customerPhone.includes(normalizedPhoneQuery))
+    );
   });
 }
 

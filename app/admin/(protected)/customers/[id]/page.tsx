@@ -5,6 +5,7 @@ import styles from '../../../admin.module.css';
 import { ADMIN_CUSTOMER_TAGS, getCustomerTagSummary } from '@/lib/admin-domain';
 import { getAdminCustomerDetail } from '@/lib/admin-data';
 import { createDog, updateCustomer, updateDog } from '@/app/admin/actions';
+import { DOG_SIZE_SELECT_OPTIONS } from '@/lib/admin-label-mapping';
 
 async function submitUpdateCustomer(formData: FormData) {
   'use server';
@@ -58,9 +59,11 @@ function DogProfileForm({
         <div className={styles.field}>
           <label>Veľkosť</label>
           <select name="size" defaultValue={dog.size}>
-            <option value="SMALL">Malý</option>
-            <option value="MEDIUM">Stredný</option>
-            <option value="LARGE">Veľký</option>
+            {DOG_SIZE_SELECT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </div>
         <div className={`${styles.field} ${styles.fieldFull}`}>
@@ -80,7 +83,7 @@ function DogProfileForm({
           <textarea name="healthNote" defaultValue={dog.healthNote ?? ''} />
         </div>
         <div className={`${styles.field} ${styles.fieldFull}`}>
-          <label>Starostlivosť</label>
+          <label>Grooming poznámky</label>
           <textarea name="groomingNotes" defaultValue={dog.groomingNotes ?? ''} />
         </div>
         <button className="btn btn--ghost" type="submit">
@@ -177,8 +180,8 @@ export default async function AdminCustomerDetailPage({
           <article className={styles.detailCard}>
             <p className={styles.sectionKicker}>Psy</p>
             <div className={styles.stack}>
-              {customer.dogs.map((dog, index) => (
-                <details key={dog.id} className={styles.dogAccordion} open={index === 0}>
+              {customer.dogs.map((dog) => (
+                <details key={dog.id} className={styles.dogAccordion}>
                   <summary className={styles.dogAccordionSummary}>
                     <div>
                       <h2 className={styles.detailName}>{dog.name}</h2>
@@ -190,18 +193,18 @@ export default async function AdminCustomerDetailPage({
                   </summary>
 
                   <div className={styles.dogAccordionBody}>
-                    <DogProfileForm
-                      customerId={customer.id}
-                      dog={dog}
-                      submitLabel="Uložiť psa"
-                    />
+                    <DogProfileForm customerId={customer.id} dog={dog} submitLabel="Uložiť psa" />
 
                     <div className={styles.profileHistory}>
                       <p className={styles.sectionKicker}>História psa</p>
                       {dog.reservations.length > 0 ? (
                         <div className={styles.historyList}>
                           {dog.reservations.map((reservation) => (
-                            <Link key={reservation.id} className={styles.historyCard} href={`/admin/reservations/${reservation.id}`}>
+                            <Link
+                              key={reservation.id}
+                              className={styles.historyRow}
+                              href={`/admin/reservations/${reservation.id}`}
+                            >
                               <strong>{reservation.startLabel}</strong>
                               <span>{reservation.cutTypeLabel} · {reservation.serviceLabel}</span>
                               <span>{reservation.statusLabel}</span>
@@ -241,7 +244,11 @@ export default async function AdminCustomerDetailPage({
             <div className={styles.historyList}>
               {customer.reservations.length > 0 ? (
                 customer.reservations.map((reservation) => (
-                  <Link key={reservation.id} className={styles.historyCard} href={`/admin/reservations/${reservation.id}`}>
+                  <Link
+                    key={reservation.id}
+                    className={styles.historyRow}
+                    href={`/admin/reservations/${reservation.id}`}
+                  >
                     <strong>{reservation.startLabel}</strong>
                     <span>
                       {reservation.dogName} · {reservation.cutTypeLabel}

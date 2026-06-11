@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from '../../../admin.module.css';
 import { BOOKING_ADDONS, BOOKING_CUT_TYPES } from '@/lib/booking';
-import { buildWorkingDaySlots, findNextFreeWorkingSlots, findReservationCollisions } from '@/lib/admin-schedule.js';
-import { getBratislavaDateKey, localDateTimeToUtc } from '@/lib/time';
+import { DOG_SIZE_SELECT_OPTIONS } from '@/lib/admin-label-mapping';
 import { findCustomerMatches, findDuplicateCustomerByPhone } from './manual-reservation-helpers.js';
 import { type AdminActionState } from '@/app/admin/actions';
+import ReservationAvailabilityPanel from '../_components/reservation-availability-panel';
 
 export type ManualReservationCustomer = {
   id: string;
@@ -21,6 +21,11 @@ export type ManualReservationCustomer = {
     breed: string | null;
     size: string;
     sizeLabel: string;
+    note?: string | null;
+    temperamentNote?: string | null;
+    coatType?: string | null;
+    healthNote?: string | null;
+    groomingNotes?: string | null;
   }[];
 };
 
@@ -55,7 +60,9 @@ export type ManualReservationState = {
     size: 'SMALL' | 'MEDIUM' | 'LARGE';
     note: string;
     temperamentNote: string;
+    coatType: string;
     healthNote: string;
+    groomingNotes: string;
   };
   reservationDraft: {
     date: string;
@@ -121,20 +128,23 @@ type SubmitPanelProps = {
   reservationDraft: ManualReservationState['reservationDraft'];
 };
 
-function capitalizeFirstLetter(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
+const EMPTY_CUSTOMER_DRAFT: ManualReservationState['customerDraft'] = {
+  name: '',
+  phone: '',
+  email: '',
+  note: '',
+};
 
-function formatSlotLabel(date: Date, timeKey: string): string {
-  const formatter = new Intl.DateTimeFormat('sk-SK', {
-    timeZone: 'Europe/Bratislava',
-    weekday: 'long',
-    day: 'numeric',
-    month: 'numeric',
-  });
-
-  return `${capitalizeFirstLetter(formatter.format(date))} · ${timeKey}`;
-}
+const EMPTY_DOG_DRAFT: ManualReservationState['dogDraft'] = {
+  name: '',
+  breed: '',
+  size: 'MEDIUM',
+  note: '',
+  temperamentNote: '',
+  coatType: '',
+  healthNote: '',
+  groomingNotes: '',
+};
 
 function setArrayValue<T>(values: T[], value: T, active: boolean): T[] {
   if (active) {
@@ -144,16 +154,98 @@ function setArrayValue<T>(values: T[], value: T, active: boolean): T[] {
   return [...values, value];
 }
 
+function toCustomerDraft(customer: ManualReservationCustomer): ManualReservationState['customerDraft'] {
+  return {
+    name: customer.name,
+    phone: customer.phone,
+    email: customer.email ?? '',
+    note: customer.note ?? '',
+  };
+}
+
+function toDogDraft(dog: ManualReservationCustomer['dogs'][number]): ManualReservationState['dogDraft'] {
+  return {
+    name: dog.name,
+    breed: dog.breed ?? '',
+    size: dog.size as 'SMALL' | 'MEDIUM' | 'LARGE',
+    note: dog.note ?? '',
+    temperamentNote: dog.temperamentNote ?? '',
+    coatType: dog.coatType ?? '',
+    healthNote: dog.healthNote ?? '',
+    groomingNotes: dog.groomingNotes ?? '',
+  };
+}
+
 export function CustomerStep({ customers, state, stateAction }: CustomerStepProps) {
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const [debouncedPhone, setDebouncedPhone] = useState(state.customerDraft.phone);
+  const searchRegionRef = useRef<HTMLDivElement | null>(null);
+  const { setShowAllCustomers } = stateAction;
   const selectedCustomer = customers.find((customer) => customer.id === state.selectedCustomerId) ?? null;
   const filteredCustomers = useMemo(
     () => findCustomerMatches(customers, state.customerQuery) as ManualReservationCustomer[],
     [customers, state.customerQuery],
   );
   const duplicateCustomer = useMemo(
-    () => findDuplicateCustomerByPhone(customers, state.customerDraft.phone) as ManualReservationCustomer | null,
-    [customers, state.customerDraft.phone],
+    () => findDuplicateCustomerByPhone(customers, debouncedPhone) as ManualReservationCustomer | null,
+    [customers, debouncedPhone],
   );
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedPhone(state.customerDraft.phone);
+    }, 220);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [state.customerDraft.phone]);
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (!searchRegionRef.current?.contains(event.target as Node)) {
+        setShowAllCustomers(false);
+      }
+    }
+
+    window.addEventListener('mousedown', handlePointerDown);
+    return () => window.removeEventListener('mousedown', handlePointerDown);
+  }, [setShowAllCustomers]);
+
+  function resetCustomerSelection() {
+    stateAction.setCustomerMode('select');
+    stateAction.setSelectedCustomerId('');
+    stateAction.setSelectedDogId('');
+    stateAction.setCustomerQuery('');
+    stateAction.setShowAllCustomers(false);
+    stateAction.setCustomerDraft(EMPTY_CUSTOMER_DRAFT);
+    stateAction.setDogMode('new');
+    stateAction.setDogDraft(EMPTY_DOG_DRAFT);
+    setPhoneTouched(false);
+  }
+
+  function applySelectedCustomer(customer: ManualReservationCustomer) {
+    stateAction.setCustomerMode('select');
+    stateAction.setSelectedCustomerId(customer.id);
+    stateAction.setSelectedDogId('');
+    stateAction.setCustomerQuery('');
+    stateAction.setShowAllCustomers(false);
+    stateAction.setCustomerDraft(toCustomerDraft(customer));
+    stateAction.setDogMode(customer.dogs.length > 0 ? 'existing' : 'new');
+    stateAction.setDogDraft(EMPTY_DOG_DRAFT);
+    setPhoneTouched(false);
+  }
+
+  const showDropdown =
+    !selectedCustomer &&
+    state.customerMode !== 'new' &&
+    (state.customerQuery.trim().length > 0 || state.showAllCustomers);
+  const duplicateMatch =
+    state.customerMode === 'new' &&
+    phoneTouched &&
+    state.customerDraft.phone.trim().length > 0 &&
+    duplicateCustomer
+      ? duplicateCustomer
+      : null;
+
   if (selectedCustomer && state.customerMode === 'select') {
     return (
       <section className={styles.detailCard}>
@@ -163,20 +255,7 @@ export function CustomerStep({ customers, state, stateAction }: CustomerStepProp
             <strong>{selectedCustomer.name}</strong>
             <p className={styles.detailMeta}>{selectedCustomer.phone}</p>
           </div>
-          <button
-            type="button"
-            className="btn btn--ghost"
-            onClick={() => {
-              stateAction.setCustomerMode('select');
-              stateAction.setSelectedCustomerId('');
-              stateAction.setSelectedDogId('');
-              stateAction.setCustomerQuery('');
-              stateAction.setShowAllCustomers(false);
-              stateAction.setCustomerDraft({ name: '', phone: '', email: '', note: '' });
-              stateAction.setDogMode('new');
-              stateAction.setDogDraft({ name: '', breed: '', size: 'MEDIUM', note: '', temperamentNote: '', healthNote: '' });
-            }}
-          >
+          <button type="button" className="btn btn--ghost" onClick={resetCustomerSelection}>
             Zmeniť
           </button>
         </div>
@@ -188,56 +267,52 @@ export function CustomerStep({ customers, state, stateAction }: CustomerStepProp
     <section className={styles.detailCard}>
       <p className={styles.sectionKicker}>1. Zákazník</p>
       <div className={styles.stackCompact}>
-        <input
-          className={styles.searchInput}
-          type="search"
-          placeholder="Hľadať meno, telefón alebo psa"
-          value={state.customerQuery}
-          onChange={(event) => stateAction.setCustomerQuery(event.target.value)}
-        />
+        <div ref={searchRegionRef} className={styles.searchFieldWrap}>
+          <input
+            className={styles.searchInput}
+            type="search"
+            placeholder="Hľadať meno, telefón alebo psa"
+            value={state.customerQuery}
+            onChange={(event) => {
+              stateAction.setCustomerQuery(event.target.value);
+              stateAction.setShowAllCustomers(false);
+            }}
+          />
 
-        {!state.customerQuery.trim() ? (
+          {showDropdown ? (
+            <div className={styles.searchDropdown} role="listbox" aria-label="Zhodní zákazníci">
+              {filteredCustomers.length > 0 ? (
+                filteredCustomers.map((customer) => (
+                  <button
+                    key={customer.id}
+                    type="button"
+                    className={`${styles.searchRow} ${state.selectedCustomerId === customer.id ? styles.searchRowActive : ''}`}
+                    onClick={() => applySelectedCustomer(customer)}
+                  >
+                    <strong>{customer.name}</strong>
+                    <span>
+                      {customer.phone}
+                      {customer.dogs.length > 0
+                        ? ` · ${customer.dogs.map((dog) => dog.name).join(', ')}`
+                        : ''}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className={styles.emptyState}>Nenašli sa žiadne zhody.</p>
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        {!state.customerQuery.trim() && state.customerMode !== 'new' ? (
           <button
             type="button"
             className="btn btn--ghost"
             onClick={() => stateAction.setShowAllCustomers(!state.showAllCustomers)}
           >
-            {state.showAllCustomers ? 'Skryť všetkých zákazníkov' : 'Zobraziť všetkých zákazníkov'}
+            {state.showAllCustomers ? 'Skryť všetkých' : 'Zobraziť všetkých'}
           </button>
-        ) : null}
-
-        {state.customerQuery.trim() || state.showAllCustomers ? (
-          <div className={styles.searchListCompact}>
-            {filteredCustomers.length > 0 ? (
-              filteredCustomers.map((customer) => (
-                <button
-                  key={customer.id}
-                  type="button"
-                  className={`${styles.searchRow} ${state.selectedCustomerId === customer.id ? styles.searchRowActive : ''}`}
-                  onClick={() => {
-                    stateAction.setCustomerMode('select');
-                    stateAction.setSelectedCustomerId(customer.id);
-                    stateAction.setSelectedDogId('');
-                    stateAction.setCustomerQuery('');
-                    stateAction.setShowAllCustomers(false);
-                    stateAction.setCustomerDraft({
-                      name: customer.name,
-                      phone: customer.phone,
-                      email: customer.email ?? '',
-                      note: customer.note ?? '',
-                    });
-                    stateAction.setDogMode(customer.dogs.length > 0 ? 'existing' : 'new');
-                    stateAction.setDogDraft({ name: '', breed: '', size: 'MEDIUM', note: '', temperamentNote: '', healthNote: '' });
-                  }}
-                >
-                  <strong>{customer.name}</strong>
-                  <span>{customer.phone}</span>
-                </button>
-              ))
-            ) : (
-              <p className={styles.emptyState}>Nenašli sa žiadne zhody.</p>
-            )}
-          </div>
         ) : null}
 
         <button
@@ -249,9 +324,10 @@ export function CustomerStep({ customers, state, stateAction }: CustomerStepProp
             stateAction.setSelectedDogId('');
             stateAction.setCustomerQuery('');
             stateAction.setShowAllCustomers(false);
-            stateAction.setCustomerDraft({ name: '', phone: '', email: '', note: '' });
+            stateAction.setCustomerDraft(EMPTY_CUSTOMER_DRAFT);
             stateAction.setDogMode('new');
-            stateAction.setDogDraft({ name: '', breed: '', size: 'MEDIUM', note: '', temperamentNote: '', healthNote: '' });
+            stateAction.setDogDraft(EMPTY_DOG_DRAFT);
+            setPhoneTouched(false);
           }}
         >
           + Vytvoriť nového zákazníka
@@ -269,16 +345,17 @@ export function CustomerStep({ customers, state, stateAction }: CustomerStepProp
               stateAction.setSelectedDogId('');
               stateAction.setCustomerQuery('');
               stateAction.setShowAllCustomers(false);
-              stateAction.setCustomerDraft({ name: '', phone: '', email: '', note: '' });
+              stateAction.setCustomerDraft(EMPTY_CUSTOMER_DRAFT);
               stateAction.setDogMode('new');
-              stateAction.setDogDraft({ name: '', breed: '', size: 'MEDIUM', note: '', temperamentNote: '', healthNote: '' });
+              stateAction.setDogDraft(EMPTY_DOG_DRAFT);
+              setPhoneTouched(false);
             }}
           >
-            Vybrať existujúceho zákazníka
+            Zavrieť nový kontakt
           </button>
           <div className={styles.formGrid}>
             <div className={styles.field}>
-              <label>Meno zákazníka</label>
+              <label>Meno</label>
               <input
                 name="customerName"
                 value={state.customerDraft.name}
@@ -301,6 +378,7 @@ export function CustomerStep({ customers, state, stateAction }: CustomerStepProp
                     phone: event.target.value,
                   })
                 }
+                onBlur={() => setPhoneTouched(true)}
               />
             </div>
             <div className={styles.field}>
@@ -331,31 +409,17 @@ export function CustomerStep({ customers, state, stateAction }: CustomerStepProp
             </div>
           </div>
 
-          {duplicateCustomer ? (
+          {duplicateMatch ? (
             <div className={styles.duplicateBanner}>
               <p>
-                Zákazník s týmto číslom už existuje: <strong>{duplicateCustomer.name}</strong>
+                Zákazník s týmto číslom už existuje: <strong>{duplicateMatch.name}</strong>
               </p>
               <button
                 type="button"
                 className="btn btn--ghost"
-                onClick={() => {
-                  stateAction.setCustomerMode('select');
-                  stateAction.setSelectedCustomerId(duplicateCustomer.id);
-                  stateAction.setSelectedDogId('');
-                  stateAction.setCustomerQuery('');
-                  stateAction.setShowAllCustomers(false);
-                  stateAction.setCustomerDraft({
-                    name: duplicateCustomer.name,
-                    phone: duplicateCustomer.phone,
-                    email: duplicateCustomer.email ?? '',
-                    note: duplicateCustomer.note ?? '',
-                  });
-                  stateAction.setDogMode(duplicateCustomer.dogs.length > 0 ? 'existing' : 'new');
-                  stateAction.setDogDraft({ name: '', breed: '', size: 'MEDIUM', note: '', temperamentNote: '', healthNote: '' });
-                }}
+                onClick={() => applySelectedCustomer(duplicateMatch)}
               >
-                Použiť
+                Použiť tohto zákazníka
               </button>
             </div>
           ) : null}
@@ -369,6 +433,12 @@ export function DogStep({ customers, state, stateAction }: DogStepProps) {
   const selectedCustomer = customers.find((customer) => customer.id === state.selectedCustomerId) ?? null;
   const customerDogs = selectedCustomer?.dogs ?? [];
 
+  function clearDogSelection() {
+    stateAction.setDogMode('new');
+    stateAction.setSelectedDogId('');
+    stateAction.setDogDraft(EMPTY_DOG_DRAFT);
+  }
+
   return (
     <section className={styles.detailCard}>
       <p className={styles.sectionKicker}>2. Pes</p>
@@ -377,68 +447,44 @@ export function DogStep({ customers, state, stateAction }: DogStepProps) {
         <p className={styles.emptyState}>Najprv vyber zákazníka alebo vytvor nového.</p>
       ) : (
         <>
-          {customerDogs.length > 0 && state.dogMode !== 'new' ? (
-            <div className={styles.searchListCompact}>
+          {customerDogs.length > 0 ? (
+            <div className={styles.choiceChipRow}>
               {customerDogs.map((dog) => (
                 <button
                   key={dog.id}
                   type="button"
-                  className={`${styles.searchRow} ${state.selectedDogId === dog.id ? styles.searchRowActive : ''}`}
+                  className={`${styles.choiceChip} ${state.selectedDogId === dog.id ? styles.choiceChipActive : ''}`}
                   onClick={() => {
                     stateAction.setDogMode('existing');
                     stateAction.setSelectedDogId(dog.id);
-                    stateAction.setDogDraft({
-                      name: dog.name,
-                      breed: dog.breed ?? '',
-                      size: dog.size as 'SMALL' | 'MEDIUM' | 'LARGE',
-                      note: '',
-                      temperamentNote: '',
-                      healthNote: '',
-                    });
+                    stateAction.setDogDraft(toDogDraft(dog));
                   }}
                 >
-                  <strong>{dog.name}</strong>
-                  <span>
-                    {dog.breed ?? 'Bez plemena'} · {dog.sizeLabel}
-                  </span>
+                  {dog.name} · {dog.sizeLabel}
                 </button>
               ))}
+              <button type="button" className="btn btn--ghost" onClick={clearDogSelection}>
+                + Nový pes
+              </button>
             </div>
-          ) : null}
-
-          {customerDogs.length > 0 && state.dogMode !== 'new' ? (
-            <button
-              type="button"
-              className="btn btn--ghost"
-              onClick={() => {
-                stateAction.setDogMode('new');
-                stateAction.setSelectedDogId('');
-                stateAction.setDogDraft({ name: '', breed: '', size: 'MEDIUM', note: '', temperamentNote: '', healthNote: '' });
-              }}
-            >
-              + Nový pes
-            </button>
           ) : null}
 
           {state.dogMode === 'new' ? (
             <div className={styles.newCustomerPanel}>
               {customerDogs.length > 0 ? (
-              <button
+                <button
                   type="button"
                   className="btn btn--ghost"
-                  onClick={() => {
-                    stateAction.setDogMode('existing');
-                    stateAction.setSelectedDogId('');
-                    stateAction.setDogDraft({ name: '', breed: '', size: 'MEDIUM', note: '', temperamentNote: '', healthNote: '' });
-                  }}
+                  onClick={() => stateAction.setDogMode('existing')}
                 >
                   Vybrať existujúceho psa
                 </button>
               ) : null}
+
               <div className={styles.formGrid}>
                 <input type="hidden" name="dogId" value={state.selectedDogId} />
                 <div className={styles.field}>
-                  <label>Meno psa</label>
+                  <label>Meno</label>
                   <input
                     name="dogName"
                     value={state.dogDraft.name}
@@ -475,13 +521,15 @@ export function DogStep({ customers, state, stateAction }: DogStepProps) {
                       })
                     }
                   >
-                    <option value="SMALL">Malý</option>
-                    <option value="MEDIUM">Stredný</option>
-                    <option value="LARGE">Veľký</option>
+                    {DOG_SIZE_SELECT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className={`${styles.field} ${styles.fieldFull}`}>
-                  <label>Poznámka k psovi</label>
+                  <label>Poznámka</label>
                   <textarea
                     name="dogNote"
                     value={state.dogDraft.note}
@@ -526,6 +574,19 @@ export function DogStep({ customers, state, stateAction }: DogStepProps) {
                 </details>
               </div>
             </div>
+          ) : state.selectedDogId ? (
+            <div className={styles.selectedSummaryRow}>
+              <div>
+                <strong>{state.dogDraft.name}</strong>
+                <p className={styles.detailMeta}>
+                  {state.dogDraft.breed || 'Bez plemena'} ·{' '}
+                  {DOG_SIZE_SELECT_OPTIONS.find((option) => option.value === state.dogDraft.size)?.label}
+                </p>
+              </div>
+              <button type="button" className="btn btn--ghost" onClick={clearDogSelection}>
+                Zmeniť
+              </button>
+            </div>
           ) : null}
         </>
       )}
@@ -534,169 +595,38 @@ export function DogStep({ customers, state, stateAction }: DogStepProps) {
 }
 
 export function TimingStep({ availabilityReservations, state, stateAction }: TimingStepProps) {
-  const confirmedReservations = useMemo(
-    () =>
-      availabilityReservations.map((item) => {
-        const startIso = item.confirmedStart ?? item.requestedStart;
-        const start = new Date(startIso);
-        const end = new Date(start.getTime() + item.durationMin * 60 * 1000);
-
-        return {
-          id: item.id,
-          status: item.status as 'PENDING' | 'CONFIRMED' | 'DONE' | 'CANCELLED',
-          customerName: item.customerName,
-          dogName: item.dogName,
-          phone: item.customerPhone,
-          start,
-          end,
-        };
-      }),
-    [availabilityReservations],
-  );
-
-  const selectedWindow = useMemo(
-    () => ({
-      start: localDateTimeToUtc(state.reservationDraft.date, state.reservationDraft.time),
-      end: new Date(
-        localDateTimeToUtc(state.reservationDraft.date, state.reservationDraft.time).getTime() +
-          state.reservationDraft.durationMin * 60 * 1000,
-      ),
-    }),
-    [state.reservationDraft.date, state.reservationDraft.durationMin, state.reservationDraft.time],
-  );
-
-  const selectedCollisions = useMemo(
-    () => findReservationCollisions(selectedWindow, confirmedReservations),
-    [confirmedReservations, selectedWindow],
-  );
-
-  const workingSlots = useMemo(() => buildWorkingDaySlots(), []);
-  const busyMap = useMemo(
-    () =>
-      Object.fromEntries(
-        workingSlots.map((slot) => {
-          const candidate = {
-            start: localDateTimeToUtc(state.reservationDraft.date, slot),
-            end: new Date(localDateTimeToUtc(state.reservationDraft.date, slot).getTime() + state.reservationDraft.durationMin * 60 * 1000),
-          };
-
-          return [slot, findReservationCollisions(candidate, confirmedReservations).length > 0] as const;
-        }),
-      ) as Record<string, boolean>,
-    [confirmedReservations, state.reservationDraft.date, state.reservationDraft.durationMin, workingSlots],
-  );
-
-  const nextFreeSlots = useMemo(
-    () =>
-      findNextFreeWorkingSlots({
-        startAt: state.availabilityCursor,
-        durationMin: state.reservationDraft.durationMin,
-        reservations: confirmedReservations,
-        limit: 6,
-      }),
-    [confirmedReservations, state.availabilityCursor, state.reservationDraft.durationMin],
-  );
-
   return (
     <section className={styles.detailCard}>
       <p className={styles.sectionKicker}>3. Termín</p>
 
-      <div className={styles.freeSlotsPanel}>
-        <div className={styles.freeSlotsHeader}>
-          <div>
-            <p className={styles.sectionKicker}>Najbližšie voľné termíny</p>
-            <p className={styles.fieldHint}>Klikni na termín a predvyplní sa dátum aj čas.</p>
-          </div>
-          <button
-            type="button"
-            className="btn btn--ghost"
-            onClick={() => {
-              const lastSlot = nextFreeSlots[nextFreeSlots.length - 1];
-              if (!lastSlot) {
-                return;
-              }
-
-              stateAction.setAvailabilityCursor(new Date(lastSlot.end.getTime() + 30 * 60 * 1000));
-            }}
-          >
-            Ďalšie termíny
-          </button>
-        </div>
-
-        <div className={styles.freeSlotsGrid}>
-          {nextFreeSlots.map((slot) => {
-            const selected = state.reservationDraft.date === slot.dateKey && state.reservationDraft.time === slot.timeKey;
-
-            return (
-              <button
-                key={`${slot.dateKey}-${slot.timeKey}`}
-                type="button"
-                className={`${styles.freeSlotChip} ${selected ? styles.freeSlotChipSelected : ''}`}
-                aria-pressed={selected}
-                onClick={() =>
-                  stateAction.setReservationDraft({
-                    ...state.reservationDraft,
-                    date: slot.dateKey,
-                    time: slot.timeKey,
-                  })
-                }
-              >
-                <span className={styles.freeSlotChipLabel}>{formatSlotLabel(slot.start, slot.timeKey)}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <ReservationAvailabilityPanel
+        reservations={availabilityReservations}
+        date={state.reservationDraft.date}
+        time={state.reservationDraft.time}
+        durationMin={state.reservationDraft.durationMin}
+        availabilityCursor={state.availabilityCursor}
+        onDateChange={(value) =>
+          stateAction.setReservationDraft({
+            ...state.reservationDraft,
+            date: value,
+          })
+        }
+        onTimeChange={(value) =>
+          stateAction.setReservationDraft({
+            ...state.reservationDraft,
+            time: value,
+          })
+        }
+        onDurationChange={(value) =>
+          stateAction.setReservationDraft({
+            ...state.reservationDraft,
+            durationMin: value,
+          })
+        }
+        onAvailabilityCursorChange={stateAction.setAvailabilityCursor}
+      />
 
       <div className={styles.formGrid}>
-        <div className={styles.field}>
-          <label>Dátum</label>
-          <input
-            type="date"
-            name="date"
-            min={getBratislavaDateKey()}
-            value={state.reservationDraft.date}
-            onChange={(event) =>
-              stateAction.setReservationDraft({
-                ...state.reservationDraft,
-                date: event.target.value,
-              })
-            }
-          />
-        </div>
-        <div className={styles.field}>
-          <label>Čas</label>
-          <input
-            type="time"
-            name="time"
-            value={state.reservationDraft.time}
-            onChange={(event) =>
-              stateAction.setReservationDraft({
-                ...state.reservationDraft,
-                time: event.target.value,
-              })
-            }
-          />
-        </div>
-        <div className={styles.field}>
-          <label>Trvanie</label>
-          <select
-            name="durationMin"
-            value={state.reservationDraft.durationMin}
-            onChange={(event) =>
-              stateAction.setReservationDraft({
-                ...state.reservationDraft,
-                durationMin: Number(event.target.value),
-              })
-            }
-          >
-            {[30, 60, 90, 120, 150, 180, 210, 240].map((value) => (
-              <option key={value} value={value}>
-                {value} min
-              </option>
-            ))}
-          </select>
-        </div>
         <div className={`${styles.field} ${styles.fieldFull}`}>
           <label>Interná poznámka</label>
           <textarea
@@ -711,52 +641,6 @@ export function TimingStep({ availabilityReservations, state, stateAction }: Tim
           />
         </div>
       </div>
-
-      <div className={styles.availabilitySummary}>
-        <div className={styles.slotGrid} role="radiogroup" aria-label="Obsadené sloty dňa">
-          {workingSlots.map((slot) => {
-            const busy = busyMap[slot] ?? false;
-            const active = state.reservationDraft.time === slot;
-
-            return (
-              <button
-                key={slot}
-                type="button"
-                className={`${styles.slotButton} ${busy ? styles.slotButtonBusy : ''} ${active ? styles.slotButtonActive : ''}`}
-                onClick={() =>
-                  stateAction.setReservationDraft({
-                    ...state.reservationDraft,
-                    time: slot,
-                  })
-                }
-              >
-                <span className={styles.slotButtonTime}>{slot}</span>
-                <span className={styles.slotButtonState}>{busy ? 'obsadené' : 'voľné'}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {selectedCollisions.length > 0 ? (
-          <div className={styles.availabilityBanner}>
-            <p className={styles.availabilityTitle}>Koliduje s:</p>
-            <div className={styles.collisionList}>
-              {selectedCollisions.map((collision) => (
-                <div key={collision.id} className={styles.collisionItem}>
-                  <strong>
-                    {collision.start} - {collision.end}
-                  </strong>
-                  <span>
-                    {collision.customerName} / {collision.dogName} · {collision.phone}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <p className={styles.availabilityFree}>Termín je voľný.</p>
-        )}
-      </div>
     </section>
   );
 }
@@ -767,7 +651,7 @@ export function AddonsStep({ state, stateAction }: AddonsStepProps) {
       <p className={styles.sectionKicker}>4. Doplnky a strih</p>
       <div className={styles.formGrid}>
         <div className={styles.field}>
-          <label>Strih</label>
+          <label>Typ strihu</label>
           <select
             name="cutType"
             value={state.reservationDraft.cutType}
@@ -815,7 +699,17 @@ export function AddonsStep({ state, stateAction }: AddonsStepProps) {
   );
 }
 
-export function SubmitPanel({ state, pending, customerMode, dogMode, selectedCustomerId, selectedDogId, customerDraft, dogDraft, reservationDraft }: SubmitPanelProps) {
+export function SubmitPanel({
+  state,
+  pending,
+  customerMode,
+  dogMode,
+  selectedCustomerId,
+  selectedDogId,
+  customerDraft,
+  dogDraft,
+  reservationDraft,
+}: SubmitPanelProps) {
   return (
     <section className={styles.detailCard}>
       {state.kind !== 'idle' ? (
@@ -829,7 +723,11 @@ export function SubmitPanel({ state, pending, customerMode, dogMode, selectedCus
           }`}
         >
           <p className={styles.stateBannerTitle}>
-            {state.kind === 'error' ? 'Nepodarilo sa uložiť' : state.kind === 'warning' ? 'Uložené s upozornením' : 'Uložené'}
+            {state.kind === 'error'
+              ? 'Nepodarilo sa uložiť'
+              : state.kind === 'warning'
+                ? 'Uložené s upozornením'
+                : 'Uložené'}
           </p>
           <p>{state.message}</p>
           {'link' in state && state.link ? (
@@ -858,6 +756,7 @@ export function SubmitPanel({ state, pending, customerMode, dogMode, selectedCus
           <input type="hidden" name="customerNote" value={customerDraft.note} />
         </>
       ) : null}
+
       <input type="hidden" name="dogId" value={selectedDogId} />
       {dogMode === 'existing' ? (
         <>
@@ -866,12 +765,19 @@ export function SubmitPanel({ state, pending, customerMode, dogMode, selectedCus
           <input type="hidden" name="dogSize" value={dogDraft.size} />
           <input type="hidden" name="dogNote" value={dogDraft.note} />
           <input type="hidden" name="temperamentNote" value={dogDraft.temperamentNote} />
+          <input type="hidden" name="coatType" value={dogDraft.coatType} />
           <input type="hidden" name="healthNote" value={dogDraft.healthNote} />
+          <input type="hidden" name="groomingNotes" value={dogDraft.groomingNotes} />
         </>
       ) : null}
+
       <button className="btn btn--primary" type="submit" disabled={pending}>
         {pending ? 'Ukladám...' : 'Uložiť ako potvrdenú'}
       </button>
+
+      <input type="hidden" name="date" value={reservationDraft.date} />
+      <input type="hidden" name="time" value={reservationDraft.time} />
+      <input type="hidden" name="durationMin" value={reservationDraft.durationMin} />
     </section>
   );
 }

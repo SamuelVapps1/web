@@ -21,6 +21,11 @@ assert.deepStrictEqual(
   ['2'],
 );
 
+assert.deepStrictEqual(
+  findCustomerMatches(customers, '0911 111 111').map((customer) => customer.id),
+  ['1'],
+);
+
 assert.equal(findDuplicateCustomerByPhone(customers, '0911 111 111')?.id, '1');
 
 console.log('manual reservation helper assertions passed');
