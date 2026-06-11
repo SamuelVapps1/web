@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import "./globals.css";
+import "./mobile-first.css";
 import JsonLd from "@/components/JsonLd";
 
 export const metadata: Metadata = {

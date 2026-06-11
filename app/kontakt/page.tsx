@@ -26,17 +26,9 @@ export default function Kontakt() {
           <p className="lead">Sme v Petržalke. Termín si dohodnite telefonicky — radi poradíme.</p>
         </header>
 
-        <div className="wrap" style={{ paddingBottom: 0 }}>
-          <div
-            style={{
-              display: 'flex',
-              gap: '0.85rem',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              marginBottom: '1.25rem',
-            }}
-          >
-            <a className="btn btn--primary btn--full" href="tel:+421944240116">
+        <div className="wrap contact-actions-wrap">
+          <div className="contact-actions">
+            <a className="btn btn--primary" href="tel:+421944240116">
               Objednať sa telefonicky
             </a>
             <Link className="btn btn--ghost" href="/rezervacia">
