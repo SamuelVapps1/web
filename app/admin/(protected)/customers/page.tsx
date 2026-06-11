@@ -4,7 +4,12 @@ import Link from 'next/link';
 import styles from '../../admin.module.css';
 import { listAdminCustomers } from '@/lib/admin-data';
 import CustomerSearchClient from './customer-search-client';
-import NewCustomerForm from './new-customer-form';
+import { createCustomer } from '@/app/admin/actions';
+
+async function submitCreateCustomer(formData: FormData) {
+  'use server';
+  await createCustomer(formData);
+}
 
 export default async function AdminCustomersPage() {
   const customers = await listAdminCustomers();
@@ -24,7 +29,30 @@ export default async function AdminCustomersPage() {
         </div>
       </section>
 
-      <NewCustomerForm />
+      <section className={styles.detailCard}>
+        <p className={styles.sectionKicker}>Nový zákazník</p>
+        <form action={submitCreateCustomer} className={styles.formGrid}>
+          <div className={styles.field}>
+            <label>Meno</label>
+            <input name="name" />
+          </div>
+          <div className={styles.field}>
+            <label>Telefón</label>
+            <input name="phone" />
+          </div>
+          <div className={styles.field}>
+            <label>Email</label>
+            <input name="email" />
+          </div>
+          <div className={`${styles.field} ${styles.fieldFull}`}>
+            <label>Poznámka</label>
+            <textarea name="note" />
+          </div>
+          <button className="btn btn--primary" type="submit">
+            Pridať zákazníka
+          </button>
+        </form>
+      </section>
 
       <CustomerSearchClient customers={customers} />
     </div>

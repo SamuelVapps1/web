@@ -10,6 +10,7 @@ import {
   updateReservation,
   type AdminActionState,
 } from '@/app/admin/actions';
+import { getCustomerTagSummary, getDefaultDurationForSize } from '@/lib/admin-domain';
 
 const initialState: AdminActionState = { kind: 'idle' };
 type ReservationAction = (stateOrFormData: AdminActionState | FormData, maybeFormData?: FormData) => Promise<AdminActionState>;
@@ -151,10 +152,16 @@ export default function ReservationDetailClient({
     customerName: string;
     customerPhone: string;
     customerEmail: string | null;
+    customerTags: string[];
     customerNote: string | null;
     dogName: string;
     dogBreed: string | null;
     dogSizeLabel: string;
+    dogNote: string | null;
+    dogTemperamentNote: string | null;
+    dogCoatType: string | null;
+    dogHealthNote: string | null;
+    dogGroomingNotes: string | null;
     cutTypeLabel: string;
     serviceLabel: string;
     customerMessage: string | null;
@@ -173,7 +180,7 @@ export default function ReservationDetailClient({
   const reservationTimingDefaults = {
     id: reservation.id,
     startIso,
-    durationMin: reservation.durationMin,
+    durationMin: reservation.status === 'PENDING' ? getDefaultDurationForSize(reservation.dogSize) : reservation.durationMin,
     internalNote: reservation.internalNote,
   };
 
@@ -186,6 +193,7 @@ export default function ReservationDetailClient({
           <a className={styles.callLink} href={`tel:${reservation.customerPhone.replace(/\s+/g, '')}`}>
             {reservation.customerPhone}
           </a>
+          <p className={styles.customerTagSummary}>{getCustomerTagSummary(reservation.customerTags)}</p>
           <p className={styles.detailMeta}>{reservation.customerEmail ?? 'Bez emailu'}</p>
           <p className={styles.detailMeta}>{reservation.customerNote ?? 'Bez poznámky'}</p>
         </article>
@@ -195,6 +203,11 @@ export default function ReservationDetailClient({
           <h2 className={styles.detailName}>{reservation.dogName}</h2>
           <p className={styles.detailMeta}>{reservation.dogBreed ?? 'Bez plemena'}</p>
           <p className={styles.detailMeta}>{reservation.dogSizeLabel}</p>
+          {reservation.dogNote ? <p className={styles.detailMeta}>{reservation.dogNote}</p> : null}
+          {reservation.dogTemperamentNote ? <p className={styles.detailMeta}>{reservation.dogTemperamentNote}</p> : null}
+          {reservation.dogCoatType ? <p className={styles.detailMeta}>Srsť: {reservation.dogCoatType}</p> : null}
+          {reservation.dogHealthNote ? <p className={styles.detailMeta}>{reservation.dogHealthNote}</p> : null}
+          {reservation.dogGroomingNotes ? <p className={styles.detailMeta}>{reservation.dogGroomingNotes}</p> : null}
         </article>
 
         <article className={styles.detailCard}>

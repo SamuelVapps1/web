@@ -12,6 +12,16 @@ export const ADMIN_DURATION_OPTIONS = Array.from({ length: 8 }, (_, index) => (i
 
 export type AdminReservationStatus = 'PENDING' | 'CONFIRMED' | 'DONE' | 'CANCELLED';
 export type AdminReservationTab = 'pending' | 'confirmed' | 'history';
+export type AdminCalendarView = 'week' | 'month';
+
+export const ADMIN_CUSTOMER_TAGS = [
+  { value: 'vip', label: '⭐ VIP' },
+  { value: 'new', label: '✨ Nový' },
+  { value: 'regular', label: '🔁 Pravidelný' },
+  { value: 'senior', label: '🎂 Senior' },
+  { value: 'sensitive', label: '🫶 Citlivý' },
+  { value: 'anxious', label: '🌪️ Nervózny' },
+] as const;
 
 export type ReservationCollisionDTO = {
   id: string;
@@ -35,6 +45,23 @@ export type ScheduleReservation = ScheduleCandidate & {
   dogName: string;
   phone: string;
 };
+
+export function getCustomerTagLabel(value: string | null | undefined): string {
+  return ADMIN_CUSTOMER_TAGS.find((tag) => tag.value === value)?.label ?? value ?? '';
+}
+
+export function getCustomerTagLabels(tags: string[] | null | undefined): string[] {
+  if (!tags || tags.length === 0) {
+    return [];
+  }
+
+  return tags.map((tag) => getCustomerTagLabel(tag)).filter(Boolean);
+}
+
+export function getCustomerTagSummary(tags: string[] | null | undefined): string {
+  const labels = getCustomerTagLabels(tags);
+  return labels.length > 0 ? labels.join(' · ') : 'Bez tagov';
+}
 
 export function getDogSizeLabel(value: string | null | undefined): string {
   return BOOKING_SIZE_OPTIONS.find((option) => option.value === value)?.label ?? 'Neznáma veľkosť';
@@ -170,4 +197,34 @@ export function buildWorkingDaySlots(): string[] {
 
 export function buildDateTimeFromForm(date: string, time: string): Date {
   return localDateTimeToUtc(date, time);
+}
+
+export function shiftDateKey(dateKey: string, deltaDays: number): string {
+  const date = new Date(localDateTimeToUtc(dateKey, '12:00'));
+  date.setUTCDate(date.getUTCDate() + deltaDays);
+  return getBratislavaDateKey(date);
+}
+
+export function shiftMonthKey(dateKey: string, deltaMonths: number): string {
+  const date = new Date(localDateTimeToUtc(dateKey, '12:00'));
+  date.setUTCMonth(date.getUTCMonth() + deltaMonths);
+  return getBratislavaDateKey(date);
+}
+
+export function getMonthLabel(dateKey: string): string {
+  return new Intl.DateTimeFormat('sk-SK', {
+    timeZone: 'Europe/Bratislava',
+    month: 'long',
+    year: 'numeric',
+  }).format(localDateTimeToUtc(dateKey, '12:00'));
+}
+
+export function getWeekRangeLabel(startKey: string, endKey: string): string {
+  const formatter = new Intl.DateTimeFormat('sk-SK', {
+    timeZone: 'Europe/Bratislava',
+    day: 'numeric',
+    month: 'long',
+  });
+
+  return `${formatter.format(localDateTimeToUtc(startKey, '12:00'))} – ${formatter.format(localDateTimeToUtc(endKey, '12:00'))}`;
 }

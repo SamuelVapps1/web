@@ -32,6 +32,7 @@ model Customer {
   phone     String
   email     String?
   note      String?
+  tags      String[]  @default([])
   createdAt DateTime @default(now()) @db.Timestamptz(6)
 
   dogs Dog[]
@@ -43,8 +44,11 @@ model Dog {
   name            String
   breed           String?
   size            DogSize
+  note            String?
   temperamentNote String?
+  coatType        String?
   healthNote      String?
+  groomingNotes   String?
 
   customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   reservations Reservation[]

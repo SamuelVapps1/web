@@ -2,8 +2,8 @@ import 'server-only';
 
 import type { ReservationStatus, Prisma } from '@prisma/client';
 import { getPrisma } from '@/lib/prisma';
-import { addDaysToDateKey, endOfBratislavaDayUtc, formatBratislavaDate, formatBratislavaDateTime, formatDateKey, formatTimeKey, getBratislavaDateKey, localDateTimeToUtc, startOfBratislavaDayUtc } from '@/lib/time';
-import { getAddonLabels, getCutTypeLabel, getDogSizeLabel, getEffectiveReservationEnd, getEffectiveReservationStart, type AdminReservationTab } from '@/lib/admin-domain';
+import { addDaysToDateKey, endOfBratislavaDayUtc, formatBratislavaDate, formatBratislavaDateTime, formatTimeKey, getBratislavaDateKey, localDateTimeToUtc, startOfBratislavaDayUtc } from '@/lib/time';
+import { getAddonLabels, getCutTypeLabel, getDogSizeLabel, getEffectiveReservationEnd, getEffectiveReservationStart, getMonthLabel, getWeekRangeLabel, shiftDateKey, shiftMonthKey, type AdminCalendarView, type AdminReservationTab } from '@/lib/admin-domain';
 
 type ReservationRelation = Prisma.ReservationGetPayload<{
   include: {
@@ -75,14 +75,18 @@ export type AdminReservationCard = {
   customerName: string;
   customerPhone: string;
   customerEmail: string | null;
+  customerTags: string[];
   customerNote: string | null;
   dogId: string;
   dogName: string;
   dogBreed: string | null;
   dogSize: string;
   dogSizeLabel: string;
+  dogNote: string | null;
   dogTemperamentNote: string | null;
+  dogCoatType: string | null;
   dogHealthNote: string | null;
+  dogGroomingNotes: string | null;
   customerMessage: string | null;
   internalNote: string | null;
 };
@@ -99,6 +103,7 @@ export type AdminCustomerCard = {
   phone: string;
   email: string | null;
   note: string | null;
+  tags: string[];
   dogs: {
     id: string;
     name: string;
@@ -116,14 +121,18 @@ export type AdminCustomerDetail = {
   phone: string;
   email: string | null;
   note: string | null;
+  tags: string[];
   createdAt: string;
   dogs: {
     id: string;
     name: string;
     breed: string | null;
     size: string;
+    note: string | null;
     temperamentNote: string | null;
+    coatType: string | null;
     healthNote: string | null;
+    groomingNotes: string | null;
     reservations: AdminReservationCard[];
   }[];
   reservations: AdminReservationCard[];
@@ -144,6 +153,25 @@ export type AdminReservationDetail = AdminReservationCard & {
     end: string;
     status: ReservationStatus;
   }[];
+};
+
+export type AdminCalendarDay = {
+  dateKey: string;
+  label: string;
+  isCurrentMonth: boolean;
+  reservations: AdminReservationCard[];
+  pending: AdminReservationCard[];
+  history: AdminReservationCard[];
+};
+
+export type AdminCalendarData = {
+  view: AdminCalendarView;
+  anchorDateKey: string;
+  titleLabel: string;
+  rangeLabel: string;
+  previousDateKey: string;
+  nextDateKey: string;
+  days: AdminCalendarDay[];
 };
 
 function mapReservation(record: ReservationRelation): AdminReservationCard {
@@ -168,14 +196,18 @@ function mapReservation(record: ReservationRelation): AdminReservationCard {
     customerName: record.dog.customer.name,
     customerPhone: record.dog.customer.phone,
     customerEmail: record.dog.customer.email,
+    customerTags: record.dog.customer.tags,
     customerNote: record.dog.customer.note,
     dogId: record.dog.id,
     dogName: record.dog.name,
     dogBreed: record.dog.breed,
     dogSize: record.dog.size,
     dogSizeLabel: getDogSizeLabel(record.dog.size),
+    dogNote: record.dog.note,
     dogTemperamentNote: record.dog.temperamentNote,
+    dogCoatType: record.dog.coatType,
     dogHealthNote: record.dog.healthNote,
+    dogGroomingNotes: record.dog.groomingNotes,
     customerMessage: record.customerMessage,
     internalNote: record.internalNote,
   };
@@ -198,6 +230,7 @@ function mapCustomer(record: CustomerRelation): AdminCustomerCard {
     phone: record.phone,
     email: record.email,
     note: record.note,
+    tags: record.tags,
     dogs: record.dogs.map((dog) => ({
       id: dog.id,
       name: dog.name,
@@ -222,8 +255,11 @@ function mapCustomerDetail(record: CustomerRelation): AdminCustomerDetail {
       name: dog.name,
       breed: dog.breed,
       size: dog.size,
+      note: dog.note,
       temperamentNote: dog.temperamentNote,
+      coatType: dog.coatType,
       healthNote: dog.healthNote,
+      groomingNotes: dog.groomingNotes,
       reservations: dog.reservations
         .sort((left, right) => right.requestedStart.getTime() - left.requestedStart.getTime())
         .map((reservation) => mapReservation({
@@ -252,11 +288,13 @@ function getWeekRange(anchorDateKey: string) {
     const day = date.getUTCDay();
     const delta = day === 0 ? -6 : 1 - day;
     date.setUTCDate(date.getUTCDate() + delta);
-    return formatDateKey(date);
+    return getBratislavaDateKey(date);
   })();
 
   const friday = addDaysToDateKey(monday, 4);
   return {
+    startKey: monday,
+    endKey: friday,
     start: startOfBratislavaDayUtc(monday),
     end: endOfBratislavaDayUtc(friday),
     monday,
@@ -316,8 +354,20 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
 
 export async function listAdminReservations(tab: AdminReservationTab): Promise<AdminReservationCard[]> {
   const prisma = getPrisma();
+  const statusFilter: ReservationStatus[] =
+    tab === 'pending'
+      ? ['PENDING']
+      : tab === 'confirmed'
+        ? ['CONFIRMED']
+        : ['DONE', 'CANCELLED'];
+
   const reservations = await prisma.reservation.findMany({
     include: reservationInclude,
+    where: {
+      status: {
+        in: statusFilter,
+      },
+    },
     orderBy: {
       createdAt: 'desc',
     },
@@ -326,18 +376,22 @@ export async function listAdminReservations(tab: AdminReservationTab): Promise<A
   const mapped = reservations.map(mapReservation);
 
   if (tab === 'pending') {
-    return mapped.filter((reservation) => reservation.status === 'PENDING');
+    return mapped.sort((left, right) => new Date(right.requestedStart).getTime() - new Date(left.requestedStart).getTime());
   }
 
   if (tab === 'confirmed') {
-    return mapped
-      .filter((reservation) => reservation.status === 'CONFIRMED')
-      .sort((left, right) => new Date(left.confirmedStart ?? left.requestedStart).getTime() - new Date(right.confirmedStart ?? right.requestedStart).getTime());
+    return mapped.sort(
+      (left, right) =>
+        new Date(left.confirmedStart ?? left.requestedStart).getTime() -
+        new Date(right.confirmedStart ?? right.requestedStart).getTime(),
+    );
   }
 
-  return mapped
-    .filter((reservation) => reservation.status === 'DONE' || reservation.status === 'CANCELLED')
-    .sort((left, right) => new Date(right.confirmedStart ?? right.requestedStart).getTime() - new Date(left.confirmedStart ?? left.requestedStart).getTime());
+  return mapped.sort(
+    (left, right) =>
+      new Date(right.confirmedStart ?? right.requestedStart).getTime() -
+      new Date(left.confirmedStart ?? left.requestedStart).getTime(),
+  );
 }
 
 export async function getAdminReservationDetail(id: string): Promise<AdminReservationDetail | null> {
@@ -411,100 +465,146 @@ export async function getAdminCustomerDetail(id: string): Promise<AdminCustomerD
   return customer ? mapCustomerDetail(customer) : null;
 }
 
-export async function listAdminCalendarWeek(anchorDateKey: string): Promise<{
-  mondayKey: string;
-  fridayKey: string;
-  days: {
-    dateKey: string;
-    label: string;
-    reservations: AdminReservationCard[];
-    pending: AdminReservationCard[];
-  }[];
-}> {
+function getMonthGridRange(anchorDateKey: string) {
+  const anchor = new Date(localDateTimeToUtc(anchorDateKey, '12:00'));
+  const firstDayOfMonth = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), 1, 12, 0, 0));
+  const lastDayOfMonth = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() + 1, 0, 12, 0, 0));
+  const firstDayKey = getBratislavaDateKey(firstDayOfMonth);
+  const lastDayKey = getBratislavaDateKey(lastDayOfMonth);
+  const firstWeekday = firstDayOfMonth.getUTCDay();
+  const lastWeekday = lastDayOfMonth.getUTCDay();
+
+  const startKey = shiftDateKey(firstDayKey, firstWeekday === 0 ? -6 : 1 - firstWeekday);
+  const endKey = shiftDateKey(lastDayKey, lastWeekday === 0 ? 0 : 7 - lastWeekday);
+
+  return {
+    startKey,
+    endKey,
+    firstDayKey,
+    lastDayKey,
+  };
+}
+
+function buildCalendarDay(reservations: AdminReservationCard[], dateKey: string, isCurrentMonth: boolean): AdminCalendarDay {
+  const dayDate = localDateTimeToUtc(dateKey, '12:00');
+  const label = formatBratislavaDate(dayDate);
+  const dayReservations = reservations.filter((reservation) => reservation.dateLabel === label);
+
+  return {
+    dateKey,
+    label,
+    isCurrentMonth,
+    reservations: dayReservations.filter((reservation) => reservation.status === 'CONFIRMED'),
+    pending: dayReservations.filter((reservation) => reservation.status === 'PENDING'),
+    history: dayReservations.filter((reservation) => reservation.status === 'DONE' || reservation.status === 'CANCELLED'),
+  };
+}
+
+async function loadCalendarReservations(startKey: string, endKey: string) {
   const prisma = getPrisma();
-  const range = getWeekRange(anchorDateKey);
+  const start = startOfBratislavaDayUtc(startKey);
+  const end = endOfBratislavaDayUtc(endKey);
+
   const reservations = await prisma.reservation.findMany({
     include: reservationInclude,
     where: {
-      status: {
-        in: ['PENDING', 'CONFIRMED'],
-      },
+      OR: [
+        {
+          status: {
+            in: ['PENDING', 'CONFIRMED'],
+          },
+          OR: [
+            { confirmedStart: { gte: start, lt: end } },
+            { requestedStart: { gte: start, lt: end } },
+          ],
+        },
+        {
+          status: {
+            in: ['DONE', 'CANCELLED'],
+          },
+          OR: [
+            { confirmedStart: { gte: start, lt: end } },
+            { requestedStart: { gte: start, lt: end } },
+          ],
+        },
+      ],
     },
     orderBy: {
       createdAt: 'desc',
     },
   });
 
-  const mapped = reservations
+  return reservations
     .map(mapReservation)
     .filter((reservation) => {
-      const start = reservation.confirmedStart ? new Date(reservation.confirmedStart) : new Date(reservation.requestedStart);
-      const end = new Date(start.getTime() + reservation.durationMin * 60 * 1000);
-      return start < range.end && end > range.start;
+      const startDate = reservation.confirmedStart ? new Date(reservation.confirmedStart) : new Date(reservation.requestedStart);
+      const endDate = new Date(startDate.getTime() + reservation.durationMin * 60 * 1000);
+      return startDate < end && endDate > start;
     });
+}
 
-  const days = Array.from({ length: 5 }, (_, index) => {
-    const dateKey = addDaysToDateKey(range.monday, index);
-    const dayReservations = mapped.filter((reservation) => reservation.dateLabel === formatBratislavaDate(localDateTimeToUtc(dateKey, '12:00')));
+export async function listAdminCalendarRange(anchorDateKey: string, view: AdminCalendarView): Promise<AdminCalendarData> {
+  if (view === 'month') {
+    const grid = getMonthGridRange(anchorDateKey);
+    const reservations = await loadCalendarReservations(grid.startKey, grid.endKey);
+    const anchor = new Date(localDateTimeToUtc(anchorDateKey, '12:00'));
+    const firstDayOfMonth = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), 1, 12, 0, 0));
+    const lastDayOfMonth = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() + 1, 0, 12, 0, 0));
+    const firstDayKey = getBratislavaDateKey(firstDayOfMonth);
+    const lastDayKey = getBratislavaDateKey(lastDayOfMonth);
+
+    const days: AdminCalendarDay[] = [];
+    for (let dateKey = grid.startKey; dateKey <= grid.endKey; dateKey = shiftDateKey(dateKey, 1)) {
+      days.push(buildCalendarDay(reservations, dateKey, dateKey >= firstDayKey && dateKey <= lastDayKey));
+    }
+
     return {
-      dateKey,
-      label: formatBratislavaDate(localDateTimeToUtc(dateKey, '12:00')),
-      reservations: dayReservations.filter((reservation) => reservation.status === 'CONFIRMED'),
-      pending: dayReservations.filter((reservation) => reservation.status === 'PENDING'),
+      view,
+      anchorDateKey,
+      titleLabel: getMonthLabel(anchorDateKey),
+      rangeLabel: `${formatBratislavaDate(localDateTimeToUtc(grid.startKey, '12:00'))} – ${formatBratislavaDate(localDateTimeToUtc(grid.endKey, '12:00'))}`,
+      previousDateKey: shiftMonthKey(anchorDateKey, -1),
+      nextDateKey: shiftMonthKey(anchorDateKey, 1),
+      days,
     };
-  });
+  }
+
+  const range = getWeekRange(anchorDateKey);
+  const reservations = await loadCalendarReservations(range.startKey, range.endKey);
+  const days = Array.from({ length: 5 }, (_, index) => buildCalendarDay(reservations, addDaysToDateKey(range.monday, index), true));
 
   return {
-    mondayKey: range.monday,
-    fridayKey: range.friday,
+    view,
+    anchorDateKey,
+    titleLabel: getWeekRangeLabel(range.monday, range.friday),
+    rangeLabel: getWeekRangeLabel(range.monday, range.friday),
+    previousDateKey: shiftDateKey(anchorDateKey, -7),
+    nextDateKey: shiftDateKey(anchorDateKey, 7),
     days,
   };
 }
 
-export type ManualReservationCustomer = {
-  id: string;
-  name: string;
-  phone: string;
-  email: string | null;
-  note: string | null;
-  dogs: {
-    id: string;
-    name: string;
-    breed: string | null;
-    size: string;
-    temperamentNote: string | null;
-    healthNote: string | null;
-  }[];
-};
+export async function listAdminCalendarWeek(anchorDateKey: string): Promise<{
+  mondayKey: string;
+  fridayKey: string;
+  days: AdminCalendarDay[];
+}> {
+  const data = await listAdminCalendarRange(anchorDateKey, 'week');
+  return {
+    mondayKey: data.days[0]?.dateKey ?? anchorDateKey,
+    fridayKey: data.days[data.days.length - 1]?.dateKey ?? anchorDateKey,
+    days: data.days,
+  };
+}
+
+export async function listAdminCalendarMonth(anchorDateKey: string): Promise<AdminCalendarData> {
+  return listAdminCalendarRange(anchorDateKey, 'month');
+}
 
 export async function getAdminManualReservationContext(): Promise<{
-  customers: ManualReservationCustomer[];
+  customers: AdminCustomerCard[];
 }> {
-  const prisma = getPrisma();
-  const customers = await prisma.customer.findMany({
-    include: {
-      dogs: true,
-    },
-    orderBy: {
-      name: 'asc',
-    },
-  });
-
   return {
-    customers: customers.map((customer) => ({
-      id: customer.id,
-      name: customer.name,
-      phone: customer.phone,
-      email: customer.email,
-      note: customer.note,
-      dogs: customer.dogs.map((dog) => ({
-        id: dog.id,
-        name: dog.name,
-        breed: dog.breed,
-        size: dog.size,
-        temperamentNote: dog.temperamentNote,
-        healthNote: dog.healthNote,
-      })),
-    })),
+    customers: await listAdminCustomers(),
   };
 }

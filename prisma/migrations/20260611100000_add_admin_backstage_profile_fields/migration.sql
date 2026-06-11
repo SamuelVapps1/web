@@ -1,0 +1,7 @@
+ALTER TABLE "Customer"
+ADD COLUMN "tags" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+
+ALTER TABLE "Dog"
+ADD COLUMN "note" TEXT,
+ADD COLUMN "coatType" TEXT,
+ADD COLUMN "groomingNotes" TEXT;

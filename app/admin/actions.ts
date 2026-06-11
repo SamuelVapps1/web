@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { BOOKING_ADDONS, BOOKING_CUT_TYPES } from '@/lib/booking';
 import { getPrisma } from '@/lib/prisma';
 import { requireAdminUser } from '@/lib/admin-session';
+import { ADMIN_CUSTOMER_TAGS } from '@/lib/admin-domain';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import {
   buildDateTimeFromForm,
@@ -22,6 +23,7 @@ const addonValues = BOOKING_ADDONS.map((item) => item.code) as [string, ...strin
 const dogSizeValues = ['SMALL', 'MEDIUM', 'LARGE'] as const;
 const noteTargetValues = ['customer', 'dog', 'reservation'] as const;
 const noteKindValues = ['temperament', 'health'] as const;
+const customerTagValues = ADMIN_CUSTOMER_TAGS.map((item) => item.value) as [string, ...string[]];
 
 export type AdminActionState =
   | { kind: 'idle' }
@@ -55,8 +57,11 @@ const manualReservationSchema = z.object({
   dogName: z.string().trim().min(1, 'Meno psa je povinné.'),
   dogBreed: z.string().trim().optional().or(z.literal('')),
   dogSize: z.enum(dogSizeValues),
+  dogNote: z.string().trim().max(4000).optional().or(z.literal('')),
   temperamentNote: z.string().trim().max(4000).optional().or(z.literal('')),
+  coatType: z.string().trim().optional().or(z.literal('')),
   healthNote: z.string().trim().max(4000).optional().or(z.literal('')),
+  groomingNotes: z.string().trim().max(4000).optional().or(z.literal('')),
   cutType: z.enum(cutTypeValues),
   serviceIds: z.array(z.enum(addonValues)).default([]),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -73,6 +78,7 @@ const customerSchema = z.object({
   phone: z.string().trim().min(1, 'Telefón je povinný.'),
   email: z.string().trim().email().optional().or(z.literal('')),
   note: z.string().trim().max(4000).optional().or(z.literal('')),
+  tags: z.array(z.enum(customerTagValues)).default([]),
 });
 
 const dogSchema = z.object({
@@ -81,8 +87,11 @@ const dogSchema = z.object({
   name: z.string().trim().min(1, 'Meno psa je povinné.'),
   breed: z.string().trim().optional().or(z.literal('')),
   size: z.enum(dogSizeValues),
+  note: z.string().trim().max(4000).optional().or(z.literal('')),
   temperamentNote: z.string().trim().max(4000).optional().or(z.literal('')),
+  coatType: z.string().trim().optional().or(z.literal('')),
   healthNote: z.string().trim().max(4000).optional().or(z.literal('')),
+  groomingNotes: z.string().trim().max(4000).optional().or(z.literal('')),
 });
 
 const noteSchema = z.object({
@@ -317,16 +326,6 @@ export async function confirmReservation(
   }
 
   const prisma = getPrisma();
-
-  const existing = await prisma.reservation.findUnique({
-    where: { id: parsed.data.id },
-    select: { status: true },
-  });
-
-  if (!existing || existing.status !== 'PENDING') {
-    return buildError('Túto rezerváciu už nie je možné potvrdiť.');
-  }
-
   const start = buildDateTimeFromForm(parsed.data.date, parsed.data.time);
   const end = new Date(start.getTime() + parsed.data.durationMin * 60 * 1000);
 
@@ -491,6 +490,7 @@ export async function createCustomer(
     phone: formData.get('phone'),
     email: formData.get('email'),
     note: formData.get('note'),
+    tags: formData.getAll('tags'),
   });
 
   if (!parsed.success) {
@@ -508,6 +508,7 @@ export async function createCustomer(
       phone: normalizePhone(parsed.data.phone),
       email: normalizeOptionalText(parsed.data.email),
       note: normalizeOptionalText(parsed.data.note),
+      tags: parsed.data.tags,
     },
   });
 
@@ -529,6 +530,7 @@ export async function updateCustomer(
     phone: formData.get('phone'),
     email: formData.get('email'),
     note: formData.get('note'),
+    tags: formData.getAll('tags'),
   });
 
   if (!parsed.success || !parsed.data.id) {
@@ -547,6 +549,7 @@ export async function updateCustomer(
       phone: normalizePhone(parsed.data.phone),
       email: normalizeOptionalText(parsed.data.email),
       note: normalizeOptionalText(parsed.data.note),
+      tags: parsed.data.tags,
     },
   });
 
@@ -568,8 +571,11 @@ export async function createDog(
     name: formData.get('name'),
     breed: formData.get('breed'),
     size: formData.get('size'),
+    note: formData.get('note'),
     temperamentNote: formData.get('temperamentNote'),
+    coatType: formData.get('coatType'),
     healthNote: formData.get('healthNote'),
+    groomingNotes: formData.get('groomingNotes'),
   });
 
   if (!parsed.success) {
@@ -583,8 +589,11 @@ export async function createDog(
       name: parsed.data.name,
       breed: normalizeOptionalText(parsed.data.breed),
       size: parsed.data.size,
+      note: normalizeOptionalText(parsed.data.note),
       temperamentNote: normalizeOptionalText(parsed.data.temperamentNote),
+      coatType: normalizeOptionalText(parsed.data.coatType),
       healthNote: normalizeOptionalText(parsed.data.healthNote),
+      groomingNotes: normalizeOptionalText(parsed.data.groomingNotes),
     },
   });
 
@@ -606,8 +615,11 @@ export async function updateDog(
     name: formData.get('name'),
     breed: formData.get('breed'),
     size: formData.get('size'),
+    note: formData.get('note'),
     temperamentNote: formData.get('temperamentNote'),
+    coatType: formData.get('coatType'),
     healthNote: formData.get('healthNote'),
+    groomingNotes: formData.get('groomingNotes'),
   });
 
   if (!parsed.success || !parsed.data.id) {
@@ -622,8 +634,11 @@ export async function updateDog(
       name: parsed.data.name,
       breed: normalizeOptionalText(parsed.data.breed),
       size: parsed.data.size,
+      note: normalizeOptionalText(parsed.data.note),
       temperamentNote: normalizeOptionalText(parsed.data.temperamentNote),
+      coatType: normalizeOptionalText(parsed.data.coatType),
       healthNote: normalizeOptionalText(parsed.data.healthNote),
+      groomingNotes: normalizeOptionalText(parsed.data.groomingNotes),
     },
   });
 
@@ -705,8 +720,11 @@ export async function createManualReservation(
     dogName: formData.get('dogName'),
     dogBreed: formData.get('dogBreed'),
     dogSize: formData.get('dogSize'),
+    dogNote: normalizeText(formData.get('dogNote')),
     temperamentNote: formData.get('temperamentNote'),
+    coatType: normalizeText(formData.get('coatType')),
     healthNote: formData.get('healthNote'),
+    groomingNotes: normalizeText(formData.get('groomingNotes')),
     cutType: formData.get('cutType'),
     serviceIds: formData.getAll('serviceIds'),
     date: formData.get('date'),
@@ -733,6 +751,12 @@ export async function createManualReservation(
     return buildError('Termín musí byť v pracovnom čase salóna.');
   }
 
+  const dogNote = parsed.data.dogNote ?? '';
+  const temperamentNote = parsed.data.temperamentNote ?? '';
+  const coatType = parsed.data.coatType ?? '';
+  const healthNote = parsed.data.healthNote ?? '';
+  const groomingNotes = parsed.data.groomingNotes ?? '';
+
   const customer = parsed.data.customerId
     ? await prisma.customer.update({
         where: { id: parsed.data.customerId },
@@ -752,27 +776,25 @@ export async function createManualReservation(
         },
       });
 
+  const dogProfileData = {
+    customerId: customer.id,
+    name: parsed.data.dogName,
+    breed: normalizeOptionalText(parsed.data.dogBreed),
+    size: parsed.data.dogSize,
+    ...(dogNote.trim() ? { note: normalizeOptionalText(dogNote) } : {}),
+    ...(temperamentNote.trim() ? { temperamentNote: normalizeOptionalText(temperamentNote) } : {}),
+    ...(coatType.trim() ? { coatType: normalizeOptionalText(coatType) } : {}),
+    ...(healthNote.trim() ? { healthNote: normalizeOptionalText(healthNote) } : {}),
+    ...(groomingNotes.trim() ? { groomingNotes: normalizeOptionalText(groomingNotes) } : {}),
+  };
+
   const dog = parsed.data.dogId
     ? await prisma.dog.update({
         where: { id: parsed.data.dogId },
-        data: {
-          customerId: customer.id,
-          name: parsed.data.dogName,
-          breed: normalizeOptionalText(parsed.data.dogBreed),
-          size: parsed.data.dogSize,
-          temperamentNote: normalizeOptionalText(parsed.data.temperamentNote),
-          healthNote: normalizeOptionalText(parsed.data.healthNote),
-        },
+        data: dogProfileData,
       })
     : await prisma.dog.create({
-        data: {
-          customerId: customer.id,
-          name: parsed.data.dogName,
-          breed: normalizeOptionalText(parsed.data.dogBreed),
-          size: parsed.data.dogSize,
-          temperamentNote: normalizeOptionalText(parsed.data.temperamentNote),
-          healthNote: normalizeOptionalText(parsed.data.healthNote),
-        },
+        data: dogProfileData,
       });
 
   const reservation = await prisma.reservation.create({

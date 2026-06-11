@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import styles from '../../admin.module.css';
+import { getCustomerTagSummary } from '@/lib/admin-domain';
 
 export default function CustomerSearchClient({
   customers,
@@ -11,6 +12,7 @@ export default function CustomerSearchClient({
     id: string;
     name: string;
     phone: string;
+    tags: string[];
     dogs: { id: string; name: string; breed: string | null; size: string }[];
     reservationCount: number;
     lastVisitLabel: string;
@@ -28,6 +30,7 @@ export default function CustomerSearchClient({
       const haystack = [
         customer.name,
         customer.phone,
+        ...customer.tags,
         ...customer.dogs.map((dog) => dog.name),
       ]
         .join(' ')
@@ -42,7 +45,7 @@ export default function CustomerSearchClient({
       <input
         className={styles.searchInput}
         type="search"
-        placeholder="Meno, telefón alebo pes"
+        placeholder="Meno, telefón, tag alebo pes"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
@@ -55,12 +58,11 @@ export default function CustomerSearchClient({
                 <strong>{customer.name}</strong>
                 <span>{customer.phone}</span>
               </div>
+              <p className={styles.customerTagSummary}>{getCustomerTagSummary(customer.tags)}</p>
               <p>{customer.dogs.map((dog) => dog.name).join(', ') || 'Bez psov'}</p>
               <p>{customer.reservationCount} rezervácií · {customer.lastVisitLabel}</p>
             </Link>
           ))
-        ) : customers.length > 0 ? (
-          <p className={styles.emptyState}>Žiadne výsledky pre &bdquo;{query}&ldquo;.</p>
         ) : (
           <p className={styles.emptyState}>Zatiaľ žiadni zákazníci.</p>
         )}
