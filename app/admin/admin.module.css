@@ -557,6 +557,102 @@
   gap: 1rem;
 }
 
+.manualForm {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.stackCompact {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.searchListCompact {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 280px;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.searchRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.45rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(33, 30, 26, 0.12);
+  border-radius: 14px;
+  background: rgba(251, 248, 241, 0.92);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.searchRow span {
+  color: #4a443c;
+}
+
+.searchRowActive {
+  border-color: rgba(156, 107, 61, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(156, 107, 61, 0.2);
+  background: rgba(156, 107, 61, 0.08);
+}
+
+.selectedSummaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid rgba(33, 30, 26, 0.12);
+  border-radius: 16px;
+  background: rgba(251, 248, 241, 0.92);
+}
+
+.newCustomerPanel {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border-radius: 18px;
+  border: 1px solid rgba(33, 30, 26, 0.1);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.duplicateBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 16px;
+  border: 1px solid rgba(156, 107, 61, 0.22);
+  background: rgba(156, 107, 61, 0.08);
+}
+
+.inlineAccordion {
+  border: 1px solid rgba(33, 30, 26, 0.12);
+  border-radius: 16px;
+  background: rgba(251, 248, 241, 0.85);
+  padding: 0.1rem 0.9rem 0.9rem;
+}
+
+.inlineAccordion > summary {
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0.75rem 0;
+}
+
+.availabilitySummary {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.checkboxGridCompact {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
 .detailMain {
   align-content: start;
 }

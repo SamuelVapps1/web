@@ -5,6 +5,7 @@ import ManualReservationForm from '../reservations/new/manual-reservation-form';
 export default function CalendarReservationModal({
   closeHref,
   customers,
+  availabilityReservations,
   initialDate,
   initialTime,
 }: {
@@ -13,7 +14,20 @@ export default function CalendarReservationModal({
     id: string;
     name: string;
     phone: string;
+    email?: string | null;
+    note?: string | null;
     dogs: { id: string; name: string; breed: string | null; size: string; sizeLabel: string }[];
+  }[];
+  availabilityReservations: {
+    id: string;
+    status: string;
+    statusLabel: string;
+    requestedStart: string;
+    confirmedStart: string | null;
+    durationMin: number;
+    customerName: string;
+    dogName: string;
+    customerPhone: string;
   }[];
   initialDate: string;
   initialTime: string;
@@ -34,7 +48,12 @@ export default function CalendarReservationModal({
           </Link>
         </div>
 
-        <ManualReservationForm customers={customers} initialDate={initialDate} initialTime={initialTime} />
+        <ManualReservationForm
+          customers={customers}
+          availabilityReservations={availabilityReservations}
+          initialDate={initialDate}
+          initialTime={initialTime}
+        />
       </section>
     </div>
   );

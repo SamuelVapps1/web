@@ -179,6 +179,11 @@ export type AdminCalendarData = {
   days: AdminCalendarDay[];
 };
 
+export type AdminManualReservationContext = {
+  customers: AdminCustomerCard[];
+  availabilityReservations: AdminReservationCard[];
+};
+
 function mapReservation(record: ReservationRelation): AdminReservationCard {
   const effectiveStart = getEffectiveReservationStart(record.requestedStart, record.confirmedStart);
   const effectiveEnd = getEffectiveReservationEnd(record.requestedStart, record.confirmedStart, record.durationMin);
@@ -659,10 +664,12 @@ export async function listAdminCalendarMonth(anchorDateKey: string): Promise<Adm
   return listAdminCalendarRange(anchorDateKey, 'month');
 }
 
-export async function getAdminManualReservationContext(): Promise<{
-  customers: AdminCustomerCard[];
-}> {
+export async function getAdminManualReservationContext(): Promise<AdminManualReservationContext> {
+  const todayKey = getBratislavaDateKey();
+  const futureWindowEnd = shiftDateKey(todayKey, 1095);
+
   return {
     customers: await listAdminCustomers(),
+    availabilityReservations: await loadConfirmedReservationsInRange(todayKey, futureWindowEnd),
   };
 }

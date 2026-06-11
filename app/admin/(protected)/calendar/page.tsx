@@ -269,6 +269,7 @@ export default async function AdminCalendarPage({
         <CalendarReservationModal
           closeHref={closeHref}
           customers={reservationContext.customers}
+          availabilityReservations={reservationContext.availabilityReservations}
           initialDate={reservationDate}
           initialTime={reservationTime}
         />

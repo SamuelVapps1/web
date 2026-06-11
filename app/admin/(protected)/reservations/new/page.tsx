@@ -22,7 +22,12 @@ export default async function NewManualReservationPage({
         </div>
       </section>
 
-      <ManualReservationForm customers={data.customers} initialDate={params.date} initialTime={params.time} />
+      <ManualReservationForm
+        customers={data.customers}
+        availabilityReservations={data.availabilityReservations}
+        initialDate={params.date}
+        initialTime={params.time}
+      />
     </div>
   );
 }
