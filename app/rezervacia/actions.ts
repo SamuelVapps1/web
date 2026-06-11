@@ -7,21 +7,23 @@ import { getPrisma } from '@/lib/prisma';
 import {
   BOOKING_ADDONS,
   BOOKING_CUT_TYPES,
-  BOOKING_PHONE_PATTERN,
   BOOKING_SIZE_OPTIONS,
   estimateReservationDurationMin,
   getOpenBookingSlots,
   isBookingDateAllowed,
-  normalizeBookingPhone,
   normalizeBookingText,
   type BookingAddonCode,
   type CutType,
   type DogSize,
 } from '@/lib/booking';
+import {
+  validateBookingContactFields,
+  type BookingContactFieldErrors,
+} from '@/lib/validation/phone';
 
 export type BookingSubmitState =
   | { status: 'idle' }
-  | { status: 'error'; message: string }
+  | { status: 'error'; fieldErrors: BookingContactFieldErrors; formError?: string }
   | { status: 'success' };
 
 type RateLimitBucket = {
@@ -82,6 +84,10 @@ function isBookingAddonCode(value: string): value is BookingAddonCode {
   return BOOKING_ADDONS.some((addon) => addon.code === value);
 }
 
+function buildFormError(message: string): BookingSubmitState {
+  return { status: 'error', fieldErrors: {}, formError: message };
+}
+
 export async function submitBooking(
   _previousState: BookingSubmitState,
   formData: FormData,
@@ -89,7 +95,7 @@ export async function submitBooking(
   const honeypot = normalizeBookingText(formData.get('company'));
 
   if (honeypot) {
-    return { status: 'error', message: 'Žiadosť sa nepodarilo odoslať.' };
+    return { status: 'success' };
   }
 
   const dogName = normalizeBookingText(formData.get('dogName'));
@@ -100,7 +106,7 @@ export async function submitBooking(
   const selectedTime = normalizeBookingText(formData.get('selectedTime'));
   const cutType = normalizeBookingText(formData.get('cutType'));
   const customerName = normalizeBookingText(formData.get('customerName'));
-  const customerPhone = normalizeBookingPhone(normalizeBookingText(formData.get('customerPhone')));
+  const customerPhone = normalizeBookingText(formData.get('customerPhone'));
   const customerEmail = normalizeBookingText(formData.get('customerEmail'));
   const sourceCode = normalizeBookingText(formData.get('sourceCode')) || null;
   const rawAddonCodes = getDistinctValues(
@@ -110,59 +116,58 @@ export async function submitBooking(
     isBookingAddonCode(value),
   );
 
-  if (
-    !dogName ||
-    !dogBreed ||
-    !dogSize ||
-    !selectedDate ||
-    !selectedTime ||
-    !cutType ||
-    !customerName ||
-    !customerPhone
-  ) {
-    return { status: 'error', message: 'Skontrolujte, či sú vyplnené všetky povinné polia.' };
+  const contactValidation = validateBookingContactFields({
+    customerName,
+    customerPhone,
+    customerEmail,
+  });
+
+  if (Object.keys(contactValidation.fieldErrors).length > 0) {
+    return { status: 'error', fieldErrors: contactValidation.fieldErrors };
   }
 
-  if (!BOOKING_PHONE_PATTERN.test(customerPhone)) {
-    return { status: 'error', message: 'Telefón nie je v správnom formáte.' };
+  if (!dogName || !dogBreed || !dogSize || !selectedDate || !selectedTime || !cutType) {
+    return buildFormError('Skontrolujte údaje v predchádzajúcich krokoch.');
   }
 
   if (!isDogSize(dogSize) || !isCutType(cutType)) {
-    return { status: 'error', message: 'Skontrolujte, či sú vyplnené všetky povinné polia.' };
+    return buildFormError('Skontrolujte údaje v predchádzajúcich krokoch.');
   }
 
   if (rawAddonCodes.length !== selectedAddonCodes.length) {
-    return { status: 'error', message: 'Vybrané doplnky už nie sú dostupné.' };
+    return buildFormError('Vybrané doplnky už nie sú dostupné.');
   }
 
   const headerStore = await headers();
   const requestFingerprint = getRequestFingerprint(headerStore);
 
   if (!takeRateLimitSlot(`request:${requestFingerprint}`, REQUEST_LIMIT)) {
-    return { status: 'error', message: 'Žiadosť sa odosiela príliš často. Skúste to znovu o chvíľu.' };
+    return buildFormError('Príliš veľa pokusov. Skúste to o chvíľu znova.');
   }
 
-  if (!takeRateLimitSlot(`phone:${customerPhone}`, PHONE_LIMIT)) {
-    return { status: 'error', message: 'Na tento telefón sme už prijali viac žiadostí. Skúste to neskôr.' };
+  if (!takeRateLimitSlot(`phone:${contactValidation.normalizedPhone}`, PHONE_LIMIT)) {
+    return buildFormError('Príliš veľa pokusov. Skúste to o chvíľu znova.');
   }
 
   if (!isBookingDateAllowed(selectedDate)) {
-    return { status: 'error', message: 'Vybraný termín nie je v povolenom rozsahu.' };
+    return buildFormError('Vybraný termín nie je v povolenom rozsahu.');
   }
 
   if (!getOpenBookingSlots(selectedDate).includes(selectedTime)) {
-    return { status: 'error', message: 'Vybraný čas nie je v povolenom rozsahu.' };
+    return buildFormError('Vybraný čas nie je v povolenom rozsahu.');
   }
 
   const prisma = getPrisma();
   const requestedStart = localDateTimeToUtc(selectedDate, selectedTime);
   const durationMin = estimateReservationDurationMin(dogSize, cutType, selectedAddonCodes);
+  const normalizedPhone = contactValidation.normalizedPhone;
+  const normalizedEmail = customerEmail.trim();
 
   try {
     await prisma.$transaction(async (transaction) => {
       const existingCustomer = await transaction.customer.findFirst({
         where: {
-          phone: customerPhone,
+          phone: normalizedPhone,
         },
       });
 
@@ -173,15 +178,15 @@ export async function submitBooking(
             },
             data: {
               name: customerName,
-              phone: customerPhone,
-              email: customerEmail || existingCustomer.email,
+              phone: normalizedPhone,
+              email: normalizedEmail || null,
             },
           })
         : await transaction.customer.create({
             data: {
               name: customerName,
-              phone: customerPhone,
-              email: customerEmail || null,
+              phone: normalizedPhone,
+              email: normalizedEmail || null,
               note: null,
             },
           });
@@ -221,6 +226,6 @@ export async function submitBooking(
     return { status: 'success' };
   } catch (error) {
     console.error('Failed to create reservation request:', error);
-    return { status: 'error', message: 'Žiadosť sa nepodarilo uložiť. Skúste to, prosím, znova.' };
+    return buildFormError('Nepodarilo sa odoslať žiadosť. Skúste to znova alebo zavolajte na +421 944 240 116.');
   }
 }

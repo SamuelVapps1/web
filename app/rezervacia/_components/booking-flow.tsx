@@ -1,13 +1,12 @@
 'use client';
 
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { submitBooking, type BookingSubmitState } from '../actions';
 import styles from '../booking.module.css';
 import {
   BOOKING_ADDONS,
   BOOKING_CUT_TYPES,
-  BOOKING_PHONE_PATTERN,
   BOOKING_SIZE_OPTIONS,
   estimateReservationPrice,
   formatBookingCurrency,
@@ -28,6 +27,11 @@ import {
   type CutType,
   type DogSize,
 } from '@/lib/booking';
+import {
+  validateBookingContactFields,
+  type BookingContactField,
+  type BookingContactFieldErrors,
+} from '@/lib/validation/phone';
 import { getBratislavaDateKey, getBratislavaWeekdayIndex } from '@/lib/time';
 
 type StepKey = 1 | 2 | 3 | 4;
@@ -60,6 +64,10 @@ const STEP_DEFINITIONS = [
 const WEEKDAY_LABELS = ['Po', 'Ut', 'St', 'Št', 'Pi'] as const;
 
 const INITIAL_STATE: BookingSubmitState = { status: 'idle' };
+
+const CONTACT_FIELDS: BookingContactField[] = ['customerName', 'customerPhone', 'customerEmail'];
+
+const EMPTY_CONTACT_ERRORS: BookingContactFieldErrors = {};
 
 function pad2(value: number): string {
   return value.toString().padStart(2, '0');
@@ -197,6 +205,10 @@ function getOrderedAddonCodes(codes: BookingAddonCode[]): BookingAddonCode[] {
   return BOOKING_ADDONS.map((addon) => addon.code).filter((code) => codes.includes(code));
 }
 
+function getFirstContactErrorField(errors: BookingContactFieldErrors): BookingContactField | null {
+  return CONTACT_FIELDS.find((field) => Boolean(errors[field])) ?? null;
+}
+
 export function BookingFlow() {
   const minDateKey = getBookingMinDateKey();
   const initialMonthAnchor = getMonthAnchorKey(minDateKey);
@@ -214,15 +226,53 @@ export function BookingFlow() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [company, setCompany] = useState('');
-  const [clientError, setClientError] = useState<string | null>(null);
+  const [clientFieldErrors, setClientFieldErrors] = useState<BookingContactFieldErrors>({});
   const [monthAnchorKey, setMonthAnchorKey] = useState(initialMonthAnchor);
   const [busyIntervals, setBusyIntervals] = useState<BookingBusyInterval[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(true);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
 
   const [state, formAction] = useActionState(submitBooking, INITIAL_STATE);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const phoneInputRef = useRef<HTMLInputElement | null>(null);
+  const emailInputRef = useRef<HTMLInputElement | null>(null);
+  const formErrorRef = useRef<HTMLDivElement | null>(null);
 
   const monthRange = useMemo(() => getMonthRange(monthAnchorKey), [monthAnchorKey]);
+  const serverFieldErrors = state.status === 'error' ? state.fieldErrors : EMPTY_CONTACT_ERRORS;
+  const serverFormError = state.status === 'error' ? state.formError ?? null : null;
+  const hasClientFieldErrors = Object.keys(clientFieldErrors).length > 0;
+  const visibleFieldErrors = hasClientFieldErrors ? clientFieldErrors : serverFieldErrors;
+  const visibleFormError = hasClientFieldErrors ? null : serverFormError;
+
+  useEffect(() => {
+    if (state.status !== 'error') {
+      return;
+    }
+
+    if (Object.keys(serverFieldErrors).length > 0) {
+      const firstErrorField = getFirstContactErrorField(serverFieldErrors);
+      const input =
+        firstErrorField === 'customerName'
+          ? nameInputRef.current
+          : firstErrorField === 'customerPhone'
+            ? phoneInputRef.current
+            : firstErrorField === 'customerEmail'
+              ? emailInputRef.current
+              : null;
+
+      input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      input?.focus({ preventScroll: true });
+      return;
+    }
+
+    if (!serverFormError) {
+      return;
+    }
+
+    formErrorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    formErrorRef.current?.focus();
+  }, [serverFieldErrors, serverFormError, state.status]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -340,8 +390,13 @@ export function BookingFlow() {
 
     if (currentStep === 4) {
       return (
-        customerName.trim().length > 0 &&
-        BOOKING_PHONE_PATTERN.test(customerPhone.trim()) &&
+        Object.keys(
+          validateBookingContactFields({
+            customerName,
+            customerPhone,
+            customerEmail,
+          }).fieldErrors,
+        ).length === 0 &&
         Boolean(selectedDate) &&
         Boolean(selectedTime) &&
         Boolean(selectedCutType)
@@ -351,18 +406,43 @@ export function BookingFlow() {
     return true;
   }
 
+  function focusFirstContactError(errors: BookingContactFieldErrors) {
+    const firstErrorField = getFirstContactErrorField(errors);
+    const input =
+      firstErrorField === 'customerName'
+        ? nameInputRef.current
+        : firstErrorField === 'customerPhone'
+          ? phoneInputRef.current
+          : firstErrorField === 'customerEmail'
+            ? emailInputRef.current
+            : null;
+
+    input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    input?.focus({ preventScroll: true });
+  }
+
   function goNext() {
     if (!canAdvanceFromStep(step)) {
-      setClientError('Skontrolujte, či sú vyplnené všetky povinné polia.');
+      if (step === 4) {
+        const contactValidation = validateBookingContactFields({
+          customerName,
+          customerPhone,
+          customerEmail,
+        });
+
+        setClientFieldErrors(contactValidation.fieldErrors);
+        focusFirstContactError(contactValidation.fieldErrors);
+      }
+
       return;
     }
 
-    setClientError(null);
+    setClientFieldErrors({});
     setStep((current) => Math.min(4, current + 1) as StepKey);
   }
 
   function goBack() {
-    setClientError(null);
+    setClientFieldErrors({});
     setStep((current) => Math.max(1, current - 1) as StepKey);
   }
 
@@ -404,10 +484,18 @@ export function BookingFlow() {
 
   return (
     <div className={styles.wizardShell}>
-      <form className={`${styles.panel} ${styles.panelInner}`} action={formAction}>
+      <form className={`${styles.panel} ${styles.panelInner}`} action={formAction} noValidate>
         <input type="hidden" name="sourceCode" value="" />
+        <input type="hidden" name="dogName" value={dogName} />
+        <input type="hidden" name="dogBreed" value={dogBreed} />
+        <input type="hidden" name="dogSize" value={dogSize} />
+        <input type="hidden" name="dogNote" value={dogNote} />
+        <input type="hidden" name="cutType" value={selectedCutType} />
         <input type="hidden" name="selectedDate" value={selectedDate} />
         <input type="hidden" name="selectedTime" value={selectedTime} />
+        {selectedAddonCodes.map((serviceId) => (
+          <input key={serviceId} type="hidden" name="serviceIds" value={serviceId} />
+        ))}
         <input
           type="text"
           name="company"
@@ -760,14 +848,33 @@ export function BookingFlow() {
                     Meno
                   </label>
                   <input
+                    ref={nameInputRef}
                     id="customerName"
                     name="customerName"
-                    className={styles.input}
+                    className={`${styles.input} ${visibleFieldErrors.customerName ? styles.inputError : ''}`}
                     value={customerName}
-                    onChange={(event) => setCustomerName(event.target.value)}
+                    onChange={(event) => {
+                      setCustomerName(event.target.value);
+                      setClientFieldErrors((current) => {
+                        if (!current.customerName) {
+                          return current;
+                        }
+
+                        const next = { ...current };
+                        delete next.customerName;
+                        return next;
+                      });
+                    }}
                     autoComplete="name"
+                    aria-invalid={Boolean(visibleFieldErrors.customerName)}
+                    aria-describedby={visibleFieldErrors.customerName ? 'customerName-error' : undefined}
                     required
                   />
+                  {visibleFieldErrors.customerName ? (
+                    <p id="customerName-error" className={styles.fieldError}>
+                      {visibleFieldErrors.customerName}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className={styles.field}>
@@ -775,18 +882,42 @@ export function BookingFlow() {
                     Telefón
                   </label>
                   <input
+                    ref={phoneInputRef}
                     id="customerPhone"
                     name="customerPhone"
-                    className={styles.input}
+                    className={`${styles.input} ${visibleFieldErrors.customerPhone ? styles.inputError : ''}`}
                     value={customerPhone}
-                    onChange={(event) => setCustomerPhone(event.target.value)}
+                    onChange={(event) => {
+                      setCustomerPhone(event.target.value);
+                      setClientFieldErrors((current) => {
+                        if (!current.customerPhone) {
+                          return current;
+                        }
+
+                        const next = { ...current };
+                        delete next.customerPhone;
+                        return next;
+                      });
+                    }}
                     autoComplete="tel"
                     inputMode="tel"
-                    pattern={BOOKING_PHONE_PATTERN.source}
                     placeholder="+421 944 240 116"
+                    aria-invalid={Boolean(visibleFieldErrors.customerPhone)}
+                    aria-describedby={
+                      visibleFieldErrors.customerPhone
+                        ? 'customerPhone-hint customerPhone-error'
+                        : 'customerPhone-hint'
+                    }
                     required
                   />
-                  <p className={styles.helperText}>Formát napríklad +421 944 240 116.</p>
+                  <p id="customerPhone-hint" className={styles.helperText}>
+                    Telefónne číslo potrebujeme na potvrdenie termínu — ozveme sa vám.
+                  </p>
+                  {visibleFieldErrors.customerPhone ? (
+                    <p id="customerPhone-error" className={styles.fieldError}>
+                      {visibleFieldErrors.customerPhone}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className={`${styles.field} ${styles.fieldFull}`}>
@@ -794,23 +925,47 @@ export function BookingFlow() {
                     Email
                   </label>
                   <input
+                    ref={emailInputRef}
                     id="customerEmail"
                     name="customerEmail"
                     type="email"
-                    className={styles.input}
+                    className={`${styles.input} ${visibleFieldErrors.customerEmail ? styles.inputError : ''}`}
                     value={customerEmail}
-                    onChange={(event) => setCustomerEmail(event.target.value)}
+                    onChange={(event) => {
+                      setCustomerEmail(event.target.value);
+                      setClientFieldErrors((current) => {
+                        if (!current.customerEmail) {
+                          return current;
+                        }
+
+                        const next = { ...current };
+                        delete next.customerEmail;
+                        return next;
+                      });
+                    }}
                     autoComplete="email"
                     placeholder="voliteľné"
+                    aria-invalid={Boolean(visibleFieldErrors.customerEmail)}
+                    aria-describedby={visibleFieldErrors.customerEmail ? 'customerEmail-error' : undefined}
                   />
+                  {visibleFieldErrors.customerEmail ? (
+                    <p id="customerEmail-error" className={styles.fieldError}>
+                      {visibleFieldErrors.customerEmail}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
-              {clientError ? (
-                <div className={`${styles.alert} ${styles.alertError}`}>{clientError}</div>
-              ) : null}
-              {state.status === 'error' ? (
-                <div className={`${styles.alert} ${styles.alertError}`}>{state.message}</div>
+              {visibleFormError ? (
+                <div
+                  ref={formErrorRef}
+                  className={`${styles.alert} ${styles.alertError}`}
+                  tabIndex={-1}
+                  role="alert"
+                  aria-live="assertive"
+                >
+                  {visibleFormError}
+                </div>
               ) : null}
 
               <div className={styles.footerActions}>
@@ -820,10 +975,6 @@ export function BookingFlow() {
                 <SubmitButton />
               </div>
             </>
-          ) : null}
-
-          {state.status === 'error' && step !== 4 ? (
-            <div className={`${styles.alert} ${styles.alertError}`}>{state.message}</div>
           ) : null}
 
           {step < 4 ? (
