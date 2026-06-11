@@ -131,7 +131,11 @@ export default function ReservationAvailabilityPanel({
             type="date"
             min={getBratislavaDateKey()}
             value={date}
-            onChange={(event) => onDateChange(event.target.value)}
+            onChange={(event) => {
+              const newDate = event.target.value;
+              onDateChange(newDate);
+              onAvailabilityCursorChange(new Date(`${newDate}T08:00:00`));
+            }}
           />
         </div>
         <div className={styles.field}>
