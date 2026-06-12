@@ -1636,9 +1636,9 @@
 
 .userCard {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
-  gap: 0.8rem;
-  align-items: center;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 0.8rem 0.85rem;
+  align-items: start;
   padding: 0.9rem;
   border-radius: 18px;
   border: 1px solid rgba(33, 30, 26, 0.08);
@@ -1674,8 +1674,10 @@
 }
 
 .logout {
-  margin-top: 0;
-  align-self: center;
+  grid-column: 1 / -1;
+  justify-self: end;
+  margin-top: 0.1rem;
+  align-self: start;
 }
 
 .logout button {

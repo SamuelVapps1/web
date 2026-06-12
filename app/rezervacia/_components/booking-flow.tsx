@@ -720,9 +720,9 @@ export function BookingFlow() {
       <div className={styles.confirmation}>
         <div ref={confirmationRef} className={styles.confirmationCard} tabIndex={-1}>
           <p className={styles.eyebrow}>Žiadosť odoslaná</p>
-          <h2>Termín spolu potvrdíme.</h2>
+          <h2>Termín Vám potvrdíme.</h2>
           <p>
-            Ozveme sa vám čo najskôr a termín spolu potvrdíme. Ak sa ponáhľate, zavolajte nám priamo.
+            Ozveme sa Vám čo najskôr a termín potvrdíme. Ak sa ponáhľate, zavolajte nám priamo.
           </p>
           <a className="btn btn--primary" href={PHONE_HREF}>
             Zavolať {PHONE_DISPLAY}
@@ -786,7 +786,7 @@ export function BookingFlow() {
                 <h2>Termín</h2>
               </div>
               <span className={styles.sectionMeta}>
-                Vyberte si preferovaný termín. Ozveme sa vám a termín spolu potvrdíme.
+                Vyberte si preferovaný termín. Termín Vám potvrdíme po odoslaní žiadosti.
               </span>
             </div>
 

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useActionState, useMemo, useState } from 'react';
 import styles from '../../../admin.module.css';
@@ -56,17 +56,17 @@ function StateBanner({ state }: { state: AdminActionState }) {
     >
       <p className={styles.stateBannerTitle}>
         {state.kind === 'error'
-          ? 'Nepodarilo sa uloĹľiĹĄ'
+          ? 'Nepodarilo sa uložiť'
           : state.kind === 'warning'
-            ? 'UloĹľenĂ© s upozornenĂ­m'
-            : 'UloĹľenĂ©'}
+            ? 'Uložené s upozornením'
+            : 'Uložené'}
       </p>
       <p>{state.message}</p>
       {state.kind === 'warning' && state.collisions.length > 0 ? (
         <ul className={styles.stateCollisionList}>
           {state.collisions.map((collision) => (
             <li key={collision.id}>
-              {collision.start} - {collision.end} Â· {collision.customerName} / {collision.dogName} Â· {collision.phone}
+              {collision.start} - {collision.end} · {collision.customerName} / {collision.dogName} · {collision.phone}
             </li>
           ))}
         </ul>
@@ -135,7 +135,7 @@ function ReservationTimingForm({
         </div>
 
         <div className={`${styles.field} ${styles.fieldFull}`}>
-          <label htmlFor={`${reservation.id}-internalNote`}>InternĂˇ poznĂˇmka</label>
+          <label htmlFor={`${reservation.id}-internalNote`}>Interná poznámka</label>
           <textarea
             id={`${reservation.id}-internalNote`}
             name="internalNote"
@@ -245,41 +245,34 @@ export default function ReservationDetailClient({
     availabilityReservations: reservation.availabilityReservations,
   };
 
-  const customerTagSummary = getCustomerTagSummary(reservation.customerTags);
-
   return (
     <div className={styles.detailLayout}>
       <section className={styles.detailSidebar}>
-        <article className={`${styles.detailCard} ${styles.customerPetCard}`}>
-          <p className={styles.sectionKicker}>Zákazník &amp; pes</p>
-          <div className={styles.customerPetGrid}>
-            <div className={styles.customerPetColumn}>
-              <h2 className={styles.detailName}>{reservation.customerName}</h2>
-              <a className={styles.callLink} href={`tel:${reservation.customerPhone.replace(/\s+/g, '')}`}>
-                {reservation.customerPhone}
-              </a>
-              {reservation.customerEmail ? <p className={styles.detailMeta}>{reservation.customerEmail}</p> : null}
-              {reservation.customerNote ? <p className={styles.detailMeta}>{reservation.customerNote}</p> : null}
-              {customerTagSummary && customerTagSummary !== 'Bez tagov' ? (
-                <p className={styles.customerTagSummary}>{customerTagSummary}</p>
-              ) : null}
-            </div>
+        <article className={styles.detailCard}>
+          <p className={styles.sectionKicker}>Kontakt</p>
+          <h2 className={styles.detailName}>{reservation.customerName}</h2>
+          <a className={styles.callLink} href={`tel:${reservation.customerPhone.replace(/\s+/g, '')}`}>
+            {reservation.customerPhone}
+          </a>
+          <p className={styles.customerTagSummary}>{getCustomerTagSummary(reservation.customerTags)}</p>
+          <p className={styles.detailMeta}>{reservation.customerEmail ?? 'Bez emailu'}</p>
+          <p className={styles.detailMeta}>{reservation.customerNote ?? 'Bez poznámky'}</p>
+        </article>
 
-            <div className={styles.customerPetColumn}>
-              <h2 className={styles.detailName}>{reservation.dogName}</h2>
-              {reservation.dogBreed ? <p className={styles.detailMeta}>{reservation.dogBreed}</p> : null}
-              <p className={styles.detailMeta}>{reservation.dogSizeLabel}</p>
-              {reservation.dogNote ? <p className={styles.detailMeta}>{reservation.dogNote}</p> : null}
-              {reservation.dogTemperamentNote ? (
-                <p className={styles.detailMeta}>{reservation.dogTemperamentNote}</p>
-              ) : null}
-              {reservation.dogCoatType ? <p className={styles.detailMeta}>Srsť: {reservation.dogCoatType}</p> : null}
-              {reservation.dogHealthNote ? <p className={styles.detailMeta}>{reservation.dogHealthNote}</p> : null}
-              {reservation.dogGroomingNotes ? (
-                <p className={styles.detailMeta}>{reservation.dogGroomingNotes}</p>
-              ) : null}
-            </div>
-          </div>
+        <article className={styles.detailCard}>
+          <p className={styles.sectionKicker}>Pes</p>
+          <h2 className={styles.detailName}>{reservation.dogName}</h2>
+          <p className={styles.detailMeta}>{reservation.dogBreed ?? 'Bez plemena'}</p>
+          <p className={styles.detailMeta}>{reservation.dogSizeLabel}</p>
+          {reservation.dogNote ? <p className={styles.detailMeta}>{reservation.dogNote}</p> : null}
+          {reservation.dogTemperamentNote ? (
+            <p className={styles.detailMeta}>{reservation.dogTemperamentNote}</p>
+          ) : null}
+          {reservation.dogCoatType ? <p className={styles.detailMeta}>Srsť: {reservation.dogCoatType}</p> : null}
+          {reservation.dogHealthNote ? <p className={styles.detailMeta}>{reservation.dogHealthNote}</p> : null}
+          {reservation.dogGroomingNotes ? (
+            <p className={styles.detailMeta}>{reservation.dogGroomingNotes}</p>
+          ) : null}
         </article>
 
         <article className={styles.detailCard}>
@@ -352,4 +345,3 @@ export default function ReservationDetailClient({
     </div>
   );
 }
-

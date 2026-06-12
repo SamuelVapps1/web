@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import {
@@ -91,18 +91,18 @@ function ActionMenu({ todayKey }: { todayKey: string }) {
   return (
     <details className={styles.actionMenu}>
       <summary className="btn btn--ghost">
-        Akcie dĹa
+        Akcie dňa
         <ChevronDown size={16} strokeWidth={1.8} aria-hidden="true" />
       </summary>
       <div className={styles.actionMenuPanel}>
         <Link href={`/admin/calendar?date=${todayKey}&view=week`} className={styles.actionMenuLink}>
-          KalendĂˇr
+          Kalendár
         </Link>
         <Link href="/admin/reservations" className={styles.actionMenuLink}>
-          RezervĂˇcie
+          Rezervácie
         </Link>
         <Link href="/admin/customers" className={styles.actionMenuLink}>
-          ZĂˇkaznĂ­ci
+          Zákazníci
         </Link>
       </div>
     </details>
@@ -129,16 +129,16 @@ function QuickRequestCard({
           <span className={styles.requestAge}>{formatRelativeAge(reservation.createdAt)}</span>
         </div>
         <p className={styles.requestMeta}>
-          {reservation.dogBreed ?? 'Bez plemena'} Â· {reservation.dogSizeLabel}
+          {reservation.dogBreed ?? 'Bez plemena'} · {reservation.dogSizeLabel}
         </p>
         <p className={styles.requestMeta}>
-          {reservation.dateLabel} Â· {reservation.timeLabel}
+          {reservation.dateLabel} · {reservation.timeLabel}
         </p>
       </div>
 
       <div className={styles.requestActions}>
         <Link className="btn btn--ghost" href={`/admin/reservations/${reservation.id}`}>
-          OtvoriĹĄ
+          Otvoriť
         </Link>
         <form action={submitConfirmReservation} className={styles.inlineActionForm}>
           <input type="hidden" name="id" value={reservation.id} />
@@ -147,7 +147,7 @@ function QuickRequestCard({
           <input type="hidden" name="durationMin" value={reservation.durationMin} />
           <input type="hidden" name="internalNote" value={reservation.internalNote ?? ''} />
           <button className="btn btn--primary" type="submit">
-            PrijaĹĄ
+            Prijať
           </button>
         </form>
       </div>
@@ -178,9 +178,9 @@ function ScheduleRow({
           <div>
             <h3 className={styles.scheduleName}>{reservation.dogName}</h3>
             <p className={styles.scheduleMeta}>
-              {reservation.dogBreed ?? 'Bez plemena'} Â· {reservation.dogSizeLabel}
+              {reservation.dogBreed ?? 'Bez plemena'} · {reservation.dogSizeLabel}
             </p>
-            <p className={styles.scheduleMeta}>MajiteÄľ: {reservation.customerName}</p>
+            <p className={styles.scheduleMeta}>Majiteľ: {reservation.customerName}</p>
           </div>
           <span className={styles.statusPill}>{reservation.statusLabel}</span>
         </div>
@@ -196,18 +196,18 @@ function ScheduleRow({
           </span>
         </div>
 
-        <p className={styles.scheduleNote}>{reservation.internalNote ?? 'Bez internej poznĂˇmky'}</p>
+        <p className={styles.scheduleNote}>{reservation.internalNote ?? 'Bez internej poznámky'}</p>
       </div>
 
       <div className={styles.scheduleActions}>
         <Link className="btn btn--ghost" href={`/admin/reservations/${reservation.id}`}>
-          OtvoriĹĄ
+          Otvoriť
         </Link>
         {reservation.status === 'CONFIRMED' ? (
           <form action={submitCompleteReservation} className={styles.inlineActionForm}>
             <input type="hidden" name="id" value={reservation.id} />
             <button className="btn btn--primary" type="submit">
-              UkonÄŤiĹĄ
+              Ukončiť
             </button>
           </form>
         ) : (
@@ -218,7 +218,7 @@ function ScheduleRow({
             <input type="hidden" name="durationMin" value={reservation.durationMin} />
             <input type="hidden" name="internalNote" value={reservation.internalNote ?? ''} />
             <button className="btn btn--primary" type="submit">
-              PrijaĹĄ
+              Prijať
             </button>
           </form>
         )}
@@ -249,11 +249,11 @@ export default async function AdminHomePage() {
             <h1 className={styles.heroTitle}>Dnes</h1>
             <div className={styles.dashboardDateChip}>{formatDashboardDate(todayKey)}</div>
           </div>
-          <p className={styles.heroLead}>RĂ˝chly prehÄľad dĹa, ÄŤakajĂşcich ĹľiadostĂ­ a aktuĂˇlne otvorenĂ©ho termĂ­nu.</p>
+          <p className={styles.heroLead}>Rýchly prehľad dňa, čakajúcich žiadostí a aktuálne otvoreného termínu.</p>
         </div>
 
         <div className={styles.dashboardHeaderActions}>
-          <div className={styles.dayNavGroup} aria-label="PrepĂ­nanie dĹa">
+          <div className={styles.dayNavGroup} aria-label="Prepínanie dňa">
             <Link className="btn btn--ghost" href={`/admin/calendar?date=${previousDateKey}&view=week`}>
               <ChevronLeft size={18} strokeWidth={1.8} aria-hidden="true" />
             </Link>
@@ -264,7 +264,7 @@ export default async function AdminHomePage() {
           <PhoneButton phone="+421 944 240 116" />
           <Link className="btn btn--primary" href="/admin/reservations/new">
             <Plus size={18} strokeWidth={1.8} aria-hidden="true" />
-            NovĂˇ rezervĂˇcia
+            Nová rezervácia
           </Link>
         </div>
       </section>
@@ -284,57 +284,39 @@ export default async function AdminHomePage() {
           </Link>
         </div>
 
-        {pendingReservations.length > 0 ? (
-          <>
-            <div className={styles.requestList}>
-              {pendingReservations.slice(0, 3).map((reservation) => (
-                <article key={reservation.id} className={styles.requestListItem}>
-                  <div className={styles.requestListCopy}>
-                    <strong>{reservation.dogName}</strong>
-                    <span>{reservation.customerName}</span>
-                    <a className={styles.callLinkSecondary} href={`tel:${reservation.customerPhone.replace(/\s+/g, '')}`}>
-                      {reservation.customerPhone}
-                    </a>
-                  </div>
-                  <div className={styles.requestListSlot}>
-                    <span>{reservation.dateLabel}</span>
-                    <strong>{reservation.timeLabel}</strong>
-                  </div>
-                  <Link className="btn btn--ghost" href={`/admin/reservations/${reservation.id}`}>
-                    Otvoriť
-                  </Link>
-                </article>
-              ))}
-            </div>
-
-            {pendingReservations.length > 3 ? (
-              <Link className={styles.requestMoreLink} href="/admin/reservations?tab=pending">
-                + {pendingReservations.length - 3} ďalších
-              </Link>
-            ) : null}
-          </>
-        ) : (
-          <div className={styles.emptyBanner}>
-            <Bell size={18} strokeWidth={1.8} aria-hidden="true" />
-            <div>
-              <strong>Momentálne nie sú čakajúce žiadosti.</strong>
-              <p>Keď príde nová rezervácia, objaví sa tu ako prvá.</p>
-            </div>
+        <div className={styles.requestBanner}>
+          <div className={styles.requestBannerIconWrap} aria-hidden="true">
+            <Bell size={18} strokeWidth={1.8} />
           </div>
-        )}
+          <div className={styles.requestBannerCopy}>
+            <strong>
+              {pendingReservations.length > 0
+                ? `${pendingReservations.length} čakajúcich žiadostí čaká na schválenie`
+                : 'Momentálne nemáte čakajúce žiadosti'}
+            </strong>
+            <p>
+              {pendingReservations.length > 0
+                ? 'Otvorte zoznam a prejdite ich jednu po druhej.'
+                : 'Keď príde nová rezervácia, objaví sa tu hneď ako prvá.'}
+            </p>
+          </div>
+          <Link className={`btn btn--ghost ${styles.requestBannerLink}`} href="/admin/reservations?tab=pending">
+            Zobraziť všetky
+          </Link>
+        </div>
       </section>
 
       <div className={styles.dashboardLayout}>
         <section className={styles.scheduleSection}>
           <div className={styles.sectionHeader}>
             <div>
-              <p className={styles.sectionKicker}>Harmonogram dĹa</p>
-              <h2 className={styles.sectionTitle}>{visibleTimeline.length} rezervĂˇciĂ­</h2>
+              <p className={styles.sectionKicker}>Harmonogram dňa</p>
+              <h2 className={styles.sectionTitle}>{visibleTimeline.length} rezervácií</h2>
             </div>
             <div className={styles.sectionTools}>
               <Link className="btn btn--ghost" href={`/admin/calendar?date=${todayKey}&view=week`}>
                 <Printer size={18} strokeWidth={1.8} aria-hidden="true" />
-                TlaÄŤiĹĄ prehÄľad dĹa
+                Tlačiť prehľad dňa
               </Link>
               <ActionMenu todayKey={todayKey} />
             </div>
@@ -350,15 +332,15 @@ export default async function AdminHomePage() {
             <div className={styles.emptyStatePanel}>
               <Clock3 size={20} strokeWidth={1.8} aria-hidden="true" />
               <div>
-                <strong>Dnes zatiaÄľ nemĂˇte Ĺľiadne rezervĂˇcie.</strong>
-                <p>KeÄŹ sa nieÄŤo objavĂ­, harmonogram sa tu naplnĂ­ automaticky.</p>
+                <strong>Dnes zatiaľ nemáte žiadne rezervácie.</strong>
+                <p>Keď sa niečo objaví, harmonogram sa tu naplní automaticky.</p>
               </div>
             </div>
           )}
 
           <div className={styles.scheduleFooter}>
             <Link className="btn btn--ghost" href={`/admin/calendar?date=${todayKey}&view=week`}>
-              ZobraziĹĄ voÄľnĂ© termĂ­ny
+              Zobraziť voľné termíny
             </Link>
           </div>
         </section>
@@ -368,13 +350,13 @@ export default async function AdminHomePage() {
             <article className={styles.detailHero}>
               <div className={styles.detailHeroTop}>
                 <div>
-                  <p className={styles.sectionKicker}>VybranĂ˝ termĂ­n</p>
+                  <p className={styles.sectionKicker}>Vybraný termín</p>
                   <h2 className={styles.detailName}>{selectedReservation.dogName}</h2>
                   <p className={styles.detailMeta}>
-                    {selectedReservation.dogBreed ?? 'Bez plemena'} Â· {selectedReservation.dogSizeLabel}
+                    {selectedReservation.dogBreed ?? 'Bez plemena'} · {selectedReservation.dogSizeLabel}
                   </p>
                   <p className={styles.detailMeta}>
-                    {selectedReservation.customerName} Â· {selectedReservation.customerPhone}
+                    {selectedReservation.customerName} · {selectedReservation.customerPhone}
                   </p>
                 </div>
                 <span className={styles.statusPill}>{selectedReservation.statusLabel}</span>
@@ -384,7 +366,7 @@ export default async function AdminHomePage() {
                 <div className={styles.detailFactRow}>
                   <Clock3 size={16} strokeWidth={1.8} aria-hidden="true" />
                   <span>
-                    {selectedReservation.dateLabel} Â· {selectedReservation.timeLabel} Â· {selectedReservation.durationMin} min
+                    {selectedReservation.dateLabel} · {selectedReservation.timeLabel} · {selectedReservation.durationMin} min
                   </span>
                 </div>
                 <div className={styles.detailFactRow}>
@@ -397,16 +379,16 @@ export default async function AdminHomePage() {
                 </div>
                 <div className={styles.detailFactRow}>
                   <MapPin size={16} strokeWidth={1.8} aria-hidden="true" />
-                  <span>PetĹľalka Â· Laura salĂłn pre psov</span>
+                  <span>Petžalka · Laura salón pre psov</span>
                 </div>
               </div>
 
               <div className={styles.detailNoteBlock}>
                 <div className={styles.detailNoteHeader}>
-                  <strong>InternĂˇ poznĂˇmka</strong>
-                  <Link href={`/admin/reservations/${selectedReservation.id}`}>UpraviĹĄ</Link>
+                  <strong>Interná poznámka</strong>
+                  <Link href={`/admin/reservations/${selectedReservation.id}`}>Upraviť</Link>
                 </div>
-                <p>{selectedReservation.internalNote ?? 'Bez internej poznĂˇmky'}</p>
+                <p>{selectedReservation.internalNote ?? 'Bez internej poznámky'}</p>
               </div>
 
               <div className={styles.detailActions}>
@@ -415,7 +397,7 @@ export default async function AdminHomePage() {
                     <input type="hidden" name="id" value={selectedReservation.id} />
                     <button className="btn btn--primary" type="submit">
                       <Check size={18} strokeWidth={1.8} aria-hidden="true" />
-                      UkonÄŤiĹĄ rezervĂˇciu
+                      Ukončiť rezerváciu
                     </button>
                   </form>
                 ) : selectedReservation.status === 'PENDING' ? (
@@ -427,25 +409,25 @@ export default async function AdminHomePage() {
                     <input type="hidden" name="internalNote" value={selectedReservation.internalNote ?? ''} />
                     <button className="btn btn--primary" type="submit">
                       <Check size={18} strokeWidth={1.8} aria-hidden="true" />
-                      PrijaĹĄ rezervĂˇciu
+                      Prijať rezerváciu
                     </button>
                   </form>
                 ) : (
                   <Link className="btn btn--ghost" href={`/admin/reservations/${selectedReservation.id}`}>
-                    OtvoriĹĄ detail
+                    Otvoriť detail
                   </Link>
                 )}
               </div>
 
               <Link className="btn btn--ghost" href={`/admin/reservations/${selectedReservation.id}`}>
-                UpraviĹĄ rezervĂˇciu
+                Upraviť rezerváciu
               </Link>
             </article>
           ) : (
             <article className={styles.detailHero}>
-              <p className={styles.sectionKicker}>VybranĂ˝ termĂ­n</p>
-              <h2 className={styles.detailName}>Bez vybranej rezervĂˇcie</h2>
-              <p className={styles.detailMeta}>KeÄŹ vyberiete termĂ­n, objavia sa tu detaily a akcie.</p>
+              <p className={styles.sectionKicker}>Vybraný termín</p>
+              <h2 className={styles.detailName}>Bez vybranej rezervácie</h2>
+              <p className={styles.detailMeta}>Keď vyberiete termín, objavia sa tu detaily a akcie.</p>
             </article>
           )}
 
@@ -453,10 +435,10 @@ export default async function AdminHomePage() {
             <div className={styles.sectionHeader}>
               <div>
                 <p className={styles.sectionKicker}>Zajtra</p>
-                <h2 className={styles.sectionTitle}>{dashboard.tomorrow.length} rezervĂˇciĂ­</h2>
+                <h2 className={styles.sectionTitle}>{dashboard.tomorrow.length} rezervácií</h2>
               </div>
               <Link className={styles.sectionLink} href="/admin/calendar">
-                ZobraziĹĄ celĂ˝ deĹ <ArrowRight size={16} strokeWidth={1.8} aria-hidden="true" />
+                Zobraziť celý deň <ArrowRight size={16} strokeWidth={1.8} aria-hidden="true" />
               </Link>
             </div>
 
@@ -470,7 +452,7 @@ export default async function AdminHomePage() {
                   </div>
                 ))
               ) : (
-                <p className={styles.emptyState}>Na zajtra nie sĂş naplĂˇnovanĂ© rezervĂˇcie.</p>
+                <p className={styles.emptyState}>Na zajtra nie sú naplánované rezervácie.</p>
               )}
             </div>
           </article>
@@ -480,4 +462,3 @@ export default async function AdminHomePage() {
     </div>
   );
 }
-

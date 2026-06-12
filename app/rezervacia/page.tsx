@@ -20,7 +20,7 @@ export default function RezervaciaPage() {
             <p className={styles.eyebrow}>Rezervácia termínu</p>
             <h1>Žiadosť o termín pre psí salón</h1>
             <p className={styles.subtitle}>
-              Vyberte si termín, doplňte údaje o psovi a odošlite žiadosť. Ozveme sa vám a termín spolu potvrdíme.
+              Vyberte si termín, doplňte údaje o psovi a odošlite žiadosť. Termín Vám potvrdíme.
             </p>
           </div>
         </section>
