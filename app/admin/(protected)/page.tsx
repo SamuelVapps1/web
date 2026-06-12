@@ -273,7 +273,10 @@ export default async function AdminHomePage() {
         <div className={styles.sectionHeader}>
           <div>
             <p className={styles.sectionKicker}>Čakajúce žiadosti</p>
-            <h2 className={styles.sectionTitle}>Čakajúce žiadosti</h2>
+            <div className={styles.sectionTitleRow}>
+              <h2 className={styles.sectionTitle}>Čakajúce žiadosti</h2>
+              <span className={styles.sectionCountBadge}>{pendingReservations.length}</span>
+            </div>
             <p className={styles.sectionSubcopy}>Vyžadujú vašu pozornosť</p>
           </div>
           <Link className={styles.sectionLink} href="/admin/reservations?tab=pending">
@@ -281,21 +284,26 @@ export default async function AdminHomePage() {
           </Link>
         </div>
 
-        {pendingReservations.length > 0 ? (
-          <div className={styles.requestGrid}>
-            {pendingReservations.slice(0, 3).map((reservation) => (
-              <QuickRequestCard key={reservation.id} reservation={reservation} />
-            ))}
+        <div className={styles.requestBanner}>
+          <div className={styles.requestBannerIconWrap} aria-hidden="true">
+            <Bell size={18} strokeWidth={1.8} />
           </div>
-        ) : (
-          <div className={styles.emptyBanner}>
-            <Bell size={18} strokeWidth={1.8} aria-hidden="true" />
-            <div>
-              <strong>Momentálne nie sú čakajúce žiadosti.</strong>
-              <p>Keď príde nová rezervácia, objaví sa tu ako prvá.</p>
-            </div>
+          <div className={styles.requestBannerCopy}>
+            <strong>
+              {pendingReservations.length > 0
+                ? `${pendingReservations.length} čakajúcich žiadostí čaká na schválenie`
+                : 'Momentálne nemáte čakajúce žiadosti'}
+            </strong>
+            <p>
+              {pendingReservations.length > 0
+                ? 'Otvorte zoznam a prejdite ich jednu po druhej.'
+                : 'Keď príde nová rezervácia, objaví sa tu hneď ako prvá.'}
+            </p>
           </div>
-        )}
+          <Link className={`btn btn--ghost ${styles.requestBannerLink}`} href="/admin/reservations?tab=pending">
+            Zobraziť všetky
+          </Link>
+        </div>
       </section>
 
       <div className={styles.dashboardLayout}>
@@ -449,16 +457,6 @@ export default async function AdminHomePage() {
             </div>
           </article>
 
-          <article className={styles.helpCard}>
-            <p className={styles.sectionKicker}>Rýchla pomoc</p>
-            <h2 className={styles.sectionTitle}>Potrebujete poradiť?</h2>
-            <p className={styles.helpCopy}>Zavolajte, ak si nie ste isté alebo potrebujete niečo prehodnotiť.</p>
-            <a className={`btn btn--ghost ${styles.helpPhone}`} href="tel:+421944240116">
-              <Phone size={18} strokeWidth={1.8} aria-hidden="true" />
-              +421 944 240 116
-            </a>
-            <p className={styles.helpHours}>Otvárame 9:00 - 18:00</p>
-          </article>
         </aside>
       </div>
     </div>

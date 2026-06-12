@@ -2367,3 +2367,342 @@
     border-radius: 16px;
   }
 }
+
+/* -------------------------------------------------------------------------
+   Dashboard refresh
+   ------------------------------------------------------------------------- */
+
+.sectionTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.sectionCountBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  background: rgba(156, 107, 61, 0.14);
+  color: #9c6b3d;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.requestBanner {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.95rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(156, 107, 61, 0.16);
+  background: rgba(255, 252, 247, 0.9);
+}
+
+.requestBannerIconWrap {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(156, 107, 61, 0.14);
+  color: #9c6b3d;
+}
+
+.requestBannerCopy {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.requestBannerCopy strong {
+  font-size: 1.04rem;
+}
+
+.requestBannerCopy p {
+  color: #4a443c;
+}
+
+.requestBannerLink {
+  white-space: nowrap;
+}
+
+.detailPage {
+  gap: 0.7rem;
+}
+
+.detailPage .pageHeader {
+  padding: 0.9rem 1rem;
+}
+
+.detailPage .pageTitle {
+  margin-top: 0.2rem;
+  font-size: clamp(1.7rem, 2.8vw, 2.3rem);
+}
+
+.detailPage .detailLayout {
+  grid-template-columns: minmax(240px, 0.76fr) minmax(0, 1.24fr);
+  gap: 0.65rem;
+}
+
+.detailPage .detailSidebar,
+.detailPage .detailMain {
+  gap: 0.6rem;
+}
+
+.detailPage .detailCard {
+  padding: 0.72rem;
+}
+
+.detailPage .detailCard .sectionKicker {
+  margin-bottom: 0.1rem;
+}
+
+.detailPage .detailName {
+  font-size: 1.08rem;
+}
+
+.detailPage .detailMeta {
+  font-size: 0.88rem;
+}
+
+.detailPage .detailActions {
+  gap: 0.45rem;
+}
+
+.detailPage .field textarea {
+  min-height: 60px;
+}
+
+.detailPage .freeSlotsPanel {
+  padding: 0.72rem;
+  gap: 0.5rem;
+}
+
+.detailPage .freeSlotsGrid {
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 0.4rem;
+}
+
+.detailPage .slotGrid {
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+  gap: 0.4rem;
+}
+
+.detailPage .slotButton {
+  min-height: 38px;
+  padding: 0.48rem 0.42rem;
+  border-radius: 12px;
+}
+
+.detailPage .collisionCard {
+  padding: 0.72rem;
+}
+
+.detailPage .stateBanner {
+  margin-bottom: 0.45rem;
+}
+
+.calendarBoard {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.calendarBoardHeader,
+.calendarBoardBody {
+  display: grid;
+  grid-template-columns: 180px repeat(5, minmax(0, 1fr));
+  gap: 0.6rem;
+  align-items: stretch;
+}
+
+.calendarBoardCorner,
+.calendarBoardDayHead {
+  padding: 0.85rem 0.9rem;
+  border-radius: 20px;
+  border: 1px solid rgba(33, 30, 26, 0.1);
+  background: rgba(251, 248, 241, 0.95);
+  box-shadow: 0 18px 40px -34px rgba(33, 30, 26, 0.24);
+}
+
+.calendarBoardCorner h2 {
+  margin-top: 0.25rem;
+  font-family: var(--serif-display);
+  font-size: clamp(1.5rem, 2.7vw, 2.35rem);
+  line-height: 1.05;
+}
+
+.calendarBoardDayHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 84px;
+}
+
+.calendarBoardDayHead strong {
+  display: block;
+  font-size: 0.98rem;
+}
+
+.calendarBoardDayHead span {
+  display: block;
+  margin-top: 0.12rem;
+  color: #4a443c;
+  font-size: 0.88rem;
+}
+
+.calendarBoardBody {
+  align-items: start;
+}
+
+.calendarTimeRail {
+  display: grid;
+  grid-template-rows: repeat(14, 54px);
+  gap: 0;
+  padding-top: 0.25rem;
+}
+
+.calendarTimeRailRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding-right: 0.35rem;
+  color: #4a443c;
+  font-size: 0.85rem;
+}
+
+.calendarTimeRailLunch {
+  color: #9c6b3d;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding-right: 0.35rem;
+}
+
+.calendarBoardDayColumn {
+  position: relative;
+  display: grid;
+  grid-template-rows: repeat(14, 54px);
+  gap: 0;
+  min-height: 756px;
+  padding: 0.3rem;
+  border: 1px solid rgba(33, 30, 26, 0.1);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(251, 248, 241, 0.96), rgba(251, 248, 241, 0.92)),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 57px,
+      rgba(33, 30, 26, 0.05) 57px,
+      rgba(33, 30, 26, 0.05) 58px
+    );
+}
+
+.calendarEventBlock {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-content: start;
+  gap: 0.12rem;
+  padding: 0.58rem 0.65rem;
+  border-radius: 14px;
+  border: 1px solid rgba(33, 30, 26, 0.12);
+  color: #211e1a;
+  text-decoration: none;
+  box-shadow: 0 8px 18px -14px rgba(33, 30, 26, 0.42);
+}
+
+.calendarEventBlock strong {
+  font-size: 0.98rem;
+  line-height: 1.1;
+}
+
+.calendarEventBlock span,
+.calendarEventBlock small {
+  color: inherit;
+}
+
+.calendarEventConfirmed {
+  background: rgba(156, 107, 61, 0.12);
+  border-color: rgba(156, 107, 61, 0.22);
+  border-left: 4px solid #9c6b3d;
+}
+
+.calendarEventPending {
+  background: rgba(176, 141, 87, 0.1);
+  border-style: dashed;
+  border-left: 4px solid #b08d57;
+}
+
+.calendarEventHistory {
+  background: rgba(33, 30, 26, 0.04);
+  color: #4a443c;
+  border-left: 4px solid rgba(33, 30, 26, 0.24);
+}
+
+.calendarEmptySlot {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  width: 108px;
+  height: 78px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  border: 1px dashed rgba(156, 107, 61, 0.24);
+  background: rgba(255, 252, 247, 0.82);
+  color: #9c6b3d;
+}
+
+.calendarEmptySlot span {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+@media (max-width: 1180px) {
+  .requestBanner,
+  .detailPage .detailLayout,
+  .calendarBoardHeader,
+  .calendarBoardBody {
+    grid-template-columns: 1fr;
+  }
+
+  .calendarTimeRail {
+    display: none;
+  }
+
+  .calendarBoardDayColumn {
+    min-height: 560px;
+  }
+
+  .requestBannerLink {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 720px) {
+  .requestBanner {
+    grid-template-columns: 1fr;
+  }
+
+  .calendarBoardDayHead {
+    flex-direction: column;
+    align-items: start;
+  }
+
+  .calendarBoardDayHead > * {
+    width: 100%;
+  }
+
+  .calendarEmptySlot {
+    width: 100%;
+    height: 72px;
+  }
+}

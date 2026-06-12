@@ -2,6 +2,9 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import {
+  Plus,
+} from 'lucide-react';
 import styles from '../../admin.module.css';
 import { getBratislavaDateKey } from '@/lib/time';
 import { ADMIN_TIME_WINDOW, buildWorkingDaySlots } from '@/lib/admin-schedule.js';
@@ -28,6 +31,18 @@ function ViewButton({
   );
 }
 
+function getEventTone(status: string) {
+  if (status === 'CONFIRMED') {
+    return styles.calendarEventConfirmed;
+  }
+
+  if (status === 'PENDING') {
+    return styles.calendarEventPending;
+  }
+
+  return styles.calendarEventHistory;
+}
+
 export default async function AdminCalendarPage({
   searchParams,
 }: {
@@ -41,9 +56,13 @@ export default async function AdminCalendarPage({
   const showReservationModal = Boolean(reservationDate && reservationTime);
   const data = await listAdminCalendarRange(anchorDate, view);
   const reservationContext = showReservationModal ? await getAdminManualReservationContext() : null;
-  const dayParam = params.day && data.days.some((day) => day.dateKey === params.day) ? params.day : data.days.find((day) => day.isCurrentMonth)?.dateKey ?? data.days[0]?.dateKey;
+  const dayParam =
+    params.day && data.days.some((day) => day.dateKey === params.day)
+      ? params.day
+      : data.days.find((day) => day.isCurrentMonth)?.dateKey ?? data.days[0]?.dateKey;
   const selectedDay = data.days.find((day) => day.dateKey === dayParam) ?? data.days[0];
   const slots = buildWorkingDaySlots();
+  const slotIndex = new Map(slots.map((slot, index) => [slot, index] as const));
   const historyReservations = data.days.flatMap((day) => day.history).slice(0, 12);
   const closeHref = `/admin/calendar?date=${anchorDate}&view=${view}${dayParam ? `&day=${dayParam}` : ''}`;
   const baseReservationHref = `/admin/calendar?date=${anchorDate}&view=${view}${selectedDay ? `&day=${selectedDay.dateKey}` : ''}`;
@@ -66,8 +85,12 @@ export default async function AdminCalendarPage({
           <Link className="btn btn--ghost" href={`/admin/calendar?date=${getBratislavaDateKey()}&view=${view}`}>
             Dnes
           </Link>
-          <Link className="btn btn--primary" href={`${baseReservationHref}&reservationDate=${selectedDay?.dateKey ?? anchorDate}&reservationTime=10:00`}>
-            + Nová rezervácia
+          <Link
+            className="btn btn--primary"
+            href={`${baseReservationHref}&reservationDate=${selectedDay?.dateKey ?? anchorDate}&reservationTime=10:00`}
+          >
+            <Plus size={18} strokeWidth={1.8} aria-hidden="true" />
+            Nová rezervácia
           </Link>
         </div>
       </section>
@@ -82,166 +105,105 @@ export default async function AdminCalendarPage({
       </div>
 
       {view === 'week' ? (
-        <>
-          <nav className={styles.calendarDaysNav} aria-label="Dni v týždni">
-            {data.days.map((day) => (
-              <Link
-                key={day.dateKey}
-                className={`${styles.calendarDayNav} ${selectedDay?.dateKey === day.dateKey ? styles.calendarDayNavActive : ''}`}
-                href={`/admin/calendar?date=${anchorDate}&view=week&day=${day.dateKey}`}
-              >
-                {day.label}
-              </Link>
-            ))}
-          </nav>
+        <section className={styles.calendarBoard}>
+          <div className={styles.calendarBoardHeader}>
+            <div className={styles.calendarBoardCorner}>
+              <p className={styles.sectionKicker}>Týždeň</p>
+              <h2>{data.rangeLabel}</h2>
+            </div>
 
-          <section className={styles.calendarMobilePanel}>
-            <div className={styles.calendarMobileHeader}>
-              <h2>{selectedDay?.label}</h2>
-              <div className={styles.calendarMobileNav}>
-                <Link className="btn btn--ghost" href={`/admin/calendar?date=${anchorDate}&view=week&day=${data.days[0]?.dateKey ?? anchorDate}`}>
-                  Zobraziť prvý deň
+            {data.days.map((day) => (
+              <article key={day.dateKey} className={styles.calendarBoardDayHead}>
+                <div>
+                  <strong>{day.label}</strong>
+                  <span>{day.reservations.length + day.pending.length + day.history.length} položiek</span>
+                </div>
+                <Link className="btn btn--ghost" href={`${baseReservationHref}&reservationDate=${day.dateKey}&reservationTime=10:00`}>
+                  + Rezervácia
                 </Link>
-                <Link className="btn btn--ghost" href={`/admin/calendar?date=${anchorDate}&view=week&day=${data.days[data.days.length - 1]?.dateKey ?? anchorDate}`}>
-                  Zobraziť posledný deň
+              </article>
+            ))}
+          </div>
+
+          <div className={styles.calendarBoardBody}>
+            <div className={styles.calendarTimeRail} aria-hidden="true">
+              {slots.map((slot) => (
+                <div key={slot} className={styles.calendarTimeRailRow}>
+                  <span>{hourLabel(slot)}</span>
+                </div>
+              ))}
+              <div className={styles.calendarTimeRailLunch}>Obed 13:00 - 14:00</div>
+            </div>
+
+            {data.days.map((day) => {
+              const events = [...day.reservations, ...day.pending, ...day.history];
+
+              return (
+                <div key={day.dateKey} className={styles.calendarBoardDayColumn}>
+                  {events.map((reservation) => {
+                    const startIndex = slotIndex.get(reservation.timeLabel) ?? 0;
+                    const rowSpan = Math.max(1, Math.ceil(reservation.durationMin / 30));
+
+                    return (
+                      <Link
+                        key={reservation.id}
+                        className={`${styles.calendarEventBlock} ${getEventTone(reservation.status)}`}
+                        style={{ gridRow: `${startIndex + 1} / span ${rowSpan}` }}
+                        href={`/admin/reservations/${reservation.id}`}
+                      >
+                        <strong>{reservation.timeLabel}</strong>
+                        <span>{reservation.dogName}</span>
+                        <small>
+                          {reservation.cutTypeLabel} · {reservation.durationMin} min
+                        </small>
+                      </Link>
+                    );
+                  })}
+
+                  <Link
+                    className={styles.calendarEmptySlot}
+                    href={`${baseReservationHref}&reservationDate=${day.dateKey}&reservationTime=10:00`}
+                    aria-label={`Pridať rezerváciu pre ${day.label}`}
+                  >
+                    <span>+</span>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : (
+        <section className={styles.calendarMonthGrid}>
+          {data.days.map((day) => (
+            <article
+              key={day.dateKey}
+              className={`${styles.calendarMonthCell} ${day.isCurrentMonth ? '' : styles.calendarMonthCellMuted}`}
+            >
+              <div className={styles.calendarMonthCellHeader}>
+                <div>
+                  <strong>{day.label}</strong>
+                  <span>{day.reservations.length + day.pending.length + day.history.length} položiek</span>
+                </div>
+                <Link className="btn btn--ghost" href={`${baseReservationHref}&reservationDate=${day.dateKey}&reservationTime=10:00`}>
+                  +
                 </Link>
               </div>
-            </div>
-
-            <div className={styles.dayTimeline}>
-              {slots.map((slot) => {
-                const dayReservations = [...(selectedDay?.reservations ?? []), ...(selectedDay?.pending ?? [])];
-                const slotReservation = dayReservations.find((reservation) => reservation.timeLabel === slot);
-                const isLunch = slot >= ADMIN_TIME_WINDOW.lunchStart && slot < ADMIN_TIME_WINDOW.lunchEnd;
-
-                if (slotReservation) {
-                  return (
-                    <div key={slot} className={`${styles.timelineSlot} ${isLunch ? styles.timelineLunch : ''}`}>
-                      <span className={styles.timelineTime}>{hourLabel(slot)}</span>
-                      <Link
-                        className={`${styles.timelineCard} ${slotReservation.status === 'PENDING' ? styles.timelineCardPending : ''}`}
-                        style={{ minHeight: `${Math.max(1, slotReservation.durationMin / 30) * 52}px` }}
-                        href={`/admin/reservations/${slotReservation.id}`}
-                      >
-                        <strong>{slotReservation.dogName}</strong>
-                        <span>{slotReservation.cutTypeLabel}</span>
-                      </Link>
-                    </div>
-                  );
-                }
-
-                if (isLunch) {
-                  return (
-                    <div key={slot} className={`${styles.timelineSlot} ${styles.timelineLunch}`}>
-                      <span className={styles.timelineTime}>{hourLabel(slot)}</span>
-                      <span className={styles.timelineLunchLabel}>Obedná prestávka</span>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div key={slot} className={styles.timelineSlot}>
-                    <span className={styles.timelineTime}>{hourLabel(slot)}</span>
-                    <Link className={styles.timelineFreeSlot} href={`${baseReservationHref}&reservationDate=${selectedDay?.dateKey ?? anchorDate}&reservationTime=${slot}`}>
-                      Voľné
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className={styles.calendarWeekGrid}>
-            {data.days.map((day) => (
-              <article key={day.dateKey} className={styles.calendarDayColumn}>
-                <div className={styles.calendarDayHeader}>
-                  <h3>{day.label}</h3>
-                  <Link className="btn btn--ghost" href={`${baseReservationHref}&reservationDate=${day.dateKey}&reservationTime=10:00`}>
-                    + Rezervácia
+              <div className={styles.calendarMonthCellList}>
+                {[...day.reservations, ...day.pending, ...day.history].slice(0, 3).map((reservation) => (
+                  <Link key={reservation.id} className={styles.calendarMonthCellItem} href={`/admin/reservations/${reservation.id}`}>
+                    <strong>{reservation.timeLabel}</strong>
+                    <span>{reservation.dogName}</span>
                   </Link>
-                </div>
-                <div className={styles.calendarDayContent}>
-                  {day.reservations.map((reservation) => (
-                    <Link
-                      key={reservation.id}
-                      className={`${styles.calendarBlock} ${styles.calendarBlockConfirmed}`}
-                      style={{ minHeight: `${Math.max(1, reservation.durationMin / 30) * 52}px` }}
-                      href={`/admin/reservations/${reservation.id}`}
-                    >
-                      <strong>{reservation.timeLabel}</strong>
-                      <span>{reservation.dogName}</span>
-                      <small>
-                        {reservation.cutTypeLabel} · {reservation.durationMin} min
-                      </small>
-                    </Link>
-                  ))}
-                  {day.pending.map((reservation) => (
-                    <Link
-                      key={reservation.id}
-                      className={`${styles.calendarBlock} ${styles.calendarBlockPending}`}
-                      style={{ minHeight: `${Math.max(1, reservation.durationMin / 30) * 52}px` }}
-                      href={`/admin/reservations/${reservation.id}`}
-                    >
-                      <strong>{reservation.timeLabel}</strong>
-                      <span>{reservation.dogName}</span>
-                      <small>
-                        {reservation.cutTypeLabel} · {reservation.durationMin} min
-                      </small>
-                    </Link>
-                  ))}
-                  {day.history.map((reservation) => (
-                    <Link
-                      key={reservation.id}
-                      className={styles.calendarBlock}
-                      href={`/admin/reservations/${reservation.id}`}
-                    >
-                      <strong>{reservation.timeLabel}</strong>
-                      <span>{reservation.dogName}</span>
-                      <small>
-                        {reservation.statusLabel} · {reservation.cutTypeLabel}
-                      </small>
-                    </Link>
-                  ))}
-                  <div className={styles.calendarLunchBand}>Obedná prestávka 13:00 - 14:00</div>
-                </div>
-              </article>
-            ))}
-          </section>
-        </>
-      ) : (
-        <>
-          <section className={styles.calendarMonthGrid}>
-            {data.days.map((day) => (
-              <article
-                key={day.dateKey}
-                className={`${styles.calendarMonthCell} ${day.isCurrentMonth ? '' : styles.calendarMonthCellMuted}`}
-              >
-                <div className={styles.calendarMonthCellHeader}>
-                  <div>
-                    <strong>{day.label}</strong>
-                    <span>{day.reservations.length + day.pending.length + day.history.length} položiek</span>
-                  </div>
-                  <Link className="btn btn--ghost" href={`${baseReservationHref}&reservationDate=${day.dateKey}&reservationTime=10:00`}>
-                    +
-                  </Link>
-                </div>
-                <div className={styles.calendarMonthCellList}>
-                  {[...day.reservations, ...day.pending, ...day.history].slice(0, 3).map((reservation) => (
-                    <Link key={reservation.id} className={styles.calendarMonthCellItem} href={`/admin/reservations/${reservation.id}`}>
-                      <strong>{reservation.timeLabel}</strong>
-                      <span>{reservation.dogName}</span>
-                    </Link>
-                  ))}
-                  {[...day.reservations, ...day.pending, ...day.history].length > 3 ? (
-                    <span className={styles.calendarMonthCellMore}>
-                      +{[...day.reservations, ...day.pending, ...day.history].length - 3} ďalších
-                    </span>
-                  ) : null}
-                </div>
-              </article>
-            ))}
-          </section>
-        </>
+                ))}
+                {[...day.reservations, ...day.pending, ...day.history].length > 3 ? (
+                  <span className={styles.calendarMonthCellMore}>
+                    +{[...day.reservations, ...day.pending, ...day.history].length - 3} ďalších
+                  </span>
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </section>
       )}
 
       <section className={styles.detailCard}>
