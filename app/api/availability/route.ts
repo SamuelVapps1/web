@@ -1,5 +1,6 @@
 import { getPrisma } from '@/lib/prisma';
-import { formatDateKey, formatTimeKey, localDateTimeToUtc } from '@/lib/time';
+import { formatDateKey, formatTimeKey, isWeekendDateKey, localDateTimeToUtc } from '@/lib/time';
+import { OPENING_HOURS } from '@/lib/opening-hours.js';
 
 export const revalidate = 60;
 
@@ -51,7 +52,23 @@ export async function GET(request: Request) {
     .filter((interval) => interval.startUtc < rangeEnd && interval.endUtc > rangeStart)
     .map(({ date, start, end }) => ({ date, start, end }));
 
-  return Response.json(intervals, {
+  const lunchIntervals = [];
+  for (let current = new Date(rangeStart); current <= rangeEnd; current.setUTCDate(current.getUTCDate() + 1)) {
+    const dateKey = formatDateKey(current);
+    if (isWeekendDateKey(dateKey)) {
+      continue;
+    }
+
+    const lunchStart = localDateTimeToUtc(dateKey, OPENING_HOURS.lunchBreak.start);
+    const lunchEnd = new Date(lunchStart.getTime() + OPENING_HOURS.slotStepMinutes * 60 * 1000);
+    lunchIntervals.push({
+      date: dateKey,
+      start: formatTimeKey(lunchStart),
+      end: formatTimeKey(lunchEnd),
+    });
+  }
+
+  return Response.json([...intervals, ...lunchIntervals], {
     headers: {
       'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=60',
     },

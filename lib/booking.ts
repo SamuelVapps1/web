@@ -4,10 +4,10 @@ import {
   getBratislavaDateKey,
   isWeekendDateKey,
   localDateTimeToUtc,
-  minutesToTimeKey,
   timeKeyToMinutes,
   type LocalDateKey,
 } from '@/lib/time';
+import { OPENING_HOURS, buildWorkingDaySlots } from '@/lib/opening-hours.js';
 
 export type DogSize = 'SMALL' | 'MEDIUM' | 'LARGE';
 export type CutType = 'SHORT' | 'STANDARD' | 'NO_CUT' | 'ADVICE';
@@ -64,11 +64,6 @@ export const BOOKING_ADDONS = [
   { code: 'NAILS', label: 'Pazúriky', price: 5, durationMin: 10, note: 'Rýchla úprava pazúrikov.' },
   { code: 'EARS', label: 'Čistenie uší', price: 5, durationMin: 10, note: 'Šetrné čistenie podľa potreby.' },
 ] as const satisfies readonly BookingAddonRecord[];
-
-export const BOOKING_OPENING_WINDOWS = [
-  { start: '10:00', end: '13:00' },
-  { start: '14:00', end: '18:00' },
-] as const;
 
 const BOOKING_SLOT_STEP_MINUTES = 30;
 const BOOKING_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -204,22 +199,15 @@ export function getOpenBookingSlots(dateKey: string): string[] {
     return [];
   }
 
-  const slots: string[] = [];
+  return buildWorkingDaySlots().filter((timeKey) => {
+    return OPENING_HOURS.blocks.some((window) => {
+      const windowStart = timeKeyToMinutes(window.start);
+      const windowEnd = timeKeyToMinutes(window.end);
+      const slotMinutes = timeKeyToMinutes(timeKey);
 
-  for (const window of BOOKING_OPENING_WINDOWS) {
-    const windowStart = timeKeyToMinutes(window.start);
-    const windowEnd = timeKeyToMinutes(window.end);
-
-    for (
-      let startMinutes = windowStart;
-      startMinutes + BOOKING_SLOT_STEP_MINUTES <= windowEnd;
-      startMinutes += BOOKING_SLOT_STEP_MINUTES
-    ) {
-      slots.push(minutesToTimeKey(startMinutes));
-    }
-  }
-
-  return slots;
+      return slotMinutes >= windowStart && slotMinutes + BOOKING_SLOT_STEP_MINUTES <= windowEnd;
+    });
+  });
 }
 
 export function isBookingSlotBusy(

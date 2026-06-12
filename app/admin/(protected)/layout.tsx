@@ -30,7 +30,7 @@ export default async function ProtectedAdminLayout({
           <div className={styles.sidebarFooter}>
             <div className={styles.sidebarMetaCard}>
               <p className={styles.sidebarMetaLabel}>Prevádzka</p>
-              <p className={styles.sidebarMetaValue}>Po - Pia 9:00 - 18:00</p>
+              <p className={styles.sidebarMetaValue}>Po – Pia 10:00 – 13:00 · 14:00 – 18:00</p>
               <p className={styles.sidebarMetaValue}>+421 944 240 116</p>
             </div>
 
@@ -39,7 +39,7 @@ export default async function ProtectedAdminLayout({
                 L
               </div>
               <div className={styles.userCopy}>
-                <strong>Recepcia</strong>
+                <strong>Eva</strong>
                 <span>{user.email ?? user.id}</span>
               </div>
               <LogoutButton />

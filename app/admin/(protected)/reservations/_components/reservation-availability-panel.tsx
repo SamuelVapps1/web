@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useMemo } from 'react';
 import styles from '../../../admin.module.css';
@@ -122,77 +122,85 @@ export default function ReservationAvailabilityPanel({
             );
           })}
         </div>
-      </div>
 
-      <div className={styles.formGrid}>
-        <div className={styles.field}>
-          <label>Dátum</label>
-          <input
-            type="date"
-            min={getBratislavaDateKey()}
-            value={date}
-            onChange={(event) => onDateChange(event.target.value)}
-          />
-        </div>
-        <div className={styles.field}>
-          <label>Čas</label>
-          <input
-            type="time"
-            value={time}
-            onChange={(event) => onTimeChange(event.target.value)}
-          />
-        </div>
-        <div className={styles.field}>
-          <label>Trvanie</label>
-          <select
-            value={durationMin}
-            onChange={(event) => onDurationChange(Number(event.target.value))}
-          >
-            {durationOptions.map((value) => (
-              <option key={value} value={value}>
-                {value} min
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className={styles.availabilitySummary}>
-        <div className={styles.slotGrid} role="radiogroup" aria-label="Obsadené sloty dňa">
-          {dailySlots.map((slot) => {
-            const active = time === slot.timeKey;
-
-            return (
-              <button
-                key={slot.timeKey}
-                type="button"
-                className={`${styles.slotButton} ${slot.busy ? styles.slotButtonBusy : ''} ${active ? styles.slotButtonActive : ''}`}
-                onClick={() => onTimeChange(slot.timeKey)}
-              >
-                <span className={styles.slotButtonTime}>{slot.timeKey}</span>
-                <span className={styles.slotButtonState}>{slot.busy ? 'obsadené' : 'voľné'}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {liveAvailability.isFree ? (
-          <p className={styles.availabilityFree}>Termín je voľný.</p>
-        ) : (
-          <div className={styles.availabilityBanner}>
-            <p className={styles.availabilityTitle}>Koliduje s:</p>
-            <div className={styles.collisionList}>
-              {liveAvailability.collisions.map((collision) => (
-                <div key={collision.id} className={styles.collisionItem}>
-                  <span>
-                    {collision.start} · {collision.dogName} · {collision.phone}
-                  </span>
-                </div>
-              ))}
+        <div className={styles.availabilityStatus}>
+          {!date ? (
+            <p className={styles.availabilityNote}>Najprv vyberte deň v kalendári.</p>
+          ) : liveAvailability.blockedLabel ? (
+            <p className={styles.availabilityLunch}>Obed 13:00 – 14:00</p>
+          ) : liveAvailability.isFree ? (
+            <p className={styles.availabilityFree}>Termín je voľný.</p>
+          ) : (
+            <div className={styles.availabilityBanner}>
+              <p className={styles.availabilityTitle}>Koliduje s:</p>
+              <div className={styles.collisionList}>
+                {liveAvailability.collisions.map((collision) => (
+                  <div key={collision.id} className={styles.collisionItem}>
+                    <span>
+                      {collision.start} · {collision.dogName} · {collision.phone}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
+        </div>
+
+        <div className={styles.formGrid}>
+          <div className={styles.field}>
+            <label>Dátum</label>
+            <input
+              type="date"
+              min={getBratislavaDateKey()}
+              value={date}
+              onChange={(event) => onDateChange(event.target.value)}
+            />
           </div>
-        )}
+          <div className={styles.field}>
+            <label>Čas</label>
+            <input
+              type="time"
+              value={time}
+              onChange={(event) => onTimeChange(event.target.value)}
+            />
+          </div>
+          <div className={styles.field}>
+            <label>Trvanie</label>
+            <select
+              value={durationMin}
+              onChange={(event) => onDurationChange(Number(event.target.value))}
+            >
+              {durationOptions.map((value) => (
+                <option key={value} value={value}>
+                  {value} min
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.availabilitySummary}>
+          <div className={styles.slotGrid} role="radiogroup" aria-label="Obsadené sloty dňa">
+            {dailySlots.map((slot) => {
+              const active = time === slot.timeKey;
+              const stateLabel = slot.blockedLabel ?? (slot.busy ? 'obsadené' : 'voľné');
+
+              return (
+                <button
+                  key={slot.timeKey}
+                  type="button"
+                  className={`${styles.slotButton} ${slot.isLunchBreak ? styles.slotButtonLunch : ''} ${slot.busy ? styles.slotButtonBusy : ''} ${active ? styles.slotButtonActive : ''}`}
+                  onClick={() => onTimeChange(slot.timeKey)}
+                >
+                  <span className={styles.slotButtonTime}>{slot.timeKey}</span>
+                  <span className={styles.slotButtonState}>{stateLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </>
   );
 }
+

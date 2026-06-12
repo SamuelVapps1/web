@@ -4,15 +4,15 @@ import {
   getBratislavaDateKey,
   isWeekendDateKey,
   localDateTimeToUtc,
-  minutesToTimeKey,
   timeKeyToMinutes,
 } from '@/lib/time';
+import { OPENING_HOURS, buildWorkingDaySlots as buildOpeningWorkingDaySlots } from '@/lib/opening-hours.js';
 
 export const ADMIN_TIME_WINDOW = {
-  start: '10:00',
-  lunchStart: '13:00',
-  lunchEnd: '14:00',
-  end: '18:00',
+  start: OPENING_HOURS.dayStart,
+  lunchStart: OPENING_HOURS.lunchBreak.start,
+  lunchEnd: OPENING_HOURS.lunchBreak.end,
+  end: OPENING_HOURS.dayEnd,
 } as const;
 
 export const ADMIN_DURATION_OPTIONS = Array.from({ length: 8 }, (_, index) => (index + 1) * 30);
@@ -164,15 +164,11 @@ export function buildReservationCollisionDTO(reservation: ScheduleReservation): 
 }
 
 function isWithinWorkingWindow(startMinutes: number, endMinutes: number): boolean {
-  const morningStart = timeKeyToMinutes(ADMIN_TIME_WINDOW.start);
-  const lunchStart = timeKeyToMinutes(ADMIN_TIME_WINDOW.lunchStart);
-  const lunchEnd = timeKeyToMinutes(ADMIN_TIME_WINDOW.lunchEnd);
-  const dayEnd = timeKeyToMinutes(ADMIN_TIME_WINDOW.end);
-
-  const inMorning = startMinutes >= morningStart && endMinutes <= lunchStart;
-  const inAfternoon = startMinutes >= lunchEnd && endMinutes <= dayEnd;
-
-  return inMorning || inAfternoon;
+  return OPENING_HOURS.blocks.some((window) => {
+    const windowStart = timeKeyToMinutes(window.start);
+    const windowEnd = timeKeyToMinutes(window.end);
+    return startMinutes >= windowStart && endMinutes <= windowEnd;
+  });
 }
 
 export function fitsSalonHours(start: Date, end: Date): boolean {
@@ -210,21 +206,7 @@ export function findReservationCollisions(
 }
 
 export function buildWorkingDaySlots(): string[] {
-  const slots: string[] = [];
-  const morningStart = timeKeyToMinutes(ADMIN_TIME_WINDOW.start);
-  const lunchStart = timeKeyToMinutes(ADMIN_TIME_WINDOW.lunchStart);
-  const lunchEnd = timeKeyToMinutes(ADMIN_TIME_WINDOW.lunchEnd);
-  const dayEnd = timeKeyToMinutes(ADMIN_TIME_WINDOW.end);
-
-  for (let startMinutes = morningStart; startMinutes < lunchStart; startMinutes += 30) {
-    slots.push(minutesToTimeKey(startMinutes));
-  }
-
-  for (let startMinutes = lunchEnd; startMinutes < dayEnd; startMinutes += 30) {
-    slots.push(minutesToTimeKey(startMinutes));
-  }
-
-  return slots;
+  return buildOpeningWorkingDaySlots();
 }
 
 export function buildDateTimeFromForm(date: string, time: string): Date {

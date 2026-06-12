@@ -33,6 +33,8 @@ export type DailySlotAvailability = {
   timeKey: string;
   collisions: AvailabilityCollision[];
   busy: boolean;
+  blockedLabel: string | null;
+  isLunchBreak: boolean;
 };
 
 export function mapConfirmedAvailabilityReservations(
@@ -60,6 +62,8 @@ export function getLiveAvailability(params: {
   candidate: { start: Date; end: Date };
   collisions: AvailabilityCollision[];
   isFree: boolean;
+  blockedLabel: string | null;
+  isLunchBreak: boolean;
 };
 
 export function getNextAvailableSlots(params: {

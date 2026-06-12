@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+﻿export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import styles from '../../../admin.module.css';
@@ -16,10 +16,10 @@ export default async function AdminReservationDetailPage({
   if (!reservation) {
     return (
       <section className={styles.panel}>
-        <p className={styles.eyebrow}>Rezervácia</p>
-        <h1 className={styles.pageTitle}>Rezervácia sa nenašla</h1>
+        <p className={styles.eyebrow}>RezervĂˇcia</p>
+        <h1 className={styles.pageTitle}>RezervĂˇcia sa nenaĹˇla</h1>
         <Link className="btn btn--ghost" href="/admin/reservations">
-          Späť na zoznam
+          SpĂ¤ĹĄ na zoznam
         </Link>
       </section>
     );
@@ -30,10 +30,12 @@ export default async function AdminReservationDetailPage({
       <section className={styles.pageHeader}>
         <div>
           <p className={styles.eyebrow}>Rezervácia</p>
-          <h1 className={styles.pageTitle}>
-            {reservation.dogName} · {reservation.customerName}
-          </h1>
-          <p className={styles.pageLead}>{reservation.startLabel}</p>
+          <div className={styles.dashboardTitleRow}>
+            <h1 className={styles.pageTitle}>
+              {reservation.dogName} · {reservation.customerName}
+            </h1>
+            <div className={styles.dashboardDateChip}>{reservation.startLabel}</div>
+          </div>
         </div>
         <Link className="btn btn--ghost" href="/admin/reservations">
           Späť na zoznam
@@ -44,3 +46,4 @@ export default async function AdminReservationDetailPage({
     </div>
   );
 }
+
