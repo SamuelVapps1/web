@@ -64,7 +64,6 @@ export default function Header() {
             onClick={() => setIsMenuOpen((value) => !value)}
           >
             {isMenuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
-            <span>Menu</span>
           </button>
         </nav>
       </div>

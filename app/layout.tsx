@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import "./globals.css";
 import "./mobile-first.css";
 import JsonLd from "@/components/JsonLd";
+import ScrollToTop from "@/components/ScrollToTop";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://laurasalon.sk"),
@@ -92,6 +93,7 @@ export default function RootLayout({
       <body>
         <JsonLd data={jsonLd} />
         {children}
+        <ScrollToTop />
       </body>
     </html>
   );

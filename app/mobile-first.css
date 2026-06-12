@@ -162,25 +162,21 @@
   .nav__menuToggle {
     display: inline-flex;
     align-items: center;
-    gap: 0.55rem;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: var(--radius-md);
     background: var(--surface);
     color: var(--ink);
-    font-family: var(--sans-body);
-    font-size: 0.9rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    padding: 0.75rem 1rem;
     box-shadow: var(--shadow-sm);
+    transition: background 0.2s var(--ease), color 0.2s var(--ease);
   }
 
-  .nav__menuToggle svg {
-    width: 18px;
-    height: 18px;
-    stroke-width: 2;
-  }
+  .nav__menuToggle:hover { background: var(--cream-deep); color: var(--cognac); }
+
+  .nav__menuToggle svg { width: 20px; height: 20px; stroke-width: 1.75; }
 
   .nav__drawer {
     display: block;

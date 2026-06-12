@@ -580,7 +580,7 @@ export function BookingFlow() {
         <div ref={confirmationCardRef} className={styles.confirmationCard} tabIndex={-1}>
           <p className="eyebrow">ŽIADOSŤ PRIJATÁ</p>
           <h2>Ďakujeme, vašu žiadosť sme prijali.</h2>
-          <p>Termín vám potvrdíme. Ak bude treba niečo doladiť, ozveme sa vám.</p>
+          <p>Termín vám potvrdíme v priebehu dnešného dňa. Ak bude treba niečo doladiť, ozveme sa vám.</p>
           <p>
             Zavolajte nám na <a href="tel:+421944240116">+421 944 240 116</a>, ak si chcete ešte
             niečo overiť.
