@@ -1,3 +1,0 @@
-rembg[cpu]
-pillow
-onnxruntime

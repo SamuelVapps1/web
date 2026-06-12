@@ -145,7 +145,7 @@ export default function Home() {
                     </div>
                     <div className="transform__caption">
                       <span className="transform__breed">{item.breed}</span>
-                      <span className="transform__case">{item.service}</span>
+                      <span className="transform__case">{item.case}</span>
                     </div>
                   </div>
                 </RevealOnScroll>

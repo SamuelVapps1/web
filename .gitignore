@@ -39,8 +39,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# gallery pipeline caches
-/.u2net/
-**/.u2net/
-*.onnx
+/raw

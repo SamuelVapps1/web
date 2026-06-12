@@ -1,10 +1,9 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Photo from '@/components/Photo';
 import RevealOnScroll from '@/components/RevealOnScroll';
-import { galleryAlt } from '@/data/gallery';
-import type { GalleryItem } from '@/data/gallery';
+import { GalleryItem, galleryAlt } from '@/data/gallery';
 import { X, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 
 interface GalleryLightboxProps {
@@ -102,7 +101,7 @@ export default function GalleryLightbox({ items }: GalleryLightboxProps) {
               type="button"
               className="g-item"
               onClick={(e) => open(index, e.currentTarget)}
-              aria-label={`ZvĂ¤ÄŤĹˇiĹĄ: ${item.breed} â€” ${item.service}`}
+              aria-label={`Zväčšiť: ${item.breed} — ${item.case}`}
             >
               <div className="g-item__pair">
                 <div className="g-item__cell">
@@ -117,7 +116,7 @@ export default function GalleryLightbox({ items }: GalleryLightboxProps) {
               </div>
               <div className="g-item__caption">
                 <span className="g-item__breed">{item.breed}</span>
-                <span className="g-item__case">{item.service}</span>
+                <span className="g-item__case">{item.case}</span>
               </div>
             </button>
           </RevealOnScroll>
@@ -125,7 +124,7 @@ export default function GalleryLightbox({ items }: GalleryLightboxProps) {
       </div>
 
       <div className="gallery-end">
-        <span>â€¦a ÄŹalĹˇie pribĂşdajĂş.</span>
+        <span>…a ďalšie pribúdajú.</span>
       </div>
 
       {isOpen && current && (
@@ -135,18 +134,18 @@ export default function GalleryLightbox({ items }: GalleryLightboxProps) {
             className="lb__inner"
             role="dialog"
             aria-modal="true"
-            aria-label={`${current.breed} â€” ${current.service}`}
+            aria-label={`${current.breed} — ${current.case}`}
             onClick={(e) => e.stopPropagation()}
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
           >
-            <button ref={closeRef} className="lb__close" onClick={close} aria-label="ZavrieĹĄ">
+            <button ref={closeRef} className="lb__close" onClick={close} aria-label="Zavrieť">
               <X aria-hidden="true" />
             </button>
-            <button className="lb__nav lb__nav--prev" onClick={prev} aria-label="PredchĂˇdzajĂşca fotka">
+            <button className="lb__nav lb__nav--prev" onClick={prev} aria-label="Predchádzajúca fotka">
               <ChevronLeft aria-hidden="true" />
             </button>
-            <button className="lb__nav lb__nav--next" onClick={next} aria-label="ÄŽalĹˇia fotka">
+            <button className="lb__nav lb__nav--next" onClick={next} aria-label="Ďalšia fotka">
               <ChevronRight aria-hidden="true" />
             </button>
 
@@ -163,13 +162,13 @@ export default function GalleryLightbox({ items }: GalleryLightboxProps) {
 
             <div className="lb__caption">
               <span className="lb__breed">{current.breed}</span>
-              <span className="lb__case">{current.service}</span>
+              <span className="lb__case">{current.case}</span>
             </div>
             <div className="lb__hints" aria-hidden="true">
               <div className="lb__swipe-hint"></div>
               <div className="lb__hint-row">
-                <span>Potiahnite pre ÄŹalĹˇiu fotku</span>
-                <span>Esc zatvorĂ­ galĂ©riu</span>
+                <span>Potiahnite pre ďalšiu fotku</span>
+                <span>Esc zatvorí galériu</span>
               </div>
             </div>
           </div>
@@ -178,4 +177,3 @@ export default function GalleryLightbox({ items }: GalleryLightboxProps) {
     </>
   );
 }
-
