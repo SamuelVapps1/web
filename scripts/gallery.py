@@ -6,7 +6,7 @@ from PIL import Image, ImageFilter, ImageOps
 from rembg import new_session, remove
 
 RAW_DIR = Path("raw")
-OUT_DIR = Path("public/gallery")
+OUT_DIR = Path("public/images/galeria")
 DATA_OUT = Path("data/gallery.json")
 MANIFEST = RAW_DIR / "gallery.csv"          # stĺpce: id,breed,service[,featured]
 MODEL = "birefnet-general"                   # fallback: "isnet-general-use"
@@ -68,7 +68,7 @@ def main() -> None:
                     errors.append(f"{gid}: zlyhalo {kind}"); continue
             else:
                 print(f"  · {dst.name} aktuálne, preskakujem")
-            pair[kind] = f"/gallery/{dst.name}"
+            pair[kind] = f"/images/galeria/{dst.name}"
         if "before" in pair and "after" in pair:
             entries.append({
                 "id": gid, "breed": breed, "service": service, "featured": featured,

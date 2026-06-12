@@ -1,2 +1,12 @@
-id,breed,service,featured
-01,Bišon,Letný strih,true
+﻿id,breed,service,featured
+01,Kerry blue teriĂ©r,Silne splstnatenĂˇ srsĹĄ Â· 2,5 hod,true
+02,Pudel strednĂ˝,VĂ˝stavnĂ© strihanie,true
+03,JorkĹˇĂ­rsky teriĂ©r, 14 r.,Senior pes Â· ĹˇetrnĂ© tempo,true
+04,labradudl DafnĂ©,KĂşpeÄľ a tvarovanie,false
+05,Yorkshire teriĂ©r Jessie,strih so sukniÄŤkou,false
+06,Yorkshire teriĂ©r biever,LetnĂ˝ strih,false
+07,Biely Ĺˇpic Denis,VyÄŤesĂˇvanie, kĂşpeÄľ a reneraÄŤnĂˇ kĂşra na veÄľmi suchĂş, poĹˇkodenĂş srsĹĄ,false
+08,BiĹˇonik Mia,pravidelnĂ© podstrihnutie,false
+09,MalĂˇ pudlia princeznĂˇ,PraktickĂ˝ strih,false
+10,Yorkshire teriĂ©r Lui,klasickĂ˝ strih,false
+11,Viber,VeÄľkĂˇ vĂ˝zva đź‰,false

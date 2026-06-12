@@ -5,8 +5,8 @@
         "service":  "Silne splstnatenĂˇ srsĹĄ Â· 2,5 hod",
         "alt":  "Kerry blue teriĂ©r — Silne splstnatenĂˇ srsĹĄ Â· 2,5 hod",
         "featured":  true,
-        "before":  "/gallery/01-before.jpg",
-        "after":  "/gallery/01-after.jpg",
+        "before":  "/images/galeria/01-before.jpg",
+        "after":  "/images/galeria/01-after.jpg",
         "h":  300
     },
     {
@@ -15,8 +15,8 @@
         "service":  "VĂ˝stavnĂ© strihanie",
         "alt":  "Pudel strednĂ˝ — VĂ˝stavnĂ© strihanie",
         "featured":  true,
-        "before":  "/gallery/02-before.jpg",
-        "after":  "/gallery/02-after.jpg",
+        "before":  "/images/galeria/02-before.jpg",
+        "after":  "/images/galeria/02-after.jpg",
         "h":  240
     },
     {
@@ -25,8 +25,8 @@
         "service":  "Senior pes Â· ĹˇetrnĂ© tempo",
         "alt":  "JorkĹˇĂ­rsky teriĂ©r, 14 r. — Senior pes Â· ĹˇetrnĂ© tempo",
         "featured":  true,
-        "before":  "/gallery/03-before.jpg",
-        "after":  "/gallery/03-after.jpg",
+        "before":  "/images/galeria/03-before.jpg",
+        "after":  "/images/galeria/03-after.jpg",
         "h":  280
     },
     {
@@ -35,8 +35,8 @@
         "service":  "KĂşpeÄľ a tvarovanie",
         "alt":  "labradudl DafnĂ© — KĂşpeÄľ a tvarovanie",
         "featured":  false,
-        "before":  "/gallery/04-before.jpg",
-        "after":  "/gallery/04-after.jpg",
+        "before":  "/images/galeria/04-before.jpg",
+        "after":  "/images/galeria/04-after.jpg",
         "h":  220
     },
     {
@@ -45,8 +45,8 @@
         "service":  "strih so sukniÄŤkou",
         "alt":  "Yorkshire teriĂ©r Jessie — strih so sukniÄŤkou",
         "featured":  false,
-        "before":  "/gallery/05-before.jpg",
-        "after":  "/gallery/05-after.jpg",
+        "before":  "/images/galeria/05-before.jpg",
+        "after":  "/images/galeria/05-after.jpg",
         "h":  300
     },
     {
@@ -55,8 +55,8 @@
         "service":  "LetnĂ˝ strih",
         "alt":  "Yorkshire teriĂ©r biever — LetnĂ˝ strih",
         "featured":  false,
-        "before":  "/gallery/06-before.jpg",
-        "after":  "/gallery/06-after.jpg",
+        "before":  "/images/galeria/06-before.jpg",
+        "after":  "/images/galeria/06-after.jpg",
         "h":  260
     },
     {
@@ -65,8 +65,8 @@
         "service":  "VyÄŤesĂˇvanie, kĂşpeÄľ a reneraÄŤnĂˇ kĂşra na veÄľmi suchĂş, poĹˇkodenĂş srsĹĄ",
         "alt":  "Biely Ĺˇpic Denis — VyÄŤesĂˇvanie, kĂşpeÄľ a reneraÄŤnĂˇ kĂşra na veÄľmi suchĂş, poĹˇkodenĂş srsĹĄ",
         "featured":  false,
-        "before":  "/gallery/07-before.jpg",
-        "after":  "/gallery/07-after.jpg",
+        "before":  "/images/galeria/07-before.jpg",
+        "after":  "/images/galeria/07-after.jpg",
         "h":  240
     },
     {
@@ -75,8 +75,8 @@
         "service":  "pravidelnĂ© podstrihnutie",
         "alt":  "BiĹˇonik Mia — pravidelnĂ© podstrihnutie",
         "featured":  false,
-        "before":  "/gallery/08-before.jpg",
-        "after":  "/gallery/08-after.jpg",
+        "before":  "/images/galeria/08-before.jpg",
+        "after":  "/images/galeria/08-after.jpg",
         "h":  280
     },
     {
@@ -85,8 +85,8 @@
         "service":  "PraktickĂ˝ strih",
         "alt":  "MalĂˇ pudlia princeznĂˇ — PraktickĂ˝ strih",
         "featured":  false,
-        "before":  "/gallery/09-before.jpg",
-        "after":  "/gallery/09-after.jpg",
+        "before":  "/images/galeria/09-before.jpg",
+        "after":  "/images/galeria/09-after.jpg",
         "h":  220
     },
     {
@@ -95,8 +95,8 @@
         "service":  "klasickĂ˝ strih",
         "alt":  "Yorkshire teriĂ©r Lui — klasickĂ˝ strih",
         "featured":  false,
-        "before":  "/gallery/10-before.jpg",
-        "after":  "/gallery/10-after.jpg",
+        "before":  "/images/galeria/10-before.jpg",
+        "after":  "/images/galeria/10-after.jpg",
         "h":  300
     },
     {
@@ -105,8 +105,8 @@
         "service":  "VeÄľkĂˇ vĂ˝zva đź‰",
         "alt":  "Viber — VeÄľkĂˇ vĂ˝zva đź‰",
         "featured":  false,
-        "before":  "/gallery/11-before.jpg",
-        "after":  "/gallery/11-after.jpg",
+        "before":  "/images/galeria/11-before.jpg",
+        "after":  "/images/galeria/11-after.jpg",
         "h":  260
     }
 ]
