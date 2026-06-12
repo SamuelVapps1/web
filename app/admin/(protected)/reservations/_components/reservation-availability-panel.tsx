@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import styles from '../../../admin.module.css';
-import { getBratislavaDateKey } from '@/lib/time';
+import { getBratislavaDateKey, localDateTimeToUtc } from '@/lib/time';
 import {
   formatAvailabilitySlotLabel,
   getDailySlotAvailability,
@@ -131,7 +131,11 @@ export default function ReservationAvailabilityPanel({
             type="date"
             min={getBratislavaDateKey()}
             value={date}
-            onChange={(event) => onDateChange(event.target.value)}
+            onChange={(event) => {
+              const newDate = event.target.value;
+              onDateChange(newDate);
+              onAvailabilityCursorChange(localDateTimeToUtc(newDate, '08:00'));
+            }}
           />
         </div>
         <div className={styles.field}>
