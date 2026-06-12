@@ -1,72 +1,104 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Phone } from 'lucide-react';
+import { Menu, Phone, X } from 'lucide-react';
+
+const NAV_LINKS = [
+  { href: '/galeria', label: 'Galéria' },
+  { href: '/cennik', label: 'Cenník' },
+  { href: '/o-nas', label: 'O nás' },
+  { href: '/kontakt', label: 'Kontakt' },
+];
 
 export default function Header() {
   const pathname = usePathname();
   const isContactPage = pathname === '/kontakt';
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const bookingHref = isContactPage ? 'tel:+421944240116' : '/kontakt';
 
   return (
-    <>
-      <header className="topbar">
+    <header className="site-header">
+      <div className="topbar">
         <Link className="wordmark" href="/">
           <span className="wordmark__name">Laura</span>
           <span className="wordmark__sub">salón pre psov</span>
         </Link>
         <nav className="nav" aria-label="Hlavná navigácia">
-          <div className="nav__links">
-            <Link className={`nav__link ${pathname === '/galeria' ? 'is-active' : ''}`} href="/galeria">
-              Galéria
-            </Link>
-            <Link className={`nav__link ${pathname === '/cennik' ? 'is-active' : ''}`} href="/cennik">
-              Cenník
-            </Link>
-            <Link className={`nav__link ${pathname === '/o-nas' ? 'is-active' : ''}`} href="/o-nas">
-              O nás
-            </Link>
-            <Link className={`nav__link ${pathname === '/kontakt' ? 'is-active' : ''}`} href="/kontakt">
-              Kontakt
-            </Link>
+          <div className="nav__desktop">
+            <div className="nav__links">
+              {NAV_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  className={`nav__link ${pathname === link.href ? 'is-active' : ''}`}
+                  href={link.href}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+            <div className="nav__actions">
+              <a className="nav__tel" href="tel:+421944240116">
+                +421 944 240 116
+              </a>
+              <span className="nav__sep" aria-hidden="true" />
+              {isContactPage ? (
+                <a className="btn btn--primary" href="tel:+421944240116">
+                  Objednať sa
+                </a>
+              ) : (
+                <Link className="btn btn--primary" href="/kontakt">
+                  Objednať sa
+                </Link>
+              )}
+            </div>
           </div>
-          <div className="nav__actions">
-            <a className="nav__tel" href="tel:+421944240116">
-              +421 944 240 116
+          <button
+            type="button"
+            className="nav__menuToggle"
+            aria-expanded={isMenuOpen}
+            aria-controls="mobile-nav"
+            aria-label={isMenuOpen ? 'Zavrieť menu' : 'Otvoriť menu'}
+            onClick={() => setIsMenuOpen((value) => !value)}
+          >
+            {isMenuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+            <span>Menu</span>
+          </button>
+        </nav>
+      </div>
+      <div className={`nav__drawer ${isMenuOpen ? 'is-open' : ''}`} id="mobile-nav" aria-hidden={!isMenuOpen}>
+        <div className="nav__drawerInner">
+          <div className="nav__drawerLinks">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                className={`nav__drawerLink ${pathname === link.href ? 'is-active' : ''}`}
+                href={link.href}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+          <div className="nav__drawerActions">
+            <a className="nav__drawerTel" href="tel:+421944240116">
+              <Phone aria-hidden="true" />
+              <span>+421 944 240 116</span>
             </a>
-            <span className="nav__sep" aria-hidden="true" />
             {isContactPage ? (
-              <a className="btn btn--primary" href="tel:+421944240116">
+              <a className="btn btn--primary btn--full" href="tel:+421944240116">
                 Objednať sa
               </a>
             ) : (
-              <Link className="btn btn--primary" href="/kontakt">
+              <Link className="btn btn--primary btn--full" href={bookingHref}>
                 Objednať sa
               </Link>
             )}
           </div>
-        </nav>
-      </header>
-
-      {/* Mobile sticky booking bar */}
-      <div className="stickybook">
-        <a
-          className="btn btn--ghost stickybook__call"
-          href="tel:+421944240116"
-          aria-label="Zavolať na +421 944 240 116"
-        >
-          <Phone style={{ width: 18, height: 18 }} aria-hidden="true" />
-        </a>
-        {isContactPage ? (
-          <a className="btn btn--primary" href="tel:+421944240116">
-            Objednať sa
-          </a>
-        ) : (
-          <Link className="btn btn--primary" href="/kontakt">
-            Objednať sa
-          </Link>
-        )}
+        </div>
       </div>
-    </>
+    </header>
   );
 }

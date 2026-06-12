@@ -151,18 +151,6 @@ export default function Home() {
                 </RevealOnScroll>
               ))}
             </div>
-            <RevealOnScroll>
-              <div className="cta-band">
-                <div className="cta-band__copy">
-                  <div className="sec-head__eyebrow">
-                    <span className="eyebrow">Dohodnime termín</span>
-                  </div>
-                  <h2>Povedzte nám o vašom psovi.</h2>
-                  <p>Zavolajte, poradíme a nájdeme vyhovujúci termín.</p>
-                </div>
-                <Link className="btn btn--primary" href="/kontakt">Objednať sa</Link>
-              </div>
-            </RevealOnScroll>
           </div>
         </section>
 
