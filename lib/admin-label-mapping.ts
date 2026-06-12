@@ -1,16 +1,27 @@
-import { BOOKING_ADDONS, BOOKING_CUT_TYPES } from '@/lib/booking';
-
-export const DOG_SIZE_LABELS = {
+const DOG_SIZE_LABELS = {
   SMALL: 'Malý',
   MEDIUM: 'Stredný',
   LARGE: 'Veľký',
 } as const;
 
-export const RESERVATION_STATUS_LABELS = {
+const RESERVATION_STATUS_LABELS = {
   PENDING: 'Čaká',
   CONFIRMED: 'Potvrdená',
   DONE: 'Dokončená',
   CANCELLED: 'Zrušená',
+} as const;
+
+const CUT_TYPE_LABELS = {
+  SHORT: 'Krátky strih',
+  STANDARD: 'Plný / štandardný strih',
+  NO_CUT: 'Úprava bez strihania',
+  ADVICE: 'Neviem - poraďte mi',
+} as const;
+
+const ADDON_LABELS = {
+  BATH: 'Kúpanie',
+  NAILS: 'Pazúriky',
+  EARS: 'Čistenie uší',
 } as const;
 
 export const DOG_SIZE_SELECT_OPTIONS = [
@@ -36,7 +47,11 @@ export function getReservationStatusLabel(value: string | null | undefined): str
 }
 
 export function getCutTypeLabel(value: string | null | undefined): string {
-  return BOOKING_CUT_TYPES.find((item) => item.value === value)?.label ?? 'Neznámy typ strihu';
+  if (!value) {
+    return 'Neznámy typ strihu';
+  }
+
+  return CUT_TYPE_LABELS[value as keyof typeof CUT_TYPE_LABELS] ?? 'Neznámy typ strihu';
 }
 
 export function getAddonLabels(serviceIds: string[] | null | undefined): string {
@@ -45,7 +60,7 @@ export function getAddonLabels(serviceIds: string[] | null | undefined): string 
   }
 
   const labels = serviceIds
-    .map((serviceId) => BOOKING_ADDONS.find((addon) => addon.code === serviceId)?.label ?? serviceId)
+    .map((serviceId) => ADDON_LABELS[serviceId as keyof typeof ADDON_LABELS] ?? serviceId)
     .filter(Boolean);
 
   return labels.length > 0 ? labels.join(', ') : 'Bez doplnkov';

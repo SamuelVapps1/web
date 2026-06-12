@@ -1,14 +1,10 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { LogoutButton } from '../logout-button';
 import styles from '../admin.module.css';
+import { getAdminDashboardData } from '@/lib/admin-data';
 import { requireAdminUser } from '@/lib/admin-session';
-
-const navItems = [
-  { href: '/admin/calendar', label: 'Kalendár' },
-  { href: '/admin/reservations', label: 'Rezervácie' },
-  { href: '/admin/customers', label: 'Zákazníci' },
-];
+import { LogoutButton } from '../logout-button';
+import AdminSidebarNav from '../admin-sidebar-nav';
 
 export default async function ProtectedAdminLayout({
   children,
@@ -16,38 +12,63 @@ export default async function ProtectedAdminLayout({
   children: ReactNode;
 }) {
   const user = await requireAdminUser();
+  const dashboard = await getAdminDashboardData();
 
   return (
-    <div className={styles.shell}>
-      <header className={styles.topbar}>
-        <Link className={styles.brandLink} href="/admin" aria-label="Backstage / Admin pre salón">
-          <div className={styles.brand}>
-            <div className={styles.brand__title}>Backstage</div>
-            <div className={styles.brand__sub}>Admin pre salón</div>
+    <div className={styles.frame}>
+      <div className={styles.adminShell}>
+        <aside className={styles.sidebar}>
+          <Link className={styles.brandLink} href="/admin" aria-label="Laura salón pre psov">
+            <div className={styles.brand}>
+              <div className={styles.brand__title}>Laura</div>
+              <div className={styles.brand__sub}>Salón pre psov</div>
+            </div>
+          </Link>
+
+          <AdminSidebarNav pendingCount={dashboard.pendingCount} />
+
+          <div className={styles.sidebarFooter}>
+            <div className={styles.sidebarMetaCard}>
+              <p className={styles.sidebarMetaLabel}>Prevádzka</p>
+              <p className={styles.sidebarMetaValue}>Po - Pia 9:00 - 18:00</p>
+              <p className={styles.sidebarMetaValue}>+421 944 240 116</p>
+            </div>
+
+            <div className={styles.userCard}>
+              <div className={styles.userAvatar} aria-hidden="true">
+                L
+              </div>
+              <div className={styles.userCopy}>
+                <strong>Recepcia</strong>
+                <span>{user.email ?? user.id}</span>
+              </div>
+              <LogoutButton />
+            </div>
           </div>
-        </Link>
+        </aside>
 
-        <nav className={styles.nav} aria-label="Admin navigácia">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              className={styles.nav__link}
-              href={item.href}
-            >
-              {item.label}
-            </Link>
-          ))}
-          <span className={styles.nav__spacer} aria-hidden="true" />
-          <LogoutButton />
-        </nav>
-      </header>
+        <div className={styles.workspace}>
+          <main className={styles.workspaceContent}>{children}</main>
 
-      <main className={styles.content}>
-        {children}
-        <p style={{ marginTop: '1rem', color: '#4a443c', fontSize: '0.92rem' }}>
-          Prihlásený účet: {user.email ?? user.id}
-        </p>
-      </main>
+          <footer className={styles.workspaceFooter}>
+            <div className={styles.workspaceFooterBrand}>
+              <span className={styles.workspaceFooterMark} aria-hidden="true">
+                ✦
+              </span>
+              <span>Laura salón pre psov</span>
+              <span>Petržalka</span>
+              <span className={styles.phoneInline}>+421 944 240 116</span>
+              <span>info@laurasalon.sk</span>
+            </div>
+
+            <div className={styles.workspaceFooterStatus}>
+              <span>Verzia 1.0.0</span>
+              <span className={styles.statusDot} aria-hidden="true" />
+              <span>Všetko aktuálne</span>
+            </div>
+          </footer>
+        </div>
+      </div>
     </div>
   );
 }

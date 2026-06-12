@@ -1,6 +1,12 @@
-import { BOOKING_ADDONS, BOOKING_CUT_TYPES } from '@/lib/booking';
 import { getDogSizeLabel, getReservationStatusLabel } from '@/lib/admin-labels.js';
-import { formatTimeKey, getBratislavaDateKey, isWeekendDateKey, localDateTimeToUtc, minutesToTimeKey, timeKeyToMinutes } from '@/lib/time';
+import {
+  formatTimeKey,
+  getBratislavaDateKey,
+  isWeekendDateKey,
+  localDateTimeToUtc,
+  minutesToTimeKey,
+  timeKeyToMinutes,
+} from '@/lib/time';
 
 export const ADMIN_TIME_WINDOW = {
   start: '10:00',
@@ -20,7 +26,7 @@ export const ADMIN_CUSTOMER_TAGS = [
   { value: 'new', label: '✨ Nový' },
   { value: 'regular', label: '🔁 Pravidelný' },
   { value: 'senior', label: '🎂 Senior' },
-  { value: 'sensitive', label: '🫶 Citlivý' },
+  { value: 'sensitive', label: '🤶 Citlivý' },
   { value: 'anxious', label: '🌪️ Nervózny' },
 ] as const;
 
@@ -65,7 +71,22 @@ export function getCustomerTagSummary(tags: string[] | null | undefined): string
 }
 
 export function getCutTypeLabel(value: string | null | undefined): string {
-  return BOOKING_CUT_TYPES.find((item) => item.value === value)?.label ?? 'Neznámy typ strihu';
+  if (!value) {
+    return 'Neznámy typ strihu';
+  }
+
+  switch (value) {
+    case 'SHORT':
+      return 'Krátky strih';
+    case 'STANDARD':
+      return 'Plný / štandardný strih';
+    case 'NO_CUT':
+      return 'Úprava bez strihania';
+    case 'ADVICE':
+      return 'Neviem - poraďte mi';
+    default:
+      return 'Neznámy typ strihu';
+  }
 }
 
 export { getDogSizeLabel };
@@ -77,7 +98,18 @@ export function getAddonLabels(serviceIds: string[] | null | undefined): string 
   }
 
   const labels = serviceIds
-    .map((serviceId) => BOOKING_ADDONS.find((addon) => addon.code === serviceId)?.label ?? serviceId)
+    .map((serviceId) => {
+      switch (serviceId) {
+        case 'BATH':
+          return 'Kúpanie';
+        case 'NAILS':
+          return 'Pazúriky';
+        case 'EARS':
+          return 'Čistenie uší';
+        default:
+          return serviceId;
+      }
+    })
     .filter(Boolean);
 
   return labels.length > 0 ? labels.join(', ') : 'Bez doplnkov';
