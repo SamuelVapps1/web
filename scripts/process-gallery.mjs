@@ -11,6 +11,7 @@ const outputDir = path.join(rootDir, 'public', 'images', 'galeria');
 const OUTPUT_WIDTH = 1200;
 const OUTPUT_HEIGHT = 1600;
 const OUTPUT_QUALITY = 84;
+const CANVAS_BACKGROUND = { r: 246, g: 241, b: 231, alpha: 1 };
 const MATCH = /^(?<id>\d{2})-(?<kind>before|after)\.(?<ext>jpe?g|png|webp|avif)$/i;
 
 async function listSourceFiles(dir) {
@@ -51,8 +52,8 @@ async function main() {
     await sharp(input)
       .rotate()
       .resize(OUTPUT_WIDTH, OUTPUT_HEIGHT, {
-        fit: 'cover',
-        position: sharp.strategy.attention,
+        fit: 'contain',
+        background: CANVAS_BACKGROUND,
       })
       .jpeg({
         quality: OUTPUT_QUALITY,

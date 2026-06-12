@@ -100,7 +100,7 @@ Všetky cesty sú v data súboroch — **neprepisuj komponenty**. Stačí súbor
 2. Nahrať ich do `raw/gallery/` v rôznych vstupných formátoch (`.jpg`, `.jpeg`, `.png`, `.webp`, `.avif`).
 3. Pri `npm run build` sa automaticky spustí `scripts/process-gallery.mjs`, ktorý:
    - zjednotí orientáciu,
-   - oreže každý obrázok na `3:4`,
+   - zabalí každý obrázok do `3:4` canvasu bez agresívneho cropu,
    - exportuje finálne súbory do `public/images/galeria/` ako `.jpeg`.
 4. V `data/gallery.ts` je iba poradie a text, nie spracovanie obrázkov.
 
@@ -110,7 +110,7 @@ Všetky cesty sú v data súboroch — **neprepisuj komponenty**. Stačí súbor
 
 To vytvorí `id: '04'`, `before: '/images/galeria/04-before.jpeg'`, `after: '/images/galeria/04-after.jpeg'`.
 
-Odporúčaný finálny formát pre web je `3:4`, lebo je o niečo bezpečnejší pre uši, labky a dlhé chlpy než tesnejší crop.
+Odporúčaný finálny formát pre web je `3:4` canvas s paddingom, lebo je bezpečnejší pre uši, labky a dlhé chlpy než tesný crop.
 
 **Poradie v galérii = poradie v poli.** Presun položky hore/dole = zmena poradia na webe. Číslo v názve súboru je len pre prehľadnosť v priečinku.
 
