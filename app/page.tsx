@@ -35,8 +35,8 @@ export default function Home() {
               Salón pre psov v Petržalke, kde strih prispôsobíme Vášmu psovi — jeho plemenu, srsti aj povahe.
             </p>
             <div className="hero__cta">
-              <Link className="btn btn--primary" href="/kontakt">Objednať sa</Link>
-              <Link className="btn btn--ghost" href="/galeria">Pozrieť galériu</Link>
+              <Link className="btn btn--primary" href="/galeria">Pozrieť galériu</Link>
+              <Link className="btn btn--ghost" href="/o-nas">O nás</Link>
             </div>
             <div className="proof">
               <span className="proof__stars" aria-hidden="true">★★★★★</span>

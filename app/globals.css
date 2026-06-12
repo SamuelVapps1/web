@@ -170,12 +170,12 @@ a:hover { color: var(--cognac-deep); }
 .wrap--narrow { max-width: var(--site-max-width-narrow); }
 
 section { position: relative; }
-.section { padding-block: clamp(4rem, 8vw, 8rem); }
+.section { padding-block: clamp(2.75rem, 5vw, 5rem); }
 .section--alt { background: var(--bg-alt); }
 .section--ink { background: var(--ink); color: var(--cream); }
 
 /* Section heading block */
-.sec-head { max-width: 56ch; margin-bottom: clamp(2.5rem, 4vw, 3.5rem); }
+.sec-head { max-width: 56ch; margin-bottom: clamp(1.75rem, 3vw, 2.5rem); }
 .sec-head__eyebrow {
   display: inline-flex; align-items: center; gap: 0.85rem; margin-bottom: 1.3rem;
 }
@@ -572,7 +572,7 @@ section { position: relative; }
 /* ---- Page header styles ------------------------------------------------ */
 .pagehead {
   max-width: var(--site-max-width); margin: 0 auto;
-  padding: clamp(2.5rem, 5vw, 4.5rem) var(--site-pad-inline) clamp(1.5rem, 3vw, 2.5rem);
+  padding: clamp(2rem, 4vw, 3.25rem) var(--site-pad-inline) clamp(1rem, 2vw, 1.5rem);
   text-align: center;
 }
 .pagehead__eyebrow { display: inline-flex; align-items: center; gap: 0.85rem; margin-bottom: 1.4rem; }
@@ -582,7 +582,7 @@ section { position: relative; }
 /* ---- Hero (locked) ------------------------------------------------------ */
 .hero {
   max-width: var(--site-max-width); margin: 0 auto;
-  padding: clamp(1.25rem, 3vw, 3.25rem) var(--site-pad-inline) clamp(3rem, 6vw, 6rem);
+  padding: clamp(1.25rem, 3vw, 3.25rem) var(--site-pad-inline) clamp(2.25rem, 4vw, 4rem);
   display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
   gap: clamp(2.5rem, 5vw, 6rem); align-items: center; }
 .hero__eyebrow { display: inline-flex; align-items: center; gap: 0.85rem; margin-bottom: 1.8rem; }
