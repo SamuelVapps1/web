@@ -98,7 +98,8 @@ Všetky cesty sú v data súboroch — **neprepisuj komponenty**. Stačí súbor
 
 1. Pomenovať súbory podľa čísla položky: `01-before.jpg` + `01-after.jpg`, `02-before.jpg` + `02-after.jpg`, …
 2. Skopírovať do `public/images/galeria/`
-3. V `data/gallery.ts` pridať jednu položku (cesty vygeneruje helper `galleryPaths`):
+3. V `data/gallery.ts` pridať jednu položku (cesty vygeneruje helper `galleryPaths`).
+4. Hotovo. Žiadny skript na orezávanie netreba spúšťať.
 
 ```ts
 { ...galleryPaths(4), breed: 'Havanský psík', case: 'Prvý strih šteňaťa', h: 280 },

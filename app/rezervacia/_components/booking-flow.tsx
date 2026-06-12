@@ -353,7 +353,7 @@ export function BookingFlow() {
       block: 'center',
     });
     formErrorRef.current?.focus();
-  }, [serverFieldErrors, serverFormError, state.status]);
+  }, [prefersReducedMotion, serverFieldErrors, serverFormError, state.status]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -439,6 +439,7 @@ export function BookingFlow() {
     () => BOOKING_SIZE_OPTIONS.find((option) => option.value === dogSize) ?? BOOKING_SIZE_OPTIONS[0],
     [dogSize],
   );
+  let hasAssignedStepThreeTarget = false;
 
   const basePrice = getBasePriceForSize(dogSize);
   const addonPrice = getAddonPriceTotal(selectedAddonCodes);
@@ -872,10 +873,11 @@ export function BookingFlow() {
                             isSelected ? styles.dayButtonSelected : ''
                           } ${!isAllowed || dayBusy ? styles.dayButtonDisabled : ''}`}
                           ref={
-                            stepThreeTargetRef.current === null && isAllowed && !dayBusy
+                            !hasAssignedStepThreeTarget && isAllowed && !dayBusy
                               ? (node) => {
-                                  if (node && stepThreeTargetRef.current === null) {
+                                  if (node && !hasAssignedStepThreeTarget) {
                                     stepThreeTargetRef.current = node;
+                                    hasAssignedStepThreeTarget = true;
                                   }
                                 }
                               : undefined
