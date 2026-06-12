@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/process-gallery.mjs",
     "build": "next build --webpack",
+    "images:gallery": "node scripts/process-gallery.mjs",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",

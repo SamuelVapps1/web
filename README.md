@@ -96,16 +96,21 @@ Všetky cesty sú v data súboroch — **neprepisuj komponenty**. Stačí súbor
 
 ### Galéria (pred/po)
 
-1. Pomenovať súbory podľa čísla položky: `01-before.jpg` + `01-after.jpg`, `02-before.jpg` + `02-after.jpg`, …
-2. Skopírovať do `public/images/galeria/`
-3. V `data/gallery.ts` pridať jednu položku (cesty vygeneruje helper `galleryPaths`).
-4. Hotovo. Žiadny skript na orezávanie netreba spúšťať.
+1. Pomenovať originály podľa čísla položky: `01-before.jpg` + `01-after.jpg`, `02-before.jpg` + `02-after.jpg`, …
+2. Nahrať ich do `raw/gallery/` v rôznych vstupných formátoch (`.jpg`, `.jpeg`, `.png`, `.webp`, `.avif`).
+3. Pri `npm run build` sa automaticky spustí `scripts/process-gallery.mjs`, ktorý:
+   - zjednotí orientáciu,
+   - oreže každý obrázok na `3:4`,
+   - exportuje finálne súbory do `public/images/galeria/` ako `.jpeg`.
+4. V `data/gallery.ts` je iba poradie a text, nie spracovanie obrázkov.
 
 ```ts
-{ ...galleryPaths(4), breed: 'Havanský psík', case: 'Prvý strih šteňaťa', h: 280 },
+{ ...galleryPaths(4), breed: 'Havanský psík', case: 'Prvý strih šteňaťa', h: 500 },
 ```
 
-To vytvorí `id: '04'`, `before: '/images/galeria/04-before.jpg'`, `after: '/images/galeria/04-after.jpg'`.
+To vytvorí `id: '04'`, `before: '/images/galeria/04-before.jpeg'`, `after: '/images/galeria/04-after.jpeg'`.
+
+Odporúčaný finálny formát pre web je `3:4`, lebo je o niečo bezpečnejší pre uši, labky a dlhé chlpy než tesnejší crop.
 
 **Poradie v galérii = poradie v poli.** Presun položky hore/dole = zmena poradia na webe. Číslo v názve súboru je len pre prehľadnosť v priečinku.
 
@@ -171,7 +176,7 @@ Responsive breakpoints:
 
 The following features are prepared but not implemented:
 - **Online booking** (`/rezervacia`) — Placeholder page ready for booking app integration
-- **Gallery photos** — pridaj súbory do `public/images/galeria/` a položky do `data/gallery.ts` (pozri „Ako pridať fotku")
+- **Gallery photos** — pridaj súbory do `raw/gallery/` a položky do `data/gallery.ts` (pozri „Ako pridať fotku")
 - **Reviews** — Placeholder data in `data/reviews.ts`, replace with actual Google reviews
 
 ## Punch-list pre Samuela (mimo kódu)
