@@ -15,6 +15,15 @@ export default function RezervaciaPage() {
     <>
       <Header />
       <main className={styles.page}>
+        <section className={styles.hero}>
+          <div className={styles.heroCard}>
+            <p className={styles.eyebrow}>Rezervácia termínu</p>
+            <h1>Žiadosť o termín pre psí salón</h1>
+            <p className={styles.subtitle}>
+              Vyberte si termín, doplňte údaje o psovi a odošlite žiadosť. Ozveme sa vám a termín spolu potvrdíme.
+            </p>
+          </div>
+        </section>
         <section className={styles.content}>
           <BookingFlow />
         </section>

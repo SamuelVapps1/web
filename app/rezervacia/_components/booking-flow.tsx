@@ -1,13 +1,10 @@
 'use client';
 
-import { useActionState, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useActionState, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useFormStatus } from 'react-dom';
 import { submitBooking, type BookingSubmitState } from '../actions';
 import styles from '../booking.module.css';
 import {
-  BOOKING_ADDONS,
-  BOOKING_CUT_TYPES,
-  BOOKING_SIZE_OPTIONS,
   estimateReservationPrice,
   formatBookingCurrency,
   formatBookingDate,
@@ -15,10 +12,8 @@ import {
   getAddonPriceTotal,
   getBasePriceForSize,
   getBookingMinDateKey,
-  getCutTypeRecord,
   getFreeBookingSlots,
   getOpenBookingSlots,
-  getSelectedAddonRecords,
   isBookingDateAllowed,
   isBookingDayBusy,
   isBookingSlotBusy,
@@ -27,50 +22,105 @@ import {
   type CutType,
   type DogSize,
 } from '@/lib/booking';
+import { addDaysToDateKey, getBratislavaDateKey, getBratislavaWeekdayIndex } from '@/lib/time';
 import {
-  validateBookingContactFields,
-  type BookingContactField,
+  normalizeSlovakPhone,
+  SLOVAK_PHONE_E164_PATTERN,
   type BookingContactFieldErrors,
 } from '@/lib/validation/phone';
-import { getBratislavaDateKey, getBratislavaWeekdayIndex } from '@/lib/time';
 
 type StepKey = 1 | 2 | 3 | 4;
-
 type CalendarCell = string | null;
+type SummaryItem = {
+  label: string;
+  value: string;
+};
 
 const STEP_DEFINITIONS = [
-  {
-    step: 1,
-    title: 'Pes',
-    hint: 'Meno, plemeno a veľkosť.',
-  },
-  {
-    step: 2,
-    title: 'Služby',
-    hint: 'Typ strihu a doplnky.',
-  },
-  {
-    step: 3,
-    title: 'Preferovaný termín',
-    hint: 'Vyberiete deň a čas.',
-  },
-  {
-    step: 4,
-    title: 'Kontakt',
-    hint: 'Termín vám potvrdíme.',
-  },
+  { step: 1, title: 'Termín', hint: 'Kalendár a výber času.' },
+  { step: 2, title: 'Pes', hint: 'Meno, plemeno a veľkosť.' },
+  { step: 3, title: 'Služba', hint: 'Strih a doplnky.' },
+  { step: 4, title: 'Kontakt', hint: 'Údaje a odoslanie.' },
 ] as const;
 
-const WEEKDAY_LABELS = ['Po', 'Ut', 'St', 'Št', 'Pi'] as const;
+const WEEKDAY_LABELS = ['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'] as const;
+
+const MORNING_SLOTS = ['10:00', '10:30', '11:00', '11:30', '12:00', '12:30'] as const;
+const AFTERNOON_SLOTS = ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'] as const;
+
+const SIZE_OPTIONS = [
+  { value: 'SMALL', label: 'Malý', note: 'Do ~10 kg.' },
+  { value: 'MEDIUM', label: 'Stredný', note: '10–25 kg.' },
+  { value: 'LARGE', label: 'Veľký', note: 'Nad 25 kg.' },
+] as const satisfies readonly {
+  value: DogSize;
+  label: string;
+  note: string;
+}[];
+
+const CUT_TYPE_OPTIONS = [
+  {
+    value: 'SHORT',
+    label: 'Krátky strih',
+    note: 'Praktické skrátenie srsti.',
+  },
+  {
+    value: 'STANDARD',
+    label: 'Plný / štandardný strih',
+    note: 'Klasická úprava podľa stavu srsti.',
+  },
+  {
+    value: 'NO_CUT',
+    label: 'Úprava bez strihania',
+    note: 'Kúpanie a vyčesanie bez strihu.',
+  },
+  {
+    value: 'ADVICE',
+    label: 'Neviem — poradíte mi',
+    note: 'Spolu vyberieme vhodný postup.',
+  },
+] as const satisfies readonly {
+  value: CutType;
+  label: string;
+  note: string;
+}[];
+
+const ADDON_OPTIONS = [
+  {
+    code: 'BATH',
+    label: 'Kúpanie',
+    note: 'Starostlivosť podľa stavu srsti.',
+    price: 15,
+  },
+  {
+    code: 'NAILS',
+    label: 'Pazúriky',
+    note: 'Rýchla úprava pazúrikov.',
+    price: 5,
+  },
+  {
+    code: 'EARS',
+    label: 'Čistenie uší',
+    note: 'Šetrné čistenie podľa potreby.',
+    price: 5,
+  },
+] as const satisfies readonly {
+  code: BookingAddonCode;
+  label: string;
+  note: string;
+  price: number;
+}[];
 
 const INITIAL_STATE: BookingSubmitState = { status: 'idle' };
-
-const CONTACT_FIELDS: BookingContactField[] = ['customerName', 'customerPhone', 'customerEmail'];
-
-const EMPTY_CONTACT_ERRORS: BookingContactFieldErrors = {};
+const GENERIC_SUBMIT_ERROR =
+  'Žiadosť sa nepodarilo odoslať. Skúste to znova alebo zavolajte na +421 944 240 116.';
+const PHONE_DISPLAY = '+421 944 240 116';
+const PHONE_HREF = 'tel:+421944240116';
+const BOOKING_MAX_ADVANCE_DAYS = 56;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function pad2(value: number): string {
-  return value.toString().padStart(2, '0');
+  return String(value).padStart(2, '0');
 }
 
 function parseDateKey(dateKey: string): Date {
@@ -88,23 +138,10 @@ function addMonthsToMonthAnchorKey(monthAnchorKey: string, delta: number): strin
   return `${next.getUTCFullYear()}-${pad2(next.getUTCMonth() + 1)}-01`;
 }
 
-function getMonthRange(monthAnchorKey: string): { from: string; to: string } {
-  const start = parseDateKey(monthAnchorKey);
-  const end = new Date(start);
-  end.setUTCMonth(end.getUTCMonth() + 1);
-  end.setUTCDate(0);
-
-  return {
-    from: monthAnchorKey,
-    to: getBratislavaDateKey(end),
-  };
-}
-
 function buildCalendarRows(monthAnchorKey: string): CalendarCell[][] {
   const monthStart = parseDateKey(monthAnchorKey);
   const firstDayWeekday = getBratislavaWeekdayIndex(monthStart);
   const monthStartWeek = new Date(monthStart);
-
   const daysToStart = firstDayWeekday === 0 ? 6 : firstDayWeekday - 1;
   monthStartWeek.setUTCDate(monthStartWeek.getUTCDate() - daysToStart);
 
@@ -113,7 +150,6 @@ function buildCalendarRows(monthAnchorKey: string): CalendarCell[][] {
   monthEnd.setUTCDate(0);
   const lastDayWeekday = getBratislavaWeekdayIndex(monthEnd);
   const monthEndWeek = new Date(monthEnd);
-
   if (lastDayWeekday !== 0) {
     monthEndWeek.setUTCDate(monthEndWeek.getUTCDate() + (7 - lastDayWeekday));
   }
@@ -125,51 +161,105 @@ function buildCalendarRows(monthAnchorKey: string): CalendarCell[][] {
     weekStart.setUTCDate(weekStart.getUTCDate() + 7)
   ) {
     const row: CalendarCell[] = [];
-
     for (let offset = 0; offset < 7; offset += 1) {
       const cellDate = new Date(weekStart);
       cellDate.setUTCDate(cellDate.getUTCDate() + offset);
       const dateKey = getBratislavaDateKey(cellDate);
-      const isInMonth = dateKey.startsWith(monthAnchorKey.slice(0, 7));
-
-      row.push(isInMonth ? dateKey : null);
+      row.push(dateKey.startsWith(monthAnchorKey.slice(0, 7)) ? dateKey : null);
     }
-
     rows.push(row);
   }
 
   return rows;
 }
 
-function Stepper({
-  activeStep,
-}: {
-  activeStep: StepKey;
-}) {
-  const active = STEP_DEFINITIONS.find((item) => item.step === activeStep);
+function formatCompactDateLabel(dateKey: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+    return '—';
+  }
 
+  return new Intl.DateTimeFormat('sk-SK', {
+    timeZone: 'Europe/Bratislava',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'numeric',
+  }).format(parseDateKey(dateKey));
+}
+
+function validateContactFields(input: {
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+}): {
+  fieldErrors: BookingContactFieldErrors;
+  normalizedPhone: string;
+} {
+  const fieldErrors: BookingContactFieldErrors = {};
+  const trimmedName = input.customerName.trim();
+  const trimmedPhone = input.customerPhone.trim();
+  const trimmedEmail = input.customerEmail.trim();
+  const normalizedPhone = normalizeSlovakPhone(trimmedPhone);
+
+  if (!trimmedName) {
+    fieldErrors.customerName = 'Zadajte meno.';
+  }
+
+  if (!trimmedPhone) {
+    fieldErrors.customerPhone = 'Zadajte telefónne číslo.';
+  } else if (!normalizedPhone || !SLOVAK_PHONE_E164_PATTERN.test(normalizedPhone)) {
+    fieldErrors.customerPhone =
+      'Skontrolujte telefónne číslo. Použite napríklad 0911 925 373 alebo +421 911 925 373.';
+  }
+
+  if (trimmedEmail && !EMAIL_PATTERN.test(trimmedEmail)) {
+    fieldErrors.customerEmail = 'Skontrolujte formát emailu.';
+  }
+
+  return { fieldErrors, normalizedPhone };
+}
+
+function Stepper({ activeStep }: { activeStep: StepKey }) {
   return (
     <nav className={styles.stepper} aria-label="Postup rezervácie">
       <div className={styles.stepperCurrent}>
         <div className={styles.stepperHeading}>
           <span className={styles.stepNumber}>{activeStep}</span>
           <div className={styles.stepText}>
-            <span className={styles.stepLabel}>{active?.title}</span>
-            <span className={styles.stepHint}>{active?.hint}</span>
+            <span className={styles.stepLabel}>{STEP_DEFINITIONS[activeStep - 1].title}</span>
+            <span className={styles.stepHint}>{STEP_DEFINITIONS[activeStep - 1].hint}</span>
           </div>
         </div>
         <p className={styles.stepProgress}>Krok {activeStep} zo 4</p>
       </div>
 
-      <div className={styles.stepperDots} aria-hidden="true">
+      <div className={styles.stepperDots} role="list" aria-label="Kroky rezervácie">
         {STEP_DEFINITIONS.map((item) => (
           <span
             key={item.step}
+            role="listitem"
+            aria-current={activeStep === item.step ? 'step' : undefined}
             className={`${styles.stepperDot} ${activeStep === item.step ? styles.stepperDotActive : ''}`}
           />
         ))}
       </div>
     </nav>
+  );
+}
+
+function SummaryRows({
+  items,
+}: {
+  items: SummaryItem[];
+}) {
+  return (
+    <div className={styles.summaryStack}>
+      {items.map((item) => (
+        <div className={styles.summaryItem} key={item.label}>
+          <span className={styles.summaryLabel}>{item.label}</span>
+          <span className={styles.summaryValue}>{item.value}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -183,23 +273,43 @@ function SubmitButton() {
   );
 }
 
-function getOrderedAddonCodes(codes: BookingAddonCode[]): BookingAddonCode[] {
-  return BOOKING_ADDONS.map((addon) => addon.code).filter((code) => codes.includes(code));
+function getMobileSummaryItem(
+  step: StepKey,
+  entries: SummaryItem[],
+  customerName: string,
+): SummaryItem | null {
+  if (step >= 4 && customerName.trim()) {
+    return { label: 'Kontakt', value: customerName.trim() };
+  }
+
+  if (step >= 3) {
+    const service = entries.find((entry) => entry.label === 'Slu?ba');
+    if (service && service.value !== '?') {
+      return service;
+    }
+  }
+
+  if (step >= 2) {
+    const dog = entries.find((entry) => entry.label === 'Pes');
+    if (dog && dog.value !== '?') {
+      return dog;
+    }
+  }
+
+  return entries.find((entry) => entry.label === 'Term?n' && entry.value !== '?') ?? null;
 }
 
-function getFirstContactErrorField(errors: BookingContactFieldErrors): BookingContactField | null {
-  return CONTACT_FIELDS.find((field) => Boolean(errors[field])) ?? null;
-}
 
 export function BookingFlow() {
   const minDateKey = getBookingMinDateKey();
-  const initialMonthAnchor = getMonthAnchorKey(minDateKey);
+  const maxDateKey = addDaysToDateKey(minDateKey, BOOKING_MAX_ADVANCE_DAYS);
+  const minMonthAnchor = getMonthAnchorKey(minDateKey);
+  const maxMonthAnchor = getMonthAnchorKey(maxDateKey);
 
   const [step, setStep] = useState<StepKey>(1);
   const [dogName, setDogName] = useState('');
   const [dogBreed, setDogBreed] = useState('');
-  const [dogSize, setDogSize] = useState<DogSize>('SMALL');
-  const [dogNote, setDogNote] = useState('');
+  const [dogSize, setDogSize] = useState<DogSize | ''>('');
   const [selectedCutType, setSelectedCutType] = useState<CutType | ''>('');
   const [selectedAddonCodes, setSelectedAddonCodes] = useState<BookingAddonCode[]>([]);
   const [selectedDate, setSelectedDate] = useState('');
@@ -207,36 +317,98 @@ export function BookingFlow() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
-  const [company, setCompany] = useState('');
-  const [clientFieldErrors, setClientFieldErrors] = useState<BookingContactFieldErrors>({});
-  const [serviceFieldError, setServiceFieldError] = useState<string | null>(null);
-  const [monthAnchorKey, setMonthAnchorKey] = useState(initialMonthAnchor);
+  const [monthAnchorKey, setMonthAnchorKey] = useState(minMonthAnchor);
   const [busyIntervals, setBusyIntervals] = useState<BookingBusyInterval[]>([]);
   const [selectedDateBusyIntervals, setSelectedDateBusyIntervals] = useState<BookingBusyInterval[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(true);
   const [selectedDateAvailabilityLoading, setSelectedDateAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [selectedDateAvailabilityError, setSelectedDateAvailabilityError] = useState<string | null>(null);
+  const [stepError, setStepError] = useState<string | null>(null);
+  const [clientFieldErrors, setClientFieldErrors] = useState<BookingContactFieldErrors>({});
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   const [state, formAction] = useActionState(submitBooking, INITIAL_STATE);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const stepContentRef = useRef<HTMLElement | null>(null);
-  const stepOneTargetRef = useRef<HTMLButtonElement | null>(null);
-  const stepTwoTargetRef = useRef<HTMLInputElement | null>(null);
-  const stepThreeTargetRef = useRef<HTMLInputElement | null>(null);
-  const stepFourTargetRef = useRef<HTMLDivElement | null>(null);
-  const confirmationCardRef = useRef<HTMLDivElement | null>(null);
+  const stepOneRef = useRef<HTMLDivElement | null>(null);
+  const stepTwoRef = useRef<HTMLDivElement | null>(null);
+  const stepThreeRef = useRef<HTMLDivElement | null>(null);
+  const stepFourRef = useRef<HTMLDivElement | null>(null);
+  const confirmationRef = useRef<HTMLDivElement | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
   const phoneInputRef = useRef<HTMLInputElement | null>(null);
   const emailInputRef = useRef<HTMLInputElement | null>(null);
   const formErrorRef = useRef<HTMLDivElement | null>(null);
+  const advanceTimerRef = useRef<number | null>(null);
 
-  const monthRange = useMemo(() => getMonthRange(monthAnchorKey), [monthAnchorKey]);
-  const serverFieldErrors = state.status === 'error' ? state.fieldErrors : EMPTY_CONTACT_ERRORS;
-  const serverFormError = state.status === 'error' ? state.formError ?? null : null;
-  const hasClientFieldErrors = Object.keys(clientFieldErrors).length > 0;
-  const visibleFieldErrors = hasClientFieldErrors ? clientFieldErrors : serverFieldErrors;
-  const visibleFormError = hasClientFieldErrors ? null : serverFormError;
+  const clearAdvanceTimer = () => {
+    if (advanceTimerRef.current !== null) {
+      window.clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+  };
+
+  const basePrice = dogSize ? getBasePriceForSize(dogSize) : null;
+  const addonPrice = getAddonPriceTotal(selectedAddonCodes);
+  const estimatedPrice = dogSize ? estimateReservationPrice(dogSize, selectedAddonCodes) : 0;
+
+  const selectedCutTypeRecord = useMemo(
+    () => CUT_TYPE_OPTIONS.find((option) => option.value === selectedCutType) ?? null,
+    [selectedCutType],
+  );
+  const selectedSizeRecord = useMemo(
+    () => SIZE_OPTIONS.find((option) => option.value === dogSize) ?? null,
+    [dogSize],
+  );
+  const selectedAddonRecords = useMemo(
+    () => ADDON_OPTIONS.filter((addon) => selectedAddonCodes.includes(addon.code)),
+    [selectedAddonCodes],
+  );
+  const monthLabel = useMemo(() => formatBookingMonthLabel(monthAnchorKey), [monthAnchorKey]);
+  const calendarRows = useMemo(() => buildCalendarRows(monthAnchorKey), [monthAnchorKey]);
+  const openSlots = useMemo(() => getOpenBookingSlots(selectedDate), [selectedDate]);
+  const freeSlots = useMemo(
+    () => getFreeBookingSlots(selectedDate, [...busyIntervals, ...selectedDateBusyIntervals]),
+    [busyIntervals, selectedDate, selectedDateBusyIntervals],
+  );
+  const selectedDayBusy = useMemo(
+    () => isBookingDayBusy(selectedDate, [...busyIntervals, ...selectedDateBusyIntervals]),
+    [busyIntervals, selectedDate, selectedDateBusyIntervals],
+  );
+
+  const canGoPrev = monthAnchorKey > minMonthAnchor;
+  const canGoNext = monthAnchorKey < maxMonthAnchor;
+  const selectedDateLabel = selectedDate ? formatBookingDate(selectedDate) : '—';
+  const selectedTimeLabel = selectedTime || '—';
+  const compactDateLabel = selectedDate ? formatCompactDateLabel(selectedDate) : '—';
+
+  const summaryItems: SummaryItem[] = [
+    {
+      label: 'Termín',
+      value: selectedDate !== '' && selectedTime !== '' ? `${selectedDateLabel} · ${selectedTimeLabel}` : '—',
+    },
+    {
+      label: 'Pes',
+      value: dogName.trim() || '?',
+    },
+    {
+      label: 'Veľkosť',
+      value: selectedSizeRecord?.label ?? '—',
+    },
+    {
+      label: 'Služba',
+      value: selectedCutTypeRecord?.label ?? '—',
+    },
+    {
+      label: 'Doplnky',
+      value:
+        selectedAddonRecords.length > 0
+          ? selectedAddonRecords.map((addon) => addon.label).join(', ')
+          : 'Bez doplnkov',
+    },
+  ];
+
+  const mobileSummary = getMobileSummaryItem(step, summaryItems, customerName);
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -251,115 +423,48 @@ export function BookingFlow() {
   }, []);
 
   useEffect(() => {
-    if (state.status !== 'success') {
-      return;
+    if (state.status === 'success') {
+      setSubmissionError(null);
+      confirmationRef.current?.focus({ preventScroll: true });
     }
 
-    const target = confirmationCardRef.current;
+    if (state.status === 'error') {
+      setSubmissionError(GENERIC_SUBMIT_ERROR);
+    }
+  }, [state.status]);
+
+  useEffect(() => {
+    const target = step === 1 ? stepOneRef.current : step === 2 ? stepTwoRef.current : step === 3 ? stepThreeRef.current : stepFourRef.current;
+
     if (!target) {
       return;
     }
 
-    const offset = 112;
-    const top = window.scrollY + target.getBoundingClientRect().top - offset;
-    window.requestAnimationFrame(() => {
-      window.scrollTo({
-        top: Math.max(0, top),
-        behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      });
-      target.focus({ preventScroll: true });
+    target.scrollIntoView({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      block: 'start',
     });
-  }, [prefersReducedMotion, state.status]);
 
-  useEffect(() => {
-    const stickyHeaderOffset = 112;
-
-    const scrollAndFocus = (target: HTMLElement | null, focusTarget?: HTMLElement | null) => {
-      if (!target) {
-        return;
-      }
-
-      const top = window.scrollY + target.getBoundingClientRect().top - stickyHeaderOffset;
-      window.scrollTo({
-        top: Math.max(0, top),
-        behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      });
-
-      window.setTimeout(() => {
-        (focusTarget ?? target).focus({ preventScroll: true });
-      }, prefersReducedMotion ? 0 : 50);
-    };
-
-    if (step === 1) {
-      scrollAndFocus(stepContentRef.current, stepOneTargetRef.current);
-      return;
-    }
-
-    if (step === 2) {
-      scrollAndFocus(stepContentRef.current, stepTwoTargetRef.current);
-      return;
-    }
-
-    if (step === 3) {
-      scrollAndFocus(stepContentRef.current, stepThreeTargetRef.current);
-      return;
-    }
-
-    scrollAndFocus(stepFourTargetRef.current);
-    window.setTimeout(() => {
-      nameInputRef.current?.focus({ preventScroll: true });
-    }, prefersReducedMotion ? 0 : 60);
+    target.focus({ preventScroll: true });
   }, [prefersReducedMotion, step]);
 
   useEffect(() => {
-    if (step === 3) {
-      stepThreeTargetRef.current = null;
-    }
-  }, [monthAnchorKey, step]);
-
-  useEffect(() => {
-    if (state.status !== 'error') {
-      return;
-    }
-
-    if (Object.keys(serverFieldErrors).length > 0) {
-      const firstErrorField = getFirstContactErrorField(serverFieldErrors);
-      const input =
-        firstErrorField === 'customerName'
-          ? nameInputRef.current
-          : firstErrorField === 'customerPhone'
-            ? phoneInputRef.current
-            : firstErrorField === 'customerEmail'
-              ? emailInputRef.current
-              : null;
-
-      input?.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'center' });
-      input?.focus({ preventScroll: true });
-      return;
-    }
-
-    if (!serverFormError) {
-      return;
-    }
-
-    formErrorRef.current?.scrollIntoView({
-      behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      block: 'center',
-    });
-    formErrorRef.current?.focus();
-  }, [prefersReducedMotion, serverFieldErrors, serverFormError, state.status]);
-
-  useEffect(() => {
     const controller = new AbortController();
-    let isActive = true;
+    let active = true;
 
-    async function loadAvailability() {
+    async function loadMonthAvailability() {
       setAvailabilityLoading(true);
       setAvailabilityError(null);
 
       try {
+        const monthStart = parseDateKey(monthAnchorKey);
+        const monthEnd = new Date(monthStart);
+        monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
+        monthEnd.setUTCDate(0);
         const response = await fetch(
-          `/api/availability?from=${encodeURIComponent(monthRange.from)}&to=${encodeURIComponent(monthRange.to)}`,
+          `/api/availability?from=${encodeURIComponent(monthAnchorKey)}&to=${encodeURIComponent(
+            getBratislavaDateKey(monthEnd),
+          )}`,
           { signal: controller.signal },
         );
 
@@ -368,7 +473,6 @@ export function BookingFlow() {
         }
 
         const payload = (await response.json()) as unknown;
-
         if (!Array.isArray(payload)) {
           throw new Error('Invalid availability payload');
         }
@@ -386,29 +490,29 @@ export function BookingFlow() {
           );
         });
 
-        if (isActive) {
+        if (active) {
           setBusyIntervals(intervals);
         }
       } catch (error) {
-        if (!controller.signal.aborted && isActive) {
+        if (!controller.signal.aborted && active) {
           console.error('Failed to load booking availability:', error);
           setBusyIntervals([]);
           setAvailabilityError('Obsadenosť sa nepodarilo načítať.');
         }
       } finally {
-        if (!controller.signal.aborted && isActive) {
+        if (!controller.signal.aborted && active) {
           setAvailabilityLoading(false);
         }
       }
     }
 
-    void loadAvailability();
+    void loadMonthAvailability();
 
     return () => {
-      isActive = false;
+      active = false;
       controller.abort();
     };
-  }, [monthRange.from, monthRange.to]);
+  }, [monthAnchorKey]);
 
   useEffect(() => {
     if (!selectedDate) {
@@ -419,7 +523,7 @@ export function BookingFlow() {
     }
 
     const controller = new AbortController();
-    let isActive = true;
+    let active = true;
 
     async function loadSelectedDateAvailability() {
       setSelectedDateAvailabilityLoading(true);
@@ -436,7 +540,6 @@ export function BookingFlow() {
         }
 
         const payload = (await response.json()) as unknown;
-
         if (!Array.isArray(payload)) {
           throw new Error('Invalid availability payload');
         }
@@ -454,17 +557,17 @@ export function BookingFlow() {
           );
         });
 
-        if (isActive) {
+        if (active) {
           setSelectedDateBusyIntervals(intervals);
         }
       } catch (error) {
-        if (!controller.signal.aborted && isActive) {
+        if (!controller.signal.aborted && active) {
           console.error('Failed to load booking availability for selected date:', error);
           setSelectedDateBusyIntervals([]);
           setSelectedDateAvailabilityError('Obsadenosť pre vybraný deň sa nepodarilo načítať.');
         }
       } finally {
-        if (!controller.signal.aborted && isActive) {
+        if (!controller.signal.aborted && active) {
           setSelectedDateAvailabilityLoading(false);
         }
       }
@@ -473,893 +576,744 @@ export function BookingFlow() {
     void loadSelectedDateAvailability();
 
     return () => {
-      isActive = false;
+      active = false;
       controller.abort();
     };
   }, [selectedDate]);
 
-  const calendarRows = useMemo(() => buildCalendarRows(monthAnchorKey), [monthAnchorKey]);
-  const allBusyIntervals = useMemo(
-    () => [...busyIntervals, ...selectedDateBusyIntervals],
-    [busyIntervals, selectedDateBusyIntervals],
-  );
-  const openSlots = useMemo(() => getOpenBookingSlots(selectedDate), [selectedDate]);
-  const freeSlots = useMemo(
-    () => getFreeBookingSlots(selectedDate, allBusyIntervals),
-    [allBusyIntervals, selectedDate],
-  );
-  const selectedDayBusy = useMemo(
-    () => isBookingDayBusy(selectedDate, allBusyIntervals),
-    [allBusyIntervals, selectedDate],
-  );
+  useEffect(() => {
+    return () => {
+      clearAdvanceTimer();
+    };
+  }, []);
 
-  const selectedAddonRecords = useMemo(
-    () => getSelectedAddonRecords(selectedAddonCodes),
-    [selectedAddonCodes],
-  );
-  const selectedCutTypeRecord = useMemo(
-    () => getCutTypeRecord(selectedCutType),
-    [selectedCutType],
-  );
-  const selectedSizeRecord = useMemo(
-    () => BOOKING_SIZE_OPTIONS.find((option) => option.value === dogSize) ?? BOOKING_SIZE_OPTIONS[0],
-    [dogSize],
-  );
-  let hasAssignedStepOneTarget = false;
-
-  const basePrice = getBasePriceForSize(dogSize);
-  const addonPrice = getAddonPriceTotal(selectedAddonCodes);
-  const estimatedPrice = estimateReservationPrice(dogSize, selectedAddonCodes);
-  const selectedAddonLabel =
-    selectedAddonRecords.length > 0
-      ? selectedAddonRecords.map((addon) => addon.label).join(', ')
-      : 'Bez doplnkov';
-  const selectedDateLabel = selectedDate ? formatBookingDate(selectedDate) : '—';
-  const selectedTimeLabel = selectedTime || '—';
-  const monthLabel = formatBookingMonthLabel(monthAnchorKey);
-  const availabilityNote = availabilityLoading
-    ? 'Obsadenosť načítavame.'
-    : availabilityError
-      ? availabilityError
-      : 'Plne obsadené dni sú sivé a označené ako obsadené.';
-
-  function canAdvanceFromStep(currentStep: StepKey): boolean {
-    if (currentStep === 1) {
-      return Boolean(selectedDate) && Boolean(selectedTime) && freeSlots.includes(selectedTime);
-    }
-
-    if (currentStep === 2) {
-      return dogName.trim().length > 0 && dogBreed.trim().length > 0 && Boolean(dogSize);
-    }
-
-    if (currentStep === 3) {
-      return Boolean(selectedCutType);
-    }
-
-    if (currentStep === 4) {
-      return (
-        Object.keys(
-          validateBookingContactFields({
-            customerName,
-            customerPhone,
-            customerEmail,
-          }).fieldErrors,
-        ).length === 0 &&
-        Boolean(selectedDate) &&
-        Boolean(selectedTime) &&
-        Boolean(selectedCutType)
-      );
-    }
-
-    return true;
+  function isSelectableDate(dateKey: string): boolean {
+    return dateKey >= minDateKey && dateKey <= maxDateKey && isBookingDateAllowed(dateKey);
   }
 
-  function focusFirstInteractiveInStep() {
-    if (step === 1) {
-      stepOneTargetRef.current?.focus({ preventScroll: true });
+  function handleMonthChange(delta: number) {
+    const next = addMonthsToMonthAnchorKey(monthAnchorKey, delta);
+    if (next < minMonthAnchor || next > maxMonthAnchor) {
       return;
     }
 
+    setMonthAnchorKey(next);
+  }
+
+  function handleSelectDay(dateKey: string) {
+    if (!isSelectableDate(dateKey) || isBookingDayBusy(dateKey, busyIntervals)) {
+      return;
+    }
+
+    setSelectedDate(dateKey);
+    setSelectedTime('');
+    setStep(1);
+    setStepError(null);
+    setSubmissionError(null);
+  }
+
+  function handleSelectTime(time: string) {
+    if (!selectedDate) {
+      return;
+    }
+
+    if (isBookingSlotBusy(selectedDate, time, [...busyIntervals, ...selectedDateBusyIntervals])) {
+      return;
+    }
+
+    setSelectedTime(time);
+    setStepError(null);
+    setSubmissionError(null);
+
+    clearAdvanceTimer();
+    advanceTimerRef.current = window.setTimeout(() => {
+      setStep(2);
+    }, 300);
+  }
+
+  function handleAddonToggle(code: BookingAddonCode) {
+    setSelectedAddonCodes((current) =>
+      current.includes(code) ? current.filter((item) => item !== code) : [...current, code],
+    );
+  }
+
+  function goBack() {
+    setStep((current) => (current > 1 ? ((current - 1) as StepKey) : current));
+    setStepError(null);
+    setSubmissionError(null);
+  }
+
+  function goNext() {
     if (step === 2) {
-      stepTwoTargetRef.current?.focus({ preventScroll: true });
+      if (!dogName.trim() || !dogSize) {
+        setStepError('Zadajte meno psa a vyberte veľkosť.');
+        return;
+      }
+
+      setStepError(null);
+      setStep(3);
       return;
     }
 
     if (step === 3) {
-      stepThreeTargetRef.current?.focus({ preventScroll: true });
-      return;
-    }
+      if (!selectedCutType) {
+        setStepError('Vyberte typ strihu.');
+        return;
+      }
 
-    stepFourTargetRef.current?.focus({ preventScroll: true });
+      setStepError(null);
+      setStep(4);
+    }
   }
 
   function focusFirstContactError(errors: BookingContactFieldErrors) {
-    const firstErrorField = getFirstContactErrorField(errors);
-    const input =
-      firstErrorField === 'customerName'
-        ? nameInputRef.current
-        : firstErrorField === 'customerPhone'
-          ? phoneInputRef.current
-          : firstErrorField === 'customerEmail'
-            ? emailInputRef.current
-            : null;
+    if (errors.customerName) {
+      nameInputRef.current?.focus({ preventScroll: true });
+      return;
+    }
 
-    input?.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'center' });
-    input?.focus({ preventScroll: true });
+    if (errors.customerPhone) {
+      phoneInputRef.current?.focus({ preventScroll: true });
+      return;
+    }
+
+    if (errors.customerEmail) {
+      emailInputRef.current?.focus({ preventScroll: true });
+    }
   }
 
-  function goNext() {
-    if (!canAdvanceFromStep(step)) {
-      if (step === 3) {
-        setServiceFieldError('Vyberte typ strihu.');
-        focusFirstInteractiveInStep();
-      }
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    const latestContactValidation = validateContactFields({
+      customerName,
+      customerPhone,
+      customerEmail,
+    });
 
-      if (step === 4) {
-        const contactValidation = validateBookingContactFields({
-          customerName,
-          customerPhone,
-          customerEmail,
-        });
+    if (!selectedDate || !selectedTime || !selectedCutType || !dogName.trim() || !dogSize) {
+      event.preventDefault();
+      setStepError('Skontrolujte prosím termín, psa a službu.');
+      setSubmissionError(null);
+      return;
+    }
 
-        setClientFieldErrors(contactValidation.fieldErrors);
-        focusFirstContactError(contactValidation.fieldErrors);
-      }
+    if (!selectedDate || !selectedTime || freeSlots.length === 0 || !freeSlots.includes(selectedTime)) {
+      event.preventDefault();
+      setSubmissionError('Vybraný termín sa zmenil. Vyberte ho znova.');
+      return;
+    }
 
+    if (Object.keys(latestContactValidation.fieldErrors).length > 0) {
+      event.preventDefault();
+      setClientFieldErrors(latestContactValidation.fieldErrors);
+      setSubmissionError(null);
+      focusFirstContactError(latestContactValidation.fieldErrors);
       return;
     }
 
     setClientFieldErrors({});
-    setServiceFieldError(null);
-    setStep((current) => Math.min(4, current + 1) as StepKey);
-  }
-
-  function goBack() {
-    setClientFieldErrors({});
-    setServiceFieldError(null);
-    setStep((current) => Math.max(1, current - 1) as StepKey);
-  }
-
-  function handleToggleAddon(code: BookingAddonCode) {
-    setSelectedAddonCodes((current) => {
-      const next = current.includes(code)
-        ? current.filter((value) => value !== code)
-        : [...current, code];
-
-      return getOrderedAddonCodes(next);
-    });
-  }
-
-  function handleSelectDay(dateKey: string) {
-    setSelectedDate(dateKey);
-    setSelectedTime('');
-    setMonthAnchorKey(getMonthAnchorKey(dateKey));
-  }
-
-  function handleMonthChange(delta: number) {
-    setMonthAnchorKey((current) => addMonthsToMonthAnchorKey(current, delta));
+    setStepError(null);
+    setSubmissionError(null);
   }
 
   if (state.status === 'success') {
     return (
-      <section className={styles.confirmation} aria-live="polite">
-        <div ref={confirmationCardRef} className={styles.confirmationCard} tabIndex={-1}>
-          <p className="eyebrow">ŽIADOSŤ PRIJATÁ</p>
-          <h2>Ďakujeme, vašu žiadosť sme prijali.</h2>
-          <p>Termín vám potvrdíme v priebehu dnešného dňa. Ak bude treba niečo doladiť, ozveme sa vám.</p>
+      <div className={styles.confirmation}>
+        <div ref={confirmationRef} className={styles.confirmationCard} tabIndex={-1}>
+          <p className={styles.eyebrow}>Žiadosť odoslaná</p>
+          <h2>Termín spolu potvrdíme.</h2>
           <p>
-            Zavolajte nám na <a href="tel:+421944240116">+421 944 240 116</a>, ak si chcete ešte
-            niečo overiť.
+            Ozveme sa vám čo najskôr a termín spolu potvrdíme. Ak sa ponáhľate, zavolajte nám priamo.
           </p>
+          <a className="btn btn--primary" href={PHONE_HREF}>
+            Zavolať {PHONE_DISPLAY}
+          </a>
         </div>
-      </section>
+      </div>
     );
   }
 
+  const summaryEntries = summaryItems;
+  const recapItems: SummaryItem[] = [
+    {
+      label: 'Termín',
+      value: selectedDate && selectedTime ? `${compactDateLabel} · ${selectedTime}` : '—',
+    },
+    {
+      label: 'Pes',
+      value: dogName.trim() ? (dogBreed.trim() ? `${dogName.trim()} · ${dogBreed.trim()}` : dogName.trim()) : '—',
+    },
+    {
+      label: 'Služba',
+      value: selectedCutTypeRecord?.label ?? '—',
+    },
+  ];
+
   return (
     <div className={styles.wizardShell}>
-      <form className={`${styles.panel} ${styles.panelInner}`} action={formAction} noValidate>
-        <input type="hidden" name="sourceCode" value="" />
-        <input type="hidden" name="dogName" value={dogName} />
-        <input type="hidden" name="dogBreed" value={dogBreed} />
-        <input type="hidden" name="dogSize" value={dogSize} />
-        <input type="hidden" name="dogNote" value={dogNote} />
-        <input type="hidden" name="cutType" value={selectedCutType} />
-        <input type="hidden" name="selectedDate" value={selectedDate} />
-        <input type="hidden" name="selectedTime" value={selectedTime} />
-        {selectedAddonCodes.map((serviceId) => (
-          <input key={serviceId} type="hidden" name="serviceIds" value={serviceId} />
-        ))}
-        <input
-          type="text"
-          name="contact_time"
-          tabIndex={-1}
-          autoComplete="off"
-          aria-hidden="true"
-          className={styles.honeypot}
-          value={company}
-          onChange={(event) => setCompany(event.target.value)}
-        />
-
-        <Stepper activeStep={step} />
-
-        <div className={styles.body}>
-          {step === 2 ? (
-            <>
-              <div className={styles.sectionTitle}>
-                <div>
-                  <p className={styles.stepKicker}>Krok 2 zo 4</p>
-                  <h2>Pes</h2>
-                </div>
-                <span className={styles.sectionMeta}>Základné údaje o psovi.</span>
-              </div>              <div ref={stepContentRef as unknown as RefObject<HTMLDivElement>} className={styles.fieldGrid}>
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="customerName">
-                    Meno
-                  </label>
-                  <input
-                    ref={nameInputRef}
-                    id="customerName"
-                    name="customerName"
-                    className={`${styles.input} ${visibleFieldErrors.customerName ? styles.inputError : ''}`}
-                    value={customerName}
-                    onChange={(event) => {
-                      setCustomerName(event.target.value);
-                      setClientFieldErrors((current) => {
-                        if (!current.customerName) {
-                          return current;
-                        }
-
-                        const next = { ...current };
-                        delete next.customerName;
-                        return next;
-                      });
-                    }}
-                    autoComplete="name"
-                    aria-invalid={Boolean(visibleFieldErrors.customerName)}
-                    aria-describedby={visibleFieldErrors.customerName ? 'customerName-error' : undefined}
-                    required
-                  />
-                  {visibleFieldErrors.customerName ? (
-                    <p id="customerName-error" className={styles.fieldError}>
-                      {visibleFieldErrors.customerName}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="customerPhone">
-                    Telefón
-                  </label>
-                  <input
-                    ref={phoneInputRef}
-                    id="customerPhone"
-                    name="customerPhone"
-                    className={`${styles.input} ${visibleFieldErrors.customerPhone ? styles.inputError : ''}`}
-                    value={customerPhone}
-                    onChange={(event) => {
-                      setCustomerPhone(event.target.value);
-                      setClientFieldErrors((current) => {
-                        if (!current.customerPhone) {
-                          return current;
-                        }
-
-                        const next = { ...current };
-                        delete next.customerPhone;
-                        return next;
-                      });
-                    }}
-                    autoComplete="tel"
-                    inputMode="tel"
-                    placeholder="+421 944 240 116"
-                    aria-invalid={Boolean(visibleFieldErrors.customerPhone)}
-                    aria-describedby={
-                      visibleFieldErrors.customerPhone
-                        ? 'customerPhone-hint customerPhone-error'
-                        : 'customerPhone-hint'
-                    }
-                    required
-                  />
-                  <p id="customerPhone-hint" className={styles.helperText}>
-                    Telefónne číslo potrebujeme na potvrdenie termínu.
-                  </p>
-                  {visibleFieldErrors.customerPhone ? (
-                    <p id="customerPhone-error" className={styles.fieldError}>
-                      {visibleFieldErrors.customerPhone}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className={`${styles.field} ${styles.fieldFull}`}>
-                  <label className={styles.label} htmlFor="customerEmail">
-                    Email
-                  </label>
-                  <input
-                    ref={emailInputRef}
-                    id="customerEmail"
-                    name="customerEmail"
-                    type="email"
-                    className={`${styles.input} ${visibleFieldErrors.customerEmail ? styles.inputError : ''}`}
-                    value={customerEmail}
-                    onChange={(event) => {
-                      setCustomerEmail(event.target.value);
-                      setClientFieldErrors((current) => {
-                        if (!current.customerEmail) {
-                          return current;
-                        }
-
-                        const next = { ...current };
-                        delete next.customerEmail;
-                        return next;
-                      });
-                    }}
-                    autoComplete="email"
-                    placeholder="voliteľné"
-                    aria-invalid={Boolean(visibleFieldErrors.customerEmail)}
-                    aria-describedby={visibleFieldErrors.customerEmail ? 'customerEmail-error' : undefined}
-                  />
-                  {visibleFieldErrors.customerEmail ? (
-                    <p id="customerEmail-error" className={styles.fieldError}>
-                      {visibleFieldErrors.customerEmail}
-                    </p>
-                  ) : null}
-                </div>
+      <form className={styles.panel} action={formAction} noValidate onSubmit={handleSubmit}>
+        <div className={styles.panelInner}>
+          <div className={styles.mobileSummary} aria-live="polite">
+            {mobileSummary ? (
+              <div className={styles.mobileSummaryCard}>
+                <span className={styles.mobileSummaryLabel}>{mobileSummary.label}</span>
+                <span className={styles.mobileSummaryValue}>{mobileSummary.value}</span>
+                <span className={styles.mobileSummaryMeta}>Najnovší vybraný krok</span>
               </div>
-
-              {visibleFormError ? (
-                <div
-                  ref={formErrorRef}
-                  className={`${styles.alert} ${styles.alertError}`}
-                  tabIndex={-1}
-                  role="alert"
-                  aria-live="assertive"
-                >
-                  {visibleFormError}
-                </div>
-              ) : null}
-
-              <div className={styles.footerActions}>
-                <button type="button" className="btn btn--ghost" onClick={goBack}>
-                  Späť
-                </button>
-                <SubmitButton />
+            ) : (
+              <div className={styles.mobileSummaryCard}>
+                <span className={styles.mobileSummaryLabel}>Termín</span>
+                <span className={styles.mobileSummaryValue}>Vyberte si preferovaný termín</span>
               </div>
-            </>
-          ) : null}
+            )}
+          </div>
 
-          {step < 4 ? (
-            <div className={styles.footerActions}>
-              <button type="button" className="btn btn--ghost" onClick={goBack} disabled={step === 1}>
-                Späť
-              </button>
-              <button type="button" className="btn btn--primary" onClick={goNext}>
-                Pokračovať
-              </button>
+          <input type="hidden" name="sourceCode" value="" />
+          <input type="hidden" name="dogNote" value="" />
+          <input type="hidden" name="selectedDate" value={selectedDate} />
+          <input type="hidden" name="selectedTime" value={selectedTime} />
+          <input type="hidden" name="contact_time" value="" />
+
+          <Stepper activeStep={step} />
+
+          <div
+            ref={stepOneRef}
+            className={`${styles.stepPane} ${step === 1 ? styles.stepPaneVisible : styles.stepPaneHidden}`}
+            tabIndex={-1}
+          >
+            <div className={styles.sectionTitle}>
+              <div>
+                <p className={styles.stepKicker}>Krok 1 zo 4</p>
+                <h2>Termín</h2>
+              </div>
+              <span className={styles.sectionMeta}>
+                Vyberte si preferovaný termín. Ozveme sa vám a termín spolu potvrdíme.
+              </span>
             </div>
-          ) : null}
 
-          {step === 3 ? (
-            <>
-              <div className={styles.sectionTitle}>
+            <div className={styles.calendar}>
+              <div className={styles.calendarHeader}>
                 <div>
-                  <p className={styles.stepKicker}>Krok 3 zo 4</p>
-                  <h2>Služby</h2>
+                  <div className={styles.monthTitle}>{monthLabel}</div>
+                  <p className={styles.helperText}>
+                    Po – Pia · 10:00 – 13:00 a 14:00 – 18:00
+                  </p>
                 </div>
-                <span className={styles.sectionMeta}>Vyberiete typ strihu a doplnky.</span>
+                <div className={styles.monthNav}>
+                  <button
+                    type="button"
+                    className={styles.monthNavButton}
+                    onClick={() => handleMonthChange(-1)}
+                    disabled={!canGoPrev}
+                    aria-label="Predchádzajúci mesiac"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.monthNavButton}
+                    onClick={() => handleMonthChange(1)}
+                    disabled={!canGoNext}
+                    aria-label="Nasledujúci mesiac"
+                  >
+                    ›
+                  </button>
+                </div>
               </div>
 
-              <div className={`${styles.serviceSummary} ${styles.serviceSummaryHidden}`}>
-                <strong>
-                  Orientačná cena základnej úpravy: {formatBookingCurrency(basePrice)} — konečná
-                  cena podľa stavu srsti.
-                </strong>
-                <span>
-                  {selectedCutTypeRecord?.label ?? 'Neviem — poradíte mi'} · Doplnky: {selectedAddonLabel}
-                </span>
+              <div className={styles.weekdayRow} aria-hidden="true">
+                {WEEKDAY_LABELS.map((label) => (
+                  <div key={label} className={styles.weekdayCell}>
+                    {label}
+                  </div>
+                ))}
               </div>
 
-              <fieldset
-                ref={stepContentRef as unknown as RefObject<HTMLFieldSetElement>}
-                className={styles.serviceSection}
-              >
-                <div className={styles.serviceSectionHead}>
-                  <h3>Typ strihu</h3>
-                  <p>Jedna možnosť podľa toho, čo bude pre psa najvhodnejšie.</p>
-                </div>
-                <div className={styles.sizeGrid}>
-                  {BOOKING_CUT_TYPES.map((option) => (
-                    <label
-                      key={option.value}
-                      className={`${styles.sizeCard} ${
-                        selectedCutType === option.value ? styles.sizeCardSelected : ''
-                      }`}
-                    >
+              <div className={styles.dayGrid}>
+                {calendarRows.flatMap((row, rowIndex) =>
+                  row.map((dateKey, cellIndex) => {
+                    if (!dateKey) {
+                      return <span key={`empty-${rowIndex}-${cellIndex}`} className={styles.dayPlaceholder} />;
+                    }
+
+                    const allowed = isSelectableDate(dateKey);
+                    const busy = isBookingDayBusy(dateKey, [...busyIntervals, ...selectedDateBusyIntervals]);
+                    const selected = selectedDate === dateKey;
+                    const dayState = !allowed ? 'Mimo rozsahu' : busy ? 'Obsadené' : 'Voľné';
+
+                    return (
+                      <button
+                        key={dateKey}
+                        type="button"
+                        className={`${styles.dayButton} ${selected ? styles.dayButtonSelected : ''} ${
+                          !allowed || busy ? styles.dayButtonDisabled : ''
+                        }`}
+                        disabled={!allowed || busy}
+                        onClick={() => handleSelectDay(dateKey)}
+                      >
+                        <span className={styles.dayNumber}>{dateKey.slice(-2)}</span>
+                        <span className={styles.dayState}>{dayState}</span>
+                      </button>
+                    );
+                  }),
+                )}
+              </div>
+            </div>
+
+            <div className={styles.slots}>
+              <div className={styles.serviceSectionHead}>
+                <h3>Preferovaný čas</h3>
+                <p>Vyberte časový slot. Dopoludnia a popoludní sú rozdelené zvlášť.</p>
+              </div>
+
+              {selectedDate ? (
+                <>
+                  <div className={styles.serviceSectionHead}>
+                    <h3>Dopoludnia</h3>
+                    <p>10:00 – 12:30</p>
+                  </div>
+                  <div className={styles.slotGrid}>
+                    {MORNING_SLOTS.map((time) => {
+                      const busy = isBookingSlotBusy(selectedDate, time, [...busyIntervals, ...selectedDateBusyIntervals]);
+                      const selected = selectedTime === time;
+
+                      return (
+                        <button
+                          key={time}
+                          type="button"
+                          className={`${styles.slotButton} ${selected ? styles.slotButtonSelected : ''} ${
+                            busy ? styles.slotButtonBusy : ''
+                          }`}
+                          onClick={() => handleSelectTime(time)}
+                          disabled={busy}
+                        >
+                          <span className={styles.slotButtonTime}>{time}</span>
+                          <span className={styles.slotButtonState}>{busy ? 'obsadené' : 'voľné'}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className={styles.serviceSectionHead}>
+                    <h3>Popoludní</h3>
+                    <p>14:00 – 17:30</p>
+                  </div>
+                  <div className={styles.slotGrid}>
+                    {AFTERNOON_SLOTS.map((time) => {
+                      const busy = isBookingSlotBusy(selectedDate, time, [...busyIntervals, ...selectedDateBusyIntervals]);
+                      const selected = selectedTime === time;
+
+                      return (
+                        <button
+                          key={time}
+                          type="button"
+                          className={`${styles.slotButton} ${selected ? styles.slotButtonSelected : ''} ${
+                            busy ? styles.slotButtonBusy : ''
+                          }`}
+                          onClick={() => handleSelectTime(time)}
+                          disabled={busy}
+                        >
+                          <span className={styles.slotButtonTime}>{time}</span>
+                          <span className={styles.slotButtonState}>{busy ? 'obsadené' : 'voľné'}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <p className={styles.statusNote}>Najprv vyberte deň v kalendári.</p>
+              )}
+
+              <p className={styles.statusNote}>
+                {!selectedDate
+                  ? availabilityLoading
+                    ? 'Obsadenosť načítavame.'
+                    : availabilityError ?? 'Plne obsadené dni sú sivé a označené ako obsadené.'
+                  : selectedDateAvailabilityLoading
+                    ? 'Obsadenosť pre vybraný deň načítavame.'
+                    : selectedDateAvailabilityError
+                      ? selectedDateAvailabilityError
+                      : selectedDayBusy
+                        ? 'Vybraný deň je obsadený.'
+                        : selectedTime
+                          ? freeSlots.includes(selectedTime)
+                            ? 'Termín je voľný.'
+                            : 'Vybraný čas je obsadený.'
+                          : 'Potom vyberte časový slot.'}
+              </p>
+            </div>
+          </div>
+
+          <div
+            ref={stepTwoRef}
+            className={`${styles.stepPane} ${step === 2 ? styles.stepPaneVisible : styles.stepPaneHidden}`}
+            tabIndex={-1}
+          >
+            <div className={styles.sectionTitle}>
+              <div>
+                <p className={styles.stepKicker}>Krok 2 zo 4</p>
+                <h2>Pes</h2>
+              </div>
+              <span className={styles.sectionMeta}>Doplňte meno, plemeno a veľkosť psa.</span>
+            </div>
+
+            <div className={styles.fieldGrid}>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="dogName">
+                  Meno psa
+                </label>
+                <input
+                  ref={nameInputRef}
+                  id="dogName"
+                  name="dogName"
+                  className={styles.input}
+                  value={dogName}
+                  onChange={(event) => {
+                    setDogName(event.target.value);
+                    setStepError(null);
+                  }}
+                  autoComplete="off"
+                  required
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="dogBreed">
+                  Plemeno
+                </label>
+                <input
+                  id="dogBreed"
+                  name="dogBreed"
+                  className={styles.input}
+                  value={dogBreed}
+                  onChange={(event) => setDogBreed(event.target.value)}
+                  autoComplete="off"
+                  placeholder="Napr. yorkshirský teriér"
+                />
+                <p className={styles.helperText}>Voliteľné pole.</p>
+              </div>
+            </div>
+
+            <div className={styles.serviceSection}>
+              <div className={styles.serviceSectionHead}>
+                <h3>Veľkosť</h3>
+                <p>Vyberte veľkosť podľa približnej hmotnosti psa.</p>
+              </div>
+
+              <div className={styles.sizeGrid}>
+                {SIZE_OPTIONS.map((option) => {
+                  const selected = dogSize === option.value;
+                  return (
+                    <label key={option.value} className={`${styles.sizeCard} ${selected ? styles.sizeCardSelected : ''}`}>
                       <input
-                        ref={option === BOOKING_CUT_TYPES[0] ? stepThreeTargetRef : undefined}
                         type="radio"
-                        name="cutType"
+                        name="dogSize"
                         value={option.value}
-                        checked={selectedCutType === option.value}
+                        checked={selected}
                         onChange={() => {
-                          setSelectedCutType(option.value);
-                          setServiceFieldError(null);
+                          setDogSize(option.value);
+                          setSelectedCutType('');
+                          setStepError(null);
                         }}
+                        required
                       />
                       <span className={styles.sizeCardTitle}>{option.label}</span>
                       <span className={styles.sizeCardNote}>{option.note}</span>
                     </label>
-                  ))}
-                </div>
-                {serviceFieldError ? (
-                  <p className={styles.fieldError} role="alert">
-                    {serviceFieldError}
-                  </p>
-                ) : null}
-              </fieldset>
-
-              <div className={styles.serviceSection}>
-                <div className={styles.serviceSectionHead}>
-                  <h3>Doplnky</h3>
-                  <p>Môžete pridať kúpanie, pazúriky alebo čistenie uší.</p>
-                </div>
-                <div className={styles.serviceGrid}>
-                  {BOOKING_ADDONS.map((addon) => {
-                    const isSelected = selectedAddonCodes.includes(addon.code);
-
-                    return (
-                      <label
-                        key={addon.code}
-                        className={`${styles.serviceCard} ${
-                          isSelected ? styles.serviceCardSelected : ''
-                        }`}
-                      >
-                        <input
-                          className={styles.serviceInput}
-                          type="checkbox"
-                          name="serviceIds"
-                          value={addon.code}
-                          checked={isSelected}
-                          onChange={() => handleToggleAddon(addon.code)}
-                        />
-                        <span className={styles.serviceCardCheck} aria-hidden="true" />
-                        <span className={styles.serviceCardBody}>
-                          <span className={styles.serviceCardTitle}>{addon.label}</span>
-                          <span className={styles.serviceCardMeta}>
-                            {formatBookingCurrency(addon.price)}
-                          </span>
-                          <span className={styles.serviceCardNote}>{addon.note}</span>
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
+                  );
+                })}
               </div>
+            </div>
 
-              <div className={styles.serviceSummary}>
-                <strong>Orientačne spolu: {formatBookingCurrency(estimatedPrice)}</strong>
-                <span>Konečná cena podľa stavu srsti.</span>
-              </div>
-            </>
-          ) : null}
+            {stepError ? <div className={`${styles.alert} ${styles.alertError}`}>{stepError}</div> : null}
 
-          {step === 1 ? (
-            <>
-              <div className={styles.sectionTitle}>
-                <div>
-                  <p className={styles.stepKicker}>Krok 1 zo 4</p>
-                  <h2>Termín</h2>
-                </div>
-                <span className={styles.sectionMeta}>Termín vám potvrdíme.</span>
-              </div>
-
-              <div ref={stepContentRef as unknown as RefObject<HTMLDivElement>} className={styles.calendar}>
-                <div className={styles.calendarHeader}>
-                  <div>
-                    <div className={styles.monthTitle}>{monthLabel}</div>
-                    <p className={styles.helperText}>Po – Pia · 10:00 – 13:00 a 14:00 – 18:00</p>
-                  </div>
-                  <div className={styles.monthNav}>
-                    <button
-                      type="button"
-                      className={styles.monthNavButton}
-                      onClick={() => handleMonthChange(-1)}
-                      aria-label="Predchádzajúci mesiac"
-                    >
-                      ‹
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.monthNavButton}
-                      onClick={() => handleMonthChange(1)}
-                      aria-label="Nasledujúci mesiac"
-                    >
-                      ›
-                    </button>
-                  </div>
-                </div>
-
-                <div className={styles.weekdayRow} aria-hidden="true">
-                  {WEEKDAY_LABELS.map((label) => (
-                    <div key={label} className={styles.weekdayCell}>
-                      {label}
-                    </div>
-                  ))}
-                </div>
-
-                <div className={styles.dayGrid}>
-                  {calendarRows.flatMap((row, rowIndex) =>
-                    row.map((dateKey, cellIndex) => {
-                      if (!dateKey) {
-                        return <span key={`empty-${rowIndex}-${cellIndex}`} className={styles.dayPlaceholder} />;
-                      }
-
-                      const isAllowed = isBookingDateAllowed(dateKey);
-                      const dayBusy = isBookingDayBusy(dateKey, allBusyIntervals);
-                      const isSelected = selectedDate === dateKey;
-                      const dayState = !isAllowed
-                        ? 'od zajtra'
-                        : dayBusy
-                          ? 'obsadené'
-                          : 'voľné';
-
-                      return (
-                        <button
-                          key={dateKey}
-                          type="button"
-                          className={`${styles.dayButton} ${
-                            isSelected ? styles.dayButtonSelected : ''
-                          } ${!isAllowed || dayBusy ? styles.dayButtonDisabled : ''}`}
-                          ref={
-                            !hasAssignedStepOneTarget && isAllowed && !dayBusy
-                              ? (node) => {
-                                  if (node && !hasAssignedStepOneTarget) {
-                                    stepOneTargetRef.current = node;
-                                    hasAssignedStepOneTarget = true;
-                                  }
-                                }
-                              : undefined
-                          }
-                          disabled={!isAllowed || dayBusy}
-                          onClick={() => handleSelectDay(dateKey)}
-                        >
-                          <span className={styles.dayNumber}>{dateKey.slice(-2)}</span>
-                          <span className={styles.dayState}>{dayState}</span>
-                        </button>
-                      );
-                    }),
-                  )}
-                </div>
-              </div>
-
-              <div className={styles.slots}>
-                <div className={styles.serviceSectionHead}>
-                  <h3>Preferovaný čas</h3>
-                  <p>Vyberte čas, ktorý vám najviac vyhovuje.</p>
-                </div>
-                {selectedDate ? (
-                  <>
-                    <div className={styles.serviceSectionHead}>
-                      <h3>Ráno</h3>
-                      <p>10:00 · 12:30</p>
-                    </div>
-                    <div className={styles.slotGrid}>
-                      {openSlots.filter((time) => time < '14:00').map((time) => {
-                        const busy = isBookingSlotBusy(selectedDate, time, allBusyIntervals);
-                        const isSelected = selectedTime === time;
-
-                        return (
-                          <button
-                            key={time}
-                            type="button"
-                            className={`${styles.slotButton} ${
-                              isSelected ? styles.slotButtonSelected : ''
-                            } ${busy ? styles.slotButtonBusy : ''}`}
-                            onClick={() => {
-                              if (!busy) {
-                                setSelectedTime(time);
-                              }
-                            }}
-                            disabled={busy}
-                          >
-                            <span className={styles.slotButtonTime}>{time}</span>
-                            <span className={styles.slotButtonState}>
-                              {busy ? 'obsadené' : 'voľné'}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className={styles.serviceSectionHead}>
-                      <h3>Popoludnie</h3>
-                      <p>14:00 · 17:30</p>
-                    </div>
-                    <div className={styles.slotGrid}>
-                      {openSlots.filter((time) => time >= '14:00').map((time) => {
-                        const busy = isBookingSlotBusy(selectedDate, time, allBusyIntervals);
-                        const isSelected = selectedTime === time;
-
-                        return (
-                          <button
-                            key={time}
-                            type="button"
-                            className={`${styles.slotButton} ${
-                              isSelected ? styles.slotButtonSelected : ''
-                            } ${busy ? styles.slotButtonBusy : ''}`}
-                            onClick={() => {
-                              if (!busy) {
-                                setSelectedTime(time);
-                              }
-                            }}
-                            disabled={busy}
-                          >
-                            <span className={styles.slotButtonTime}>{time}</span>
-                            <span className={styles.slotButtonState}>
-                              {busy ? 'obsadené' : 'voľné'}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </>
-                ) : (
-                  <p className={styles.statusNote}>Najprv vyberte deň v kalendári.</p>
-                )}
-
-                <p className={styles.statusNote}>
-                  {!selectedDate
-                    ? availabilityNote
-                    : selectedDayBusy
-                        ? 'Vybraný deň je obsadený.'
-                      : selectedTime
-                        ? freeSlots.includes(selectedTime)
-                          ? availabilityNote
-                          : 'Vybraný čas je obsadený.'
-                        : 'Potom vyberte časový slot.'}
-                </p>
-              </div>
-            </>
-          ) : null}
-
-                    {step === 4 ? (
-            <>
-              <div className={styles.sectionTitle}>
-                <div>
-                  <p className={styles.stepKicker}>Krok 4 zo 4</p>
-                  <h2>Kontakt</h2>
-                </div>
-                <span className={styles.sectionMeta}>Skontrolujte súhrn a odošlite žiadosť.</span>
-              </div>
-
-              <div ref={stepFourTargetRef} className={styles.summaryBox} tabIndex={-1}>
-                <div className={styles.summaryGrid}>
-                  <div className={styles.summaryItem}>
-                    <span className={styles.summaryLabel}>Termín</span>
-                    <span className={styles.summaryValue}>
-                      {selectedDateLabel} · {selectedTimeLabel}
-                    </span>
-                  </div>
-                  <div className={styles.summaryItem}>
-                    <span className={styles.summaryLabel}>Pes</span>
-                    <span className={styles.summaryValue}>
-                      {dogName} · {dogBreed} · {selectedSizeRecord.label}
-                    </span>
-                  </div>
-                  <div className={styles.summaryItem}>
-                    <span className={styles.summaryLabel}>Veľkosť</span>
-                    <span className={styles.summaryValue}>{selectedSizeRecord.label}</span>
-                  </div>
-                  <div className={styles.summaryItem}>
-                    <span className={styles.summaryLabel}>Typ strihu</span>
-                    <span className={styles.summaryValue}>
-                      {selectedCutTypeRecord?.label ?? 'Neviem – poradíte mi'}
-                    </span>
-                  </div>
-                  <div className={styles.summaryItem}>
-                    <span className={styles.summaryLabel}>Doplnky</span>
-                    <span className={styles.summaryValue}>
-                      {selectedAddonLabel}
-                      {addonPrice > 0 ? ` · ${formatBookingCurrency(addonPrice)}` : ''}
-                    </span>
-                  </div>
-                  <div className={styles.summaryItem}>
-                    <span className={styles.summaryLabel}>Orientačne spolu</span>
-                    <span className={styles.summaryValue}>{formatBookingCurrency(estimatedPrice)}</span>
-                  </div>
-                </div>
-              </div>              <div ref={stepContentRef as unknown as RefObject<HTMLDivElement>} className={styles.fieldGrid}>
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="customerName">
-                    Meno
-                  </label>
-                  <input
-                    ref={nameInputRef}
-                    id="customerName"
-                    name="customerName"
-                    className={`${styles.input} ${visibleFieldErrors.customerName ? styles.inputError : ''}`}
-                    value={customerName}
-                    onChange={(event) => {
-                      setCustomerName(event.target.value);
-                      setClientFieldErrors((current) => {
-                        if (!current.customerName) {
-                          return current;
-                        }
-
-                        const next = { ...current };
-                        delete next.customerName;
-                        return next;
-                      });
-                    }}
-                    autoComplete="name"
-                    aria-invalid={Boolean(visibleFieldErrors.customerName)}
-                    aria-describedby={visibleFieldErrors.customerName ? 'customerName-error' : undefined}
-                    required
-                  />
-                  {visibleFieldErrors.customerName ? (
-                    <p id="customerName-error" className={styles.fieldError}>
-                      {visibleFieldErrors.customerName}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="customerPhone">
-                    Telefón
-                  </label>
-                  <input
-                    ref={phoneInputRef}
-                    id="customerPhone"
-                    name="customerPhone"
-                    className={`${styles.input} ${visibleFieldErrors.customerPhone ? styles.inputError : ''}`}
-                    value={customerPhone}
-                    onChange={(event) => {
-                      setCustomerPhone(event.target.value);
-                      setClientFieldErrors((current) => {
-                        if (!current.customerPhone) {
-                          return current;
-                        }
-
-                        const next = { ...current };
-                        delete next.customerPhone;
-                        return next;
-                      });
-                    }}
-                    autoComplete="tel"
-                    inputMode="tel"
-                    placeholder="+421 944 240 116"
-                    aria-invalid={Boolean(visibleFieldErrors.customerPhone)}
-                    aria-describedby={
-                      visibleFieldErrors.customerPhone
-                        ? 'customerPhone-hint customerPhone-error'
-                        : 'customerPhone-hint'
-                    }
-                    required
-                  />
-                  <p id="customerPhone-hint" className={styles.helperText}>
-                    Telefónne číslo potrebujeme na potvrdenie termínu.
-                  </p>
-                  {visibleFieldErrors.customerPhone ? (
-                    <p id="customerPhone-error" className={styles.fieldError}>
-                      {visibleFieldErrors.customerPhone}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className={`${styles.field} ${styles.fieldFull}`}>
-                  <label className={styles.label} htmlFor="customerEmail">
-                    Email
-                  </label>
-                  <input
-                    ref={emailInputRef}
-                    id="customerEmail"
-                    name="customerEmail"
-                    type="email"
-                    className={`${styles.input} ${visibleFieldErrors.customerEmail ? styles.inputError : ''}`}
-                    value={customerEmail}
-                    onChange={(event) => {
-                      setCustomerEmail(event.target.value);
-                      setClientFieldErrors((current) => {
-                        if (!current.customerEmail) {
-                          return current;
-                        }
-
-                        const next = { ...current };
-                        delete next.customerEmail;
-                        return next;
-                      });
-                    }}
-                    autoComplete="email"
-                    placeholder="voliteľné"
-                    aria-invalid={Boolean(visibleFieldErrors.customerEmail)}
-                    aria-describedby={visibleFieldErrors.customerEmail ? 'customerEmail-error' : undefined}
-                  />
-                  {visibleFieldErrors.customerEmail ? (
-                    <p id="customerEmail-error" className={styles.fieldError}>
-                      {visibleFieldErrors.customerEmail}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              {visibleFormError ? (
-                <div
-                  ref={formErrorRef}
-                  className={`${styles.alert} ${styles.alertError}`}
-                  tabIndex={-1}
-                  role="alert"
-                  aria-live="assertive"
-                >
-                  {visibleFormError}
-                </div>
-              ) : null}
-
-              <div className={styles.footerActions}>
-                <button type="button" className="btn btn--ghost" onClick={goBack}>
-                  Späť
-                </button>
-                <SubmitButton />
-              </div>
-            </>
-          ) : null}
-
-          {step < 4 ? (
             <div className={styles.footerActions}>
-              <button type="button" className="btn btn--ghost" onClick={goBack} disabled={step === 1}>
+              <button type="button" className="btn btn--ghost" onClick={goBack}>
                 Späť
               </button>
               <button type="button" className="btn btn--primary" onClick={goNext}>
                 Pokračovať
               </button>
             </div>
-          ) : null}
+          </div>
+
+          <div
+            ref={stepThreeRef}
+            className={`${styles.stepPane} ${step === 3 ? styles.stepPaneVisible : styles.stepPaneHidden}`}
+            tabIndex={-1}
+          >
+            <div className={styles.sectionTitle}>
+              <div>
+                <p className={styles.stepKicker}>Krok 3 zo 4</p>
+                <h2>Služba</h2>
+              </div>
+              <span className={styles.sectionMeta}>
+                {selectedSizeRecord
+                  ? `Ceny sa orientačne začínajú na ${formatBookingCurrency(basePrice ?? 0)}.`
+                  : 'Najprv vyberte veľkosť psa.'}
+              </span>
+            </div>
+
+            <div className={styles.serviceSection}>
+              <div className={styles.serviceSectionHead}>
+                <h3>Typ strihu</h3>
+                <p>Konečnú cenu upresníme podľa stavu srsti.</p>
+              </div>
+
+              <div className={styles.serviceGrid}>
+                {CUT_TYPE_OPTIONS.map((option) => {
+                  const selected = selectedCutType === option.value;
+
+                  return (
+                    <label
+                      key={option.value}
+                      className={`${styles.serviceCard} ${selected ? styles.serviceCardSelected : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="cutType"
+                        value={option.value}
+                        checked={selected}
+                        onChange={() => {
+                          setSelectedCutType(option.value);
+                          setStepError(null);
+                        }}
+                        className={styles.serviceInput}
+                        required
+                      />
+                      <span className={styles.serviceCardCheck} aria-hidden="true" />
+                      <span className={styles.serviceCardBody}>
+                        <span className={styles.serviceCardTitle}>{option.label}</span>
+                        <span className={styles.serviceCardMeta}>
+                          {selectedSizeRecord ? `od ${formatBookingCurrency(basePrice ?? 0)}` : 'Vyberte veľkosť psa'}
+                        </span>
+                        <span className={styles.serviceCardNote}>{option.note}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className={styles.serviceSection}>
+              <div className={styles.serviceSectionHead}>
+                <h3>Doplnky</h3>
+                <p>Pridajte len to, čo má pre psa zmysel.</p>
+              </div>
+
+              <div className={styles.serviceGrid}>
+                {ADDON_OPTIONS.map((addon) => {
+                  const selected = selectedAddonCodes.includes(addon.code);
+
+                  return (
+                    <label key={addon.code} className={`${styles.serviceCard} ${selected ? styles.serviceCardSelected : ''}`}>
+                      <input
+                        type="checkbox"
+                        name="serviceIds"
+                        value={addon.code}
+                        checked={selected}
+                        onChange={() => handleAddonToggle(addon.code)}
+                        className={styles.serviceInput}
+                      />
+                      <span className={styles.serviceCardCheck} aria-hidden="true" />
+                      <span className={styles.serviceCardBody}>
+                        <span className={styles.serviceCardTitle}>{addon.label}</span>
+                        <span className={styles.serviceCardMeta}>{formatBookingCurrency(addon.price)}</span>
+                        <span className={styles.serviceCardNote}>{addon.note}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <div className={styles.serviceSummary}>
+                <strong>Orientačne spolu: {formatBookingCurrency(estimatedPrice)}</strong>
+                <span>Konečnú cenu upresníme podľa stavu srsti.</span>
+              </div>
+            </div>
+
+            {stepError ? <div className={`${styles.alert} ${styles.alertError}`}>{stepError}</div> : null}
+
+            <div className={styles.footerActions}>
+              <button type="button" className="btn btn--ghost" onClick={goBack}>
+                Späť
+              </button>
+              <button type="button" className="btn btn--primary" onClick={goNext}>
+                Pokračovať
+              </button>
+            </div>
+          </div>
+
+          <div
+            ref={stepFourRef}
+            className={`${styles.stepPane} ${step === 4 ? styles.stepPaneVisible : styles.stepPaneHidden}`}
+            tabIndex={-1}
+          >
+            <div className={styles.sectionTitle}>
+              <div>
+                <p className={styles.stepKicker}>Krok 4 zo 4</p>
+                <h2>Kontakt</h2>
+              </div>
+              <span className={styles.sectionMeta}>Skontrolujte súhrn a odošlite žiadosť.</span>
+            </div>
+
+            <div className={styles.recapBox}>
+              <div className={styles.recapRows}>
+                {recapItems.map((item) => (
+                  <div key={item.label} className={styles.recapRow}>
+                    <span className={styles.summaryLabel}>{item.label}</span>
+                    <span className={styles.summaryValue}>{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.fieldGrid}>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="customerName">
+                  Meno
+                </label>
+                <input
+                  ref={nameInputRef}
+                  id="customerName"
+                  name="customerName"
+                  className={`${styles.input} ${clientFieldErrors.customerName ? styles.inputError : ''}`}
+                  value={customerName}
+                  onChange={(event) => {
+                    setCustomerName(event.target.value);
+                    setClientFieldErrors((current) => {
+                      if (!current.customerName) {
+                        return current;
+                      }
+
+                      const next = { ...current };
+                      delete next.customerName;
+                      return next;
+                    });
+                    setSubmissionError(null);
+                  }}
+                  autoComplete="name"
+                  aria-invalid={Boolean(clientFieldErrors.customerName)}
+                  aria-describedby={clientFieldErrors.customerName ? 'customerName-error' : undefined}
+                  required
+                />
+                {clientFieldErrors.customerName ? (
+                  <p id="customerName-error" className={styles.fieldError}>
+                    {clientFieldErrors.customerName}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="customerPhone">
+                  Telefón
+                </label>
+                <input
+                  ref={phoneInputRef}
+                  id="customerPhone"
+                  name="customerPhone"
+                  className={`${styles.input} ${clientFieldErrors.customerPhone ? styles.inputError : ''}`}
+                  value={customerPhone}
+                  onChange={(event) => {
+                    setCustomerPhone(event.target.value);
+                    setClientFieldErrors((current) => {
+                      if (!current.customerPhone) {
+                        return current;
+                      }
+
+                      const next = { ...current };
+                      delete next.customerPhone;
+                      return next;
+                    });
+                    setSubmissionError(null);
+                  }}
+                  autoComplete="tel"
+                  inputMode="tel"
+                  placeholder={PHONE_DISPLAY}
+                  aria-invalid={Boolean(clientFieldErrors.customerPhone)}
+                  aria-describedby={
+                    clientFieldErrors.customerPhone ? 'customerPhone-hint customerPhone-error' : 'customerPhone-hint'
+                  }
+                  required
+                />
+                <p id="customerPhone-hint" className={styles.helperText}>
+                  Telefónne číslo potrebujeme na potvrdenie termínu.
+                </p>
+                {clientFieldErrors.customerPhone ? (
+                  <p id="customerPhone-error" className={styles.fieldError}>
+                    {clientFieldErrors.customerPhone}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className={`${styles.field} ${styles.fieldFull}`}>
+                <label className={styles.label} htmlFor="customerEmail">
+                  Email
+                </label>
+                <input
+                  ref={emailInputRef}
+                  id="customerEmail"
+                  name="customerEmail"
+                  type="email"
+                  className={`${styles.input} ${clientFieldErrors.customerEmail ? styles.inputError : ''}`}
+                  value={customerEmail}
+                  onChange={(event) => {
+                    setCustomerEmail(event.target.value);
+                    setClientFieldErrors((current) => {
+                      if (!current.customerEmail) {
+                        return current;
+                      }
+
+                      const next = { ...current };
+                      delete next.customerEmail;
+                      return next;
+                    });
+                    setSubmissionError(null);
+                  }}
+                  autoComplete="email"
+                  placeholder="nepovinné"
+                  aria-invalid={Boolean(clientFieldErrors.customerEmail)}
+                  aria-describedby={clientFieldErrors.customerEmail ? 'customerEmail-error' : undefined}
+                />
+                {clientFieldErrors.customerEmail ? (
+                  <p id="customerEmail-error" className={styles.fieldError}>
+                    {clientFieldErrors.customerEmail}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            {submissionError ? (
+              <div ref={formErrorRef} className={`${styles.alert} ${styles.alertError}`} tabIndex={-1} role="alert">
+                {submissionError}
+              </div>
+            ) : null}
+
+            <div className={styles.recapNote}>
+              <strong>Na jednom mieste budete mať celý prehľad.</strong>
+              <span>
+                Ak sa ponáhľate, zavolajte nám priamo na <a href={PHONE_HREF}>{PHONE_DISPLAY}</a>.
+              </span>
+            </div>
+
+            <div className={styles.footerActions}>
+              <button type="button" className="btn btn--ghost" onClick={goBack}>
+                Späť
+              </button>
+              <SubmitButton />
+            </div>
+          </div>
         </div>
       </form>
 
       <aside className={`${styles.panel} ${styles.panelInner} ${styles.summaryPanel}`}>
         <p className="eyebrow">Súhrn</p>
-        <div className={styles.summaryStack}>
-          <div className={styles.summaryItem}>
-            <span className={styles.summaryLabel}>Termín</span>
-            <span className={styles.summaryValue}>
-              {selectedDateLabel} · {selectedTimeLabel}
-            </span>
-          </div>
-          <div className={styles.summaryItem}>
-            <span className={styles.summaryLabel}>Pes</span>
-            <span className={styles.summaryValue}>
-              {dogName || '—'} {dogBreed ? ` · ${dogBreed}` : ''}
-            </span>
-          </div>
-          <div className={styles.summaryItem}>
-            <span className={styles.summaryLabel}>Veľkosť</span>
-            <span className={styles.summaryValue}>{selectedSizeRecord.label}</span>
-          </div>
-          <div className={styles.summaryItem}>
-            <span className={styles.summaryLabel}>Typ strihu</span>
-            <span className={styles.summaryValue}>
-              {selectedCutTypeRecord?.label ?? 'Neviem – poradíte mi'}
-            </span>
-          </div>
-          <div className={styles.summaryItem}>
-            <span className={styles.summaryLabel}>Doplnky</span>
-            <span className={styles.summaryValue}>
-              {selectedAddonLabel}
-              {addonPrice > 0 ? ` · ${formatBookingCurrency(addonPrice)}` : ''}
-            </span>
-          </div>
-          <div className={styles.summaryItem}>
-            <span className={styles.summaryLabel}>Orientačne spolu</span>
-            <span className={styles.summaryValue}>{formatBookingCurrency(estimatedPrice)}</span>
-          </div>
-          <div className={styles.summaryHint}>Konečná cena podľa stavu srsti.</div>
-        </div>
-
+        <SummaryRows items={summaryEntries} />
+        <div className={styles.summaryHint}>Konečná cena podľa stavu srsti.</div>
         <div className={styles.summaryNote}>
           <strong>Otváracie hodiny</strong>
           <span>Po – Pia · 10:00 – 13:00 a 14:00 – 18:00</span>
         </div>
       </aside>
-
     </div>
   );
 }

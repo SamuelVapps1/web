@@ -19,6 +19,13 @@
   padding: clamp(1.8rem, 4vw, 3rem);
 }
 
+.heroCard h1 {
+  margin: 0;
+  max-width: 14ch;
+  font-size: clamp(2.35rem, 4vw, 4rem);
+  line-height: 0.95;
+}
+
 .eyebrow {
   display: inline-flex;
   align-items: center;
@@ -167,6 +174,19 @@
   gap: 1.2rem;
 }
 
+.stepPane {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.stepPaneHidden {
+  display: none;
+}
+
+.stepPaneVisible {
+  display: grid;
+}
+
 .sectionTitle {
   display: flex;
   align-items: baseline;
@@ -252,6 +272,13 @@
   transform: translateY(-1px);
 }
 
+.dayButton:focus-visible,
+.monthNavButton:focus-visible,
+.slotButton:focus-visible {
+  outline: 2px solid var(--cognac);
+  outline-offset: 2px;
+}
+
 .dayButtonSelected {
   border-color: var(--cognac);
   background: rgba(156, 107, 61, 0.08);
@@ -309,6 +336,10 @@
   gap: 0.15rem;
   min-height: 4rem;
   text-align: center;
+}
+
+.slotButton:focus-visible {
+  outline-offset: 3px;
 }
 
 .slotButtonSelected {
@@ -487,6 +518,11 @@
   transform: translateY(-1px);
 }
 
+.sizeCard:focus-within {
+  outline: 2px solid rgba(156, 107, 61, 0.55);
+  outline-offset: 2px;
+}
+
 .sizeCard input {
   position: absolute;
   inset: 0;
@@ -554,6 +590,11 @@
 .serviceCard:hover {
   border-color: rgba(156, 107, 61, 0.4);
   transform: translateY(-1px);
+}
+
+.serviceCard:focus-within {
+  outline: 2px solid rgba(156, 107, 61, 0.55);
+  outline-offset: 2px;
 }
 
 .serviceCardSelected {
@@ -638,6 +679,37 @@
   color: var(--ink-mute);
 }
 
+.mobileSummary {
+  display: none;
+}
+
+.mobileSummaryCard {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(176, 141, 87, 0.26);
+  background: rgba(246, 241, 231, 0.96);
+}
+
+.mobileSummaryLabel {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cognac);
+}
+
+.mobileSummaryValue {
+  font-family: var(--serif-display);
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.mobileSummaryMeta {
+  font-size: 0.8rem;
+  color: var(--ink-mute);
+}
+
 .fieldError {
   margin: 0.35rem 0 0;
   font-size: 0.82rem;
@@ -650,6 +722,44 @@
   height: fit-content;
   display: grid;
   gap: 1rem;
+}
+
+.recapBox {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(246, 241, 231, 0.92);
+  border: 1px solid rgba(176, 141, 87, 0.24);
+}
+
+.recapRows {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.recapRow {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.recapNote {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem 0 0;
+  color: var(--ink-soft);
+}
+
+.recapNote strong {
+  color: var(--ink);
+}
+
+.recapNote a {
+  white-space: nowrap;
+}
+
+.phoneInline {
+  white-space: nowrap;
 }
 
 .summaryStack {
@@ -691,7 +801,11 @@
   }
 
   .summaryPanel {
-    position: static;
+    display: none;
+  }
+
+  .mobileSummary {
+    display: grid;
   }
 }
 
