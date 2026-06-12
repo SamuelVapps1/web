@@ -8,6 +8,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "gallery": "python scripts/gallery.py",
     "postinstall": "prisma generate",
     "test": "node tests/admin-paths.test.mjs && node tests/reservation-collisions.test.mjs && node tests/timezone-boundaries.test.mjs && node tests/admin-next-free-slots.test.mjs && node tests/manual-reservation-helpers.test.mjs && node tests/admin-labels.test.mjs && node tests/admin-availability.test.mjs",
     "prisma:generate": "prisma generate",
