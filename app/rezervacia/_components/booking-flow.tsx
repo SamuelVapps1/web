@@ -9,11 +9,9 @@ import {
   formatBookingCurrency,
   formatBookingDate,
   formatBookingMonthLabel,
-  getAddonPriceTotal,
   getBasePriceForSize,
   getBookingMinDateKey,
   getFreeBookingSlots,
-  getOpenBookingSlots,
   isBookingDateAllowed,
   isBookingDayBusy,
   isBookingSlotBusy,
@@ -65,29 +63,29 @@ const SIZE_OPTIONS = [
 const CUT_TYPE_OPTIONS = [
   {
     value: 'SHORT',
-    label: 'Kr?tky strih',
-    note: 'Praktick? skr?tenie srsti.',
+    label: 'Krátky strih',
+    note: 'Praktické skrátenie srsti.',
   },
   {
     value: 'STANDARD',
-    label: 'Pln? / ?tandardn? strih',
-    note: 'Klasick? ?prava pod?a stavu srsti.',
+    label: 'Plný / štandardný strih',
+    note: 'Klasická úprava podľa stavu srsti.',
   },
   {
     value: 'NO_CUT',
-    label: '?prava bez strihania',
-    note: 'Len vy?esanie. K?panie si pridajte samostatne v doplnkoch, ak ho chcete.',
+    label: 'Úprava bez strihania',
+    note: 'Len vyčesanie. Kúpanie si pridajte samostatne v doplnkoch, ak ho chcete.',
   },
   {
     value: 'A_LA_CARTE',
     label: 'A la carte',
-    note: 'Nad?tandardn? ?prava.',
+    note: 'Nadštandardná úprava.',
     priceLabel: 'Cena dohodou',
   },
   {
     value: 'ADVICE',
-    label: 'Neviem ? pora?te mi',
-    note: 'Spolu vyberieme vhodn? postup.',
+    label: 'Neviem - poraďte mi',
+    note: 'Spolu vyberieme vhodný postup.',
   },
 ] as const satisfies readonly {
   value: CutType;
@@ -294,8 +292,8 @@ function getMobileSummaryItem(
   }
 
   if (step >= 3) {
-    const service = entries.find((entry) => entry.label === 'Slu?ba');
-    if (service && service.value !== '?') {
+    const service = entries.find((entry) => entry.label === 'Služba');
+    if (service && service.value !== '—') {
       return service;
     }
   }
@@ -307,7 +305,7 @@ function getMobileSummaryItem(
     }
   }
 
-  return entries.find((entry) => entry.label === 'Term?n' && entry.value !== '?') ?? null;
+  return entries.find((entry) => entry.label === 'Termín' && entry.value !== '—') ?? null;
 }
 
 
@@ -361,7 +359,6 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
   };
 
   const basePrice = dogSize ? getBasePriceForSize(dogSize) : null;
-  const addonPrice = getAddonPriceTotal(selectedAddonCodes);
   const estimatedPrice = dogSize ? estimateReservationPrice(dogSize, selectedAddonCodes) : 0;
 
   const selectedCutTypeRecord = useMemo(
@@ -378,7 +375,6 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
   );
   const monthLabel = useMemo(() => formatBookingMonthLabel(monthAnchorKey), [monthAnchorKey]);
   const calendarRows = useMemo(() => buildCalendarRows(monthAnchorKey), [monthAnchorKey]);
-  const openSlots = useMemo(() => getOpenBookingSlots(selectedDate), [selectedDate]);
   const freeSlots = useMemo(
     () => getFreeBookingSlots(selectedDate, [...busyIntervals, ...selectedDateBusyIntervals]),
     [busyIntervals, selectedDate, selectedDateBusyIntervals],
@@ -436,6 +432,7 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
 
   useEffect(() => {
     if (isSuccessView) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSubmissionError(null);
       window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
       confirmationRef.current?.focus({ preventScroll: true });
@@ -542,6 +539,7 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
     }
 
     if (!selectedDate) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedDateBusyIntervals([]);
       setSelectedDateAvailabilityError(null);
       setSelectedDateAvailabilityLoading(false);
