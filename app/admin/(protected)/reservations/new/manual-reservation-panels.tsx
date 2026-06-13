@@ -3,11 +3,12 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from '../../../admin.module.css';
-import { BOOKING_ADDONS, BOOKING_CUT_TYPES } from '@/lib/booking';
+import { BOOKING_ADDONS, BOOKING_CUT_TYPES, formatBookingCurrency } from '@/lib/booking';
 import { DOG_SIZE_SELECT_OPTIONS } from '@/lib/admin-label-mapping';
 import { findCustomerMatches, findDuplicateCustomerByPhone } from './manual-reservation-helpers.js';
 import { type AdminActionState } from '@/app/admin/actions';
-import ReservationAvailabilityPanel from '../_components/reservation-availability-panel';
+import { buildWorkingDaySlots } from '@/lib/opening-hours.js';
+import { formatBratislavaDate, getBratislavaDateKey, isWeekendDateKey, localDateTimeToUtc, shiftDateKey } from '@/lib/time';
 
 export type ManualReservationCustomer = {
   id: string;
@@ -152,6 +153,62 @@ function setArrayValue<T>(values: T[], value: T, active: boolean): T[] {
   }
 
   return [...values, value];
+}
+
+function getWorkingDateOptions(startDateKey: string, count = 14): string[] {
+  const options: string[] = [];
+  let cursor = startDateKey;
+
+  while (options.length < count) {
+    if (!isWeekendDateKey(cursor)) {
+      options.push(cursor);
+    }
+
+    cursor = shiftDateKey(cursor, 1);
+  }
+
+  return options;
+}
+
+function formatManualDateLabel(dateKey: string): string {
+  return formatBratislavaDate(new Date(`${dateKey}T12:00:00Z`));
+}
+
+function getSlotStatus(
+  reservations: ManualReservationAvailabilityReservation[],
+  date: string,
+  timeKey: string,
+  durationMin: number,
+): { label: string; tone: 'free' | 'busy' | 'pending' } {
+  const start = localDateTimeToUtc(date, timeKey);
+  const end = new Date(start.getTime() + durationMin * 60 * 1000);
+
+  let pendingMatch = false;
+
+  for (const reservation of reservations) {
+    const reservationDateKey = getBratislavaDateKey(new Date(reservation.confirmedStart ?? reservation.requestedStart));
+    if (reservationDateKey !== date) {
+      continue;
+    }
+
+    const reservationStartIso = reservation.confirmedStart ?? reservation.requestedStart;
+    const reservationStart = new Date(reservationStartIso);
+    const reservationEnd = new Date(reservationStart.getTime() + reservation.durationMin * 60 * 1000);
+
+    if (reservationStart < end && reservationEnd > start) {
+      if (reservation.status === 'CONFIRMED') {
+        return { label: 'obsadené', tone: 'busy' };
+      }
+
+      pendingMatch = true;
+    }
+  }
+
+  if (pendingMatch) {
+    return { label: 'čaká na schválenie', tone: 'pending' };
+  }
+
+  return { label: 'voľné', tone: 'free' };
 }
 
 function toCustomerDraft(customer: ManualReservationCustomer): ManualReservationState['customerDraft'] {
@@ -595,50 +652,146 @@ export function DogStep({ customers, state, stateAction }: DogStepProps) {
 }
 
 export function TimingStep({ availabilityReservations, state, stateAction }: TimingStepProps) {
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const workingDaySlots = useMemo(() => buildWorkingDaySlots(), []);
+  const dayOptions = useMemo(
+    () => getWorkingDateOptions(getBratislavaDateKey()),
+    [],
+  );
+  const selectedDateLabel = useMemo(
+    () => formatManualDateLabel(state.reservationDraft.date),
+    [state.reservationDraft.date],
+  );
+  const selectedDateSlots = useMemo(
+    () =>
+      workingDaySlots.map((timeKey) => {
+        const status = getSlotStatus(
+          availabilityReservations,
+          state.reservationDraft.date,
+          timeKey,
+          state.reservationDraft.durationMin,
+        );
+
+        return {
+          timeKey,
+          ...status,
+        };
+      }),
+    [availabilityReservations, state.reservationDraft.date, state.reservationDraft.durationMin, workingDaySlots],
+  );
+  const hasSelectedDate = Boolean(state.reservationDraft.date);
+
   return (
     <section className={styles.detailCard}>
       <p className={styles.sectionKicker}>3. Termín</p>
 
-      <ReservationAvailabilityPanel
-        reservations={availabilityReservations}
-        date={state.reservationDraft.date}
-        time={state.reservationDraft.time}
-        durationMin={state.reservationDraft.durationMin}
-        availabilityCursor={state.availabilityCursor}
-        onDateChange={(value) =>
-          stateAction.setReservationDraft({
-            ...state.reservationDraft,
-            date: value,
-          })
-        }
-        onTimeChange={(value) =>
-          stateAction.setReservationDraft({
-            ...state.reservationDraft,
-            time: value,
-          })
-        }
-        onDurationChange={(value) =>
-          stateAction.setReservationDraft({
-            ...state.reservationDraft,
-            durationMin: value,
-          })
-        }
-        onAvailabilityCursorChange={stateAction.setAvailabilityCursor}
-      />
+      <div className={styles.manualCalendarPanel}>
+        <button
+          type="button"
+          className={styles.manualDateToggle}
+          onClick={() => setDatePickerOpen((value) => !value)}
+        >
+          <span className={styles.sectionKicker}>Dátum</span>
+          <strong>{selectedDateLabel}</strong>
+          <span className={styles.fieldHint}>Klikni a otvorí sa kalendár.</span>
+        </button>
 
-      <div className={styles.formGrid}>
-        <div className={`${styles.field} ${styles.fieldFull}`}>
-          <label>Interná poznámka</label>
-          <textarea
-            name="internalNote"
-            value={state.reservationDraft.internalNote}
-            onChange={(event) =>
-              stateAction.setReservationDraft({
-                ...state.reservationDraft,
-                internalNote: event.target.value,
-              })
-            }
-          />
+        {datePickerOpen ? (
+          <div className={styles.manualDatePicker}>
+            {dayOptions.map((dateKey) => {
+              const active = state.reservationDraft.date === dateKey;
+
+              return (
+                <button
+                  key={dateKey}
+                  type="button"
+                  className={`${styles.manualDateChip} ${active ? styles.manualDateChipActive : ''}`}
+                  aria-pressed={active}
+                  onClick={() => {
+                    stateAction.setReservationDraft({
+                      ...state.reservationDraft,
+                      date: dateKey,
+                    });
+                  }}
+                >
+                  {formatManualDateLabel(dateKey)}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        <div className={styles.manualTimePanel}>
+          <div className={styles.freeSlotsHeader}>
+            <div>
+              <p className={styles.sectionKicker}>Čas</p>
+              <p className={styles.fieldHint}>
+                {hasSelectedDate ? 'Klikni na voľný alebo obsadený čas v danom dni.' : 'Najprv vyber deň.'}
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.manualTimeGrid} role="radiogroup" aria-label="Dostupné časy">
+            {selectedDateSlots.map((slot) => (
+              <button
+                key={slot.timeKey}
+                type="button"
+                className={`${styles.manualTimeChip} ${
+                  slot.tone === 'busy'
+                    ? styles.manualTimeChipBusy
+                    : slot.tone === 'pending'
+                      ? styles.manualTimeChipPending
+                      : ''
+                } ${state.reservationDraft.time === slot.timeKey ? styles.manualTimeChipActive : ''}`}
+                onClick={() =>
+                  stateAction.setReservationDraft({
+                    ...state.reservationDraft,
+                    time: slot.timeKey,
+                  })
+                }
+              >
+                <strong>{slot.timeKey}</strong>
+                <span>{slot.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.formGrid}>
+            <div className={styles.field}>
+              <label>Trvanie termínu</label>
+              <select
+                value={state.reservationDraft.durationMin}
+                onChange={(event) =>
+                  stateAction.setReservationDraft({
+                    ...state.reservationDraft,
+                    durationMin: Number(event.target.value),
+                  })
+                }
+              >
+                {[30, 60, 90, 120, 150, 180, 210, 240].map((value) => (
+                  <option key={value} value={value}>
+                    {value} min
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className={styles.formGrid}>
+            <div className={`${styles.field} ${styles.fieldFull}`}>
+              <label>Interná poznámka</label>
+              <textarea
+                name="internalNote"
+                value={state.reservationDraft.internalNote}
+                onChange={(event) =>
+                  stateAction.setReservationDraft({
+                    ...state.reservationDraft,
+                    internalNote: event.target.value,
+                  })
+                }
+              />
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -648,7 +801,7 @@ export function TimingStep({ availabilityReservations, state, stateAction }: Tim
 export function AddonsStep({ state, stateAction }: AddonsStepProps) {
   return (
     <section className={styles.detailCard}>
-      <p className={styles.sectionKicker}>4. Doplnky a strih</p>
+      <p className={styles.sectionKicker}>4. Špecifikácie</p>
       <div className={styles.formGrid}>
         <div className={styles.field}>
           <label>Typ strihu</label>
@@ -665,9 +818,11 @@ export function AddonsStep({ state, stateAction }: AddonsStepProps) {
             {BOOKING_CUT_TYPES.map((item) => (
               <option key={item.value} value={item.value}>
                 {item.label}
+                {'priceLabel' in item && item.priceLabel ? ` · ${item.priceLabel}` : ''}
               </option>
             ))}
           </select>
+          <p className={styles.fieldHint}>Vyber typ strihu, potom doplnkové služby podľa potreby.</p>
         </div>
       </div>
 
@@ -690,6 +845,7 @@ export function AddonsStep({ state, stateAction }: AddonsStepProps) {
                 }
               />
               <strong>{addon.label}</strong>
+              <span className={styles.addonPrice}>{formatBookingCurrency(addon.price)}</span>
               <span>{addon.note}</span>
             </label>
           );

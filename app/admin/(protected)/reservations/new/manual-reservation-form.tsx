@@ -13,7 +13,7 @@ import {
   type ManualReservationCustomer,
   type ManualReservationState,
 } from './manual-reservation-panels';
-import { getBratislavaDateKey, localDateTimeToUtc } from '@/lib/time';
+import { getBratislavaDateKey, isWeekendDateKey, localDateTimeToUtc, shiftDateKey } from '@/lib/time';
 
 const initialState: AdminActionState = { kind: 'idle' };
 
@@ -27,10 +27,19 @@ type ManualReservationFormProps = {
 function getInitialDate(initialDate?: string): string {
   const todayKey = getBratislavaDateKey();
   if (!initialDate) {
-    return todayKey;
+    let nextDate = todayKey;
+    while (isWeekendDateKey(nextDate)) {
+      nextDate = shiftDateKey(nextDate, 1);
+    }
+    return nextDate;
   }
 
-  return initialDate >= todayKey ? initialDate : todayKey;
+  const candidate = initialDate >= todayKey ? initialDate : todayKey;
+  let nextDate = candidate;
+  while (isWeekendDateKey(nextDate)) {
+    nextDate = shiftDateKey(nextDate, 1);
+  }
+  return nextDate;
 }
 
 function createBlankCustomerDraft(): ManualReservationState['customerDraft'] {
