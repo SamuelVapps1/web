@@ -652,8 +652,8 @@ export async function listAdminCalendarRange(anchorDateKey: string, view: AdminC
       anchorDateKey,
       titleLabel: getMonthLabel(anchorDateKey),
       rangeLabel: `${formatBratislavaDate(localDateTimeToUtc(grid.startKey, '12:00'))} – ${formatBratislavaDate(localDateTimeToUtc(grid.endKey, '12:00'))}`,
-      previousDateKey: shiftMonthKey(anchorDateKey, -1),
-      nextDateKey: shiftMonthKey(anchorDateKey, 1),
+      previousDateKey: shiftMonthKey(grid.firstDayKey, -1),
+      nextDateKey: shiftMonthKey(grid.firstDayKey, 1),
       days,
     };
   }
@@ -667,8 +667,8 @@ export async function listAdminCalendarRange(anchorDateKey: string, view: AdminC
     anchorDateKey,
     titleLabel: getWeekRangeLabel(range.monday, range.friday),
     rangeLabel: getWeekRangeLabel(range.monday, range.friday),
-    previousDateKey: shiftDateKey(anchorDateKey, -7),
-    nextDateKey: shiftDateKey(anchorDateKey, 7),
+    previousDateKey: shiftDateKey(range.monday, -7),
+    nextDateKey: shiftDateKey(range.monday, 7),
     days,
   };
 }

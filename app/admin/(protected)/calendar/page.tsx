@@ -415,8 +415,9 @@ export default async function AdminCalendarPage({
   const closeHref = buildCalendarHref(activeDateKey, view, view === 'day' ? activeDateKey : effectiveDay?.dateKey, compactNav);
   const todayKey = getBratislavaDateKey();
   const todayHref = buildCalendarHref(todayKey, 'day', todayKey, true);
-  const previousHref = buildCalendarHref(data.previousDateKey, view, effectiveDay?.dateKey, compactNav);
-  const nextHref = buildCalendarHref(data.nextDateKey, view, effectiveDay?.dateKey, compactNav);
+  const periodDayKey = view === 'day' ? effectiveDay?.dateKey : undefined;
+  const previousHref = buildCalendarHref(data.previousDateKey, view, periodDayKey, compactNav);
+  const nextHref = buildCalendarHref(data.nextDateKey, view, periodDayKey, compactNav);
   const currentPeriodLabel = view === 'day' ? effectiveDay?.label ?? data.titleLabel : data.rangeLabel;
 
   return (

@@ -45,9 +45,9 @@ export const BOOKING_SIZE_BASE_PRICES: Record<DogSize, number> = {
 };
 
 export const BOOKING_SIZE_OPTIONS = [
-  { value: 'SMALL', label: 'MalĂ˝', note: 'VhodnĂ© pre menĹˇie plemenĂˇ.' },
-  { value: 'MEDIUM', label: 'StrednĂ˝', note: 'Pre psy strednej veÄľkosti.' },
-  { value: 'LARGE', label: 'VeÄľkĂ˝', note: 'Pre vĂ¤ÄŤĹˇie plemenĂˇ.' },
+  { value: 'SMALL', label: 'Malý', note: 'Vhodné pre menšie plemená.' },
+  { value: 'MEDIUM', label: 'Stredný', note: 'Pre psy strednej veľkosti.' },
+  { value: 'LARGE', label: 'Veľký', note: 'Pre väčšie plemená.' },
 ] as const satisfies readonly {
   value: DogSize;
   label: string;
@@ -72,9 +72,9 @@ export const BOOKING_CUT_TYPES = [
 ] as const satisfies readonly BookingCutTypeRecord[];
 
 export const BOOKING_ADDONS = [
-  { code: 'BATH', label: 'KĂşpanie', price: 15, durationMin: 30, note: 'StarostlivosĹĄ podÄľa stavu srsti.' },
-  { code: 'NAILS', label: 'PazĂşriky', price: 5, durationMin: 10, note: 'RĂ˝chla Ăşprava pazĂşrikov.' },
-  { code: 'EARS', label: 'ÄŚistenie uĹˇĂ­', price: 5, durationMin: 10, note: 'Ĺ etrnĂ© ÄŤistenie podÄľa potreby.' },
+  { code: 'BATH', label: 'Kúpanie', price: 15, durationMin: 30, note: 'Starostlivosť podľa stavu srsti.' },
+  { code: 'NAILS', label: 'Pazúriky', price: 5, durationMin: 10, note: 'Rýchla úprava pazúrikov.' },
+  { code: 'EARS', label: 'Čistenie uší', price: 5, durationMin: 10, note: 'Šetrné čistenie podľa potreby.' },
 ] as const satisfies readonly BookingAddonRecord[];
 
 const BOOKING_SLOT_STEP_MINUTES = 30;

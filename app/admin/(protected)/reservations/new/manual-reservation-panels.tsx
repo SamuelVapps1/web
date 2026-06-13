@@ -7,7 +7,7 @@ import { BOOKING_ADDONS, BOOKING_CUT_TYPES, formatBookingCurrency } from '@/lib/
 import { DOG_SIZE_SELECT_OPTIONS } from '@/lib/admin-label-mapping';
 import { findCustomerMatches, findDuplicateCustomerByPhone } from './manual-reservation-helpers.js';
 import { type AdminActionState } from '@/app/admin/actions';
-import { buildWorkingDaySlots } from '@/lib/opening-hours.js';
+import { OPENING_HOURS, buildWorkingDaySlots } from '@/lib/opening-hours.js';
 import { formatBratislavaDate, getBratislavaDateKey, isWeekendDateKey, localDateTimeToUtc, shiftDateKey } from '@/lib/time';
 
 export type ManualReservationCustomer = {
@@ -174,41 +174,104 @@ function formatManualDateLabel(dateKey: string): string {
   return formatBratislavaDate(new Date(`${dateKey}T12:00:00Z`));
 }
 
+const SLOT_STEP_MINUTES = 30;
+const DAY_LUNCH_START_MINUTES = Number.parseInt(OPENING_HOURS.lunchBreak.start.split(':')[0], 10) * 60 +
+  Number.parseInt(OPENING_HOURS.lunchBreak.start.split(':')[1], 10);
+const DURATION_OPTIONS = [30, 60, 90, 120, 150, 180, 210, 240];
+const DAY_END_MINUTES = Number.parseInt(OPENING_HOURS.dayEnd.split(':')[0], 10) * 60 +
+  Number.parseInt(OPENING_HOURS.dayEnd.split(':')[1], 10);
+
+function timeKeyToMinutes(timeKey: string): number {
+  const [hour, minute] = timeKey.split(':').map(Number);
+  return hour * 60 + minute;
+}
+
+function minutesToTimeKey(totalMinutes: number): string {
+  const normalized = Math.max(0, Math.trunc(totalMinutes));
+  const hour = Math.floor(normalized / 60);
+  const minute = normalized % 60;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function getReservationWindows(
+  reservations: ManualReservationAvailabilityReservation[],
+  date: string,
+): { start: Date; end: Date; status: string }[] {
+  return reservations
+    .filter((reservation) => {
+      const dateKey = getBratislavaDateKey(new Date(reservation.confirmedStart ?? reservation.requestedStart));
+      return dateKey === date;
+    })
+    .map((reservation) => {
+      const startIso = reservation.confirmedStart ?? reservation.requestedStart;
+      const start = new Date(startIso);
+      const end = new Date(start.getTime() + reservation.durationMin * 60 * 1000);
+
+      return {
+        start,
+        end,
+        status: reservation.status,
+      };
+    });
+}
+
 function getSlotStatus(
   reservations: ManualReservationAvailabilityReservation[],
   date: string,
   timeKey: string,
-  durationMin: number,
 ): { label: string; tone: 'free' | 'busy' | 'pending' } {
-  const start = localDateTimeToUtc(date, timeKey);
-  const end = new Date(start.getTime() + durationMin * 60 * 1000);
+  const slotStart = localDateTimeToUtc(date, timeKey);
+  const slotEnd = new Date(slotStart.getTime() + SLOT_STEP_MINUTES * 60 * 1000);
+  let hasPendingCollision = false;
 
-  let pendingMatch = false;
-
-  for (const reservation of reservations) {
-    const reservationDateKey = getBratislavaDateKey(new Date(reservation.confirmedStart ?? reservation.requestedStart));
-    if (reservationDateKey !== date) {
-      continue;
-    }
-
-    const reservationStartIso = reservation.confirmedStart ?? reservation.requestedStart;
-    const reservationStart = new Date(reservationStartIso);
-    const reservationEnd = new Date(reservationStart.getTime() + reservation.durationMin * 60 * 1000);
-
-    if (reservationStart < end && reservationEnd > start) {
+  for (const reservation of getReservationWindows(reservations, date)) {
+    if (reservation.start < slotEnd && reservation.end > slotStart) {
       if (reservation.status === 'CONFIRMED') {
         return { label: 'obsadené', tone: 'busy' };
       }
 
-      pendingMatch = true;
+      hasPendingCollision = true;
     }
   }
 
-  if (pendingMatch) {
+  if (hasPendingCollision) {
     return { label: 'čaká na schválenie', tone: 'pending' };
   }
 
   return { label: 'voľné', tone: 'free' };
+}
+
+function getMaxSelectableDuration(
+  reservations: ManualReservationAvailabilityReservation[],
+  date: string,
+  timeKey: string,
+): number {
+  if (!date || !timeKey) {
+    return 0;
+  }
+
+  const selectedStart = localDateTimeToUtc(date, timeKey);
+  const selectedStartMinutes = timeKeyToMinutes(timeKey);
+  const windowEndMinutes =
+    selectedStartMinutes < DAY_LUNCH_START_MINUTES ? DAY_LUNCH_START_MINUTES : DAY_END_MINUTES;
+  let maxEnd = new Date(selectedStart.getTime() + (windowEndMinutes - selectedStartMinutes) * 60 * 1000);
+
+  for (const reservation of getReservationWindows(reservations, date)) {
+    if (reservation.start <= selectedStart && reservation.end > selectedStart) {
+      return 0;
+    }
+
+    if (reservation.start > selectedStart && reservation.start < maxEnd) {
+      maxEnd = reservation.start;
+    }
+  }
+
+  const availableMinutes = Math.max(0, Math.floor((maxEnd.getTime() - selectedStart.getTime()) / (60 * 1000)));
+  return Math.max(0, Math.floor(availableMinutes / SLOT_STEP_MINUTES) * SLOT_STEP_MINUTES);
+}
+
+function buildDurationOptions(maxDurationMin: number): number[] {
+  return DURATION_OPTIONS.filter((value) => value <= maxDurationMin);
 }
 
 function toCustomerDraft(customer: ManualReservationCustomer): ManualReservationState['customerDraft'] {
@@ -658,28 +721,44 @@ export function TimingStep({ availabilityReservations, state, stateAction }: Tim
     () => getWorkingDateOptions(getBratislavaDateKey()),
     [],
   );
-  const selectedDateLabel = useMemo(
-    () => formatManualDateLabel(state.reservationDraft.date),
-    [state.reservationDraft.date],
-  );
   const selectedDateSlots = useMemo(
     () =>
       workingDaySlots.map((timeKey) => {
-        const status = getSlotStatus(
-          availabilityReservations,
-          state.reservationDraft.date,
-          timeKey,
-          state.reservationDraft.durationMin,
-        );
+        const status = getSlotStatus(availabilityReservations, state.reservationDraft.date, timeKey);
 
         return {
           timeKey,
           ...status,
         };
       }),
-    [availabilityReservations, state.reservationDraft.date, state.reservationDraft.durationMin, workingDaySlots],
+    [availabilityReservations, state.reservationDraft.date, workingDaySlots],
   );
-  const hasSelectedDate = Boolean(state.reservationDraft.date);
+  const selectedTimeStatus = useMemo(
+    () => getSlotStatus(availabilityReservations, state.reservationDraft.date, state.reservationDraft.time),
+    [availabilityReservations, state.reservationDraft.date, state.reservationDraft.time],
+  );
+  const maxDurationMin = useMemo(
+    () => getMaxSelectableDuration(availabilityReservations, state.reservationDraft.date, state.reservationDraft.time),
+    [availabilityReservations, state.reservationDraft.date, state.reservationDraft.time],
+  );
+  const durationOptions = useMemo(() => buildDurationOptions(maxDurationMin), [maxDurationMin]);
+
+  useEffect(() => {
+    if (durationOptions.length === 0) {
+      return;
+    }
+
+    if (!durationOptions.includes(state.reservationDraft.durationMin)) {
+      stateAction.setReservationDraft({
+        ...state.reservationDraft,
+        durationMin: durationOptions[durationOptions.length - 1],
+      });
+    }
+  }, [durationOptions, state.reservationDraft, state.reservationDraft.durationMin, stateAction]);
+
+  const selectedDateLabelText = state.reservationDraft.date
+    ? formatManualDateLabel(state.reservationDraft.date)
+    : 'Vyber deň';
 
   return (
     <section className={styles.detailCard}>
@@ -692,7 +771,7 @@ export function TimingStep({ availabilityReservations, state, stateAction }: Tim
           onClick={() => setDatePickerOpen((value) => !value)}
         >
           <span className={styles.sectionKicker}>Dátum</span>
-          <strong>{selectedDateLabel}</strong>
+          <strong>{selectedDateLabelText}</strong>
           <span className={styles.fieldHint}>Klikni a otvorí sa kalendár.</span>
         </button>
 
@@ -726,7 +805,9 @@ export function TimingStep({ availabilityReservations, state, stateAction }: Tim
             <div>
               <p className={styles.sectionKicker}>Čas</p>
               <p className={styles.fieldHint}>
-                {hasSelectedDate ? 'Klikni na voľný alebo obsadený čas v danom dni.' : 'Najprv vyber deň.'}
+                {state.reservationDraft.date
+                  ? 'Klikni na voľný alebo obsadený čas v danom dni.'
+                  : 'Najprv vyber deň.'}
               </p>
             </div>
           </div>
@@ -759,21 +840,35 @@ export function TimingStep({ availabilityReservations, state, stateAction }: Tim
           <div className={styles.formGrid}>
             <div className={styles.field}>
               <label>Trvanie termínu</label>
-              <select
-                value={state.reservationDraft.durationMin}
-                onChange={(event) =>
-                  stateAction.setReservationDraft({
-                    ...state.reservationDraft,
-                    durationMin: Number(event.target.value),
-                  })
-                }
-              >
-                {[30, 60, 90, 120, 150, 180, 210, 240].map((value) => (
-                  <option key={value} value={value}>
-                    {value} min
-                  </option>
-                ))}
-              </select>
+              {durationOptions.length > 0 ? (
+                <select
+                  value={state.reservationDraft.durationMin}
+                  onChange={(event) =>
+                    stateAction.setReservationDraft({
+                      ...state.reservationDraft,
+                      durationMin: Number(event.target.value),
+                    })
+                  }
+                >
+                  {durationOptions.map((value) => (
+                    <option key={value} value={value}>
+                      {value} min
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className={styles.manualDurationHint}>
+                  {selectedTimeStatus.tone === 'free'
+                    ? 'Najbližšie je obsadený termín. Vyber iný čas.'
+                    : 'Tento čas je obsadený alebo čaká na schválenie.'}
+                </p>
+              )}
+              {durationOptions.length > 0 ? (
+                <p className={styles.manualDurationHint}>
+                  Najviac {maxDurationMin} min, do{' '}
+                  {minutesToTimeKey(timeKeyToMinutes(state.reservationDraft.time) + maxDurationMin)}.
+                </p>
+              ) : null}
             </div>
           </div>
 
