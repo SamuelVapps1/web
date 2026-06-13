@@ -1,4 +1,8 @@
+'use client';
+
+import { useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import styles from '../../admin.module.css';
 import ManualReservationForm from '../reservations/new/manual-reservation-form';
 
@@ -32,6 +36,19 @@ export default function CalendarReservationModal({
   initialDate: string;
   initialTime: string;
 }) {
+  const router = useRouter();
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        router.push(closeHref);
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [closeHref, router]);
+
   return (
     <div className={styles.modalBackdrop} role="presentation">
       <section className={styles.modalSheet} role="dialog" aria-modal="true" aria-label="Nová rezervácia">

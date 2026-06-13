@@ -120,6 +120,21 @@ function ReservationTimingForm({
     [],
   );
 
+  useEffect(() => {
+    if (!expanded) {
+      return;
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        onToggleExpanded();
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [expanded, onToggleExpanded]);
+
   return (
     <section className={styles.detailCard}>
       <StateBanner state={state} />

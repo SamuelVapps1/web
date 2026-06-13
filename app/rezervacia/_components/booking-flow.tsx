@@ -1012,8 +1012,9 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
                   onChange={(event) => setDogBreed(event.target.value)}
                   autoComplete="off"
                   placeholder="Napr. yorkshirský teriér"
+                  required
                 />
-                <p className={styles.helperText}>Voliteľné pole.</p>
+                <p className={styles.helperText}>Povinné pole.</p>
               </div>
             </div>
 
