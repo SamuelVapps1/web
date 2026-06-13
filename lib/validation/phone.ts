@@ -2,7 +2,7 @@ export const SLOVAK_PHONE_E164_PATTERN = /^\+421\d{9}$/;
 
 const CONTACT_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export type BookingContactField = 'customerName' | 'customerPhone' | 'customerEmail';
+export type BookingContactField = 'customerName' | 'customerPhone' | 'customerEmail' | 'privacyConsent';
 
 export type BookingContactFieldErrors = Partial<Record<BookingContactField, string>>;
 
@@ -45,6 +45,7 @@ export function validateBookingContactFields(input: {
   customerName: string;
   customerPhone: string;
   customerEmail: string;
+  privacyConsent: boolean;
 }): {
   fieldErrors: BookingContactFieldErrors;
   normalizedPhone: string;
@@ -68,6 +69,10 @@ export function validateBookingContactFields(input: {
 
   if (trimmedEmail && !CONTACT_EMAIL_PATTERN.test(trimmedEmail)) {
     fieldErrors.customerEmail = 'Skontrolujte formát emailu.';
+  }
+
+  if (!input.privacyConsent) {
+    fieldErrors.privacyConsent = 'Potvrďte prosím súhlas so spracovaním osobných údajov pre rezerváciu.';
   }
 
   return {

@@ -123,6 +123,7 @@ export async function submitBooking(
   const customerName = normalizeBookingText(formData.get('customerName'));
   const customerPhone = normalizeBookingText(formData.get('customerPhone'));
   const customerEmail = normalizeBookingText(formData.get('customerEmail'));
+  const privacyConsent = formData.get('privacyConsent') === 'accepted';
   const sourceCode = normalizeBookingText(formData.get('sourceCode')) || null;
   const rawAddonCodes = getDistinctValues(
     formData.getAll('serviceIds').map((value) => normalizeBookingText(value)),
@@ -135,6 +136,7 @@ export async function submitBooking(
     customerName,
     customerPhone,
     customerEmail,
+    privacyConsent,
   });
 
   if (Object.keys(contactValidation.fieldErrors).length > 0) {

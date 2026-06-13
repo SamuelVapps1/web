@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useActionState, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useFormStatus } from 'react-dom';
 import { submitBooking, type BookingSubmitState } from '../actions';
@@ -199,6 +200,7 @@ function validateContactFields(input: {
   customerName: string;
   customerPhone: string;
   customerEmail: string;
+  privacyConsent: boolean;
 }): {
   fieldErrors: BookingContactFieldErrors;
   normalizedPhone: string;
@@ -222,6 +224,10 @@ function validateContactFields(input: {
 
   if (trimmedEmail && !EMAIL_PATTERN.test(trimmedEmail)) {
     fieldErrors.customerEmail = 'Skontrolujte formát emailu.';
+  }
+
+  if (!input.privacyConsent) {
+    fieldErrors.privacyConsent = 'Potvrďte prosím súhlas so spracovaním osobných údajov pre rezerváciu.';
   }
 
   return { fieldErrors, normalizedPhone };
@@ -326,6 +332,7 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
+  const [privacyConsent, setPrivacyConsent] = useState(false);
   const [monthAnchorKey, setMonthAnchorKey] = useState(minMonthAnchor);
   const [busyIntervals, setBusyIntervals] = useState<BookingBusyInterval[]>([]);
   const [selectedDateBusyIntervals, setSelectedDateBusyIntervals] = useState<BookingBusyInterval[]>([]);
@@ -348,6 +355,7 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
   const nameInputRef = useRef<HTMLInputElement | null>(null);
   const phoneInputRef = useRef<HTMLInputElement | null>(null);
   const emailInputRef = useRef<HTMLInputElement | null>(null);
+  const privacyConsentRef = useRef<HTMLInputElement | null>(null);
   const formErrorRef = useRef<HTMLDivElement | null>(null);
   const advanceTimerRef = useRef<number | null>(null);
 
@@ -703,6 +711,11 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
 
     if (errors.customerEmail) {
       emailInputRef.current?.focus({ preventScroll: true });
+      return;
+    }
+
+    if (errors.privacyConsent) {
+      privacyConsentRef.current?.focus({ preventScroll: true });
     }
   }
 
@@ -711,6 +724,7 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
       customerName,
       customerPhone,
       customerEmail,
+      privacyConsent,
     });
 
     if (!selectedDate || !selectedTime || !selectedCutType || !dogName.trim() || !dogSize) {
@@ -1309,6 +1323,49 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
               </div>
             </div>
 
+            <div className={styles.consentBox}>
+              <label className={styles.checkboxRow} htmlFor="privacyConsent">
+                <input
+                  ref={privacyConsentRef}
+                  id="privacyConsent"
+                  name="privacyConsent"
+                  type="checkbox"
+                  value="accepted"
+                  checked={privacyConsent}
+                  onChange={(event) => {
+                    setPrivacyConsent(event.target.checked);
+                    setClientFieldErrors((current) => {
+                      if (!current.privacyConsent) {
+                        return current;
+                      }
+
+                      const next = { ...current };
+                      delete next.privacyConsent;
+                      return next;
+                    });
+                    setSubmissionError(null);
+                  }}
+                  aria-invalid={Boolean(clientFieldErrors.privacyConsent)}
+                  aria-describedby={
+                    clientFieldErrors.privacyConsent ? 'privacyConsent-hint privacyConsent-error' : 'privacyConsent-hint'
+                  }
+                  required
+                />
+                <span>
+                  Súhlasím so spracovaním osobných údajov v rozsahu potrebnom na
+                  vybavenie rezervácie a potvrdenie termínu.
+                </span>
+              </label>
+              <p id="privacyConsent-hint" className={styles.helperText}>
+                Použijeme ich len na kontakt k rezervácii a poskytnutie služby.
+              </p>
+              {clientFieldErrors.privacyConsent ? (
+                <p id="privacyConsent-error" className={styles.fieldError}>
+                  {clientFieldErrors.privacyConsent}
+                </p>
+              ) : null}
+            </div>
+
             {submissionError ? (
               <div ref={formErrorRef} className={`${styles.alert} ${styles.alertError}`} tabIndex={-1} role="alert">
                 {submissionError}
@@ -1320,6 +1377,15 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
               <span>
                 Ak sa ponáhľate, zavolajte nám priamo na <a href={PHONE_HREF}>{PHONE_DISPLAY}</a>.
               </span>
+            </div>
+
+            <div className={styles.privacyNote}>
+              Odoslaním formulára beriete na vedomie, že vaše údaje použijeme na
+              spracovanie rezervácie, potvrdenie termínu a komunikáciu k službe.
+              Vaše údaje nepredávame tretím stranám; technicky ich môžu
+              spracúvať len nevyhnutní poskytovatelia prevádzky webu a
+              rezervačného systému. Viac v{' '}
+              <Link href="/ochrana-osobnych-udajov">ochrane osobných údajov</Link>.
             </div>
 
             <div className={styles.footerActions}>

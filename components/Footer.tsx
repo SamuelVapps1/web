@@ -23,6 +23,7 @@ export default function Footer({ className }: FooterProps) {
               <li><Link href="/cennik">Cenník</Link></li>
               <li><Link href="/galeria">Galéria</Link></li>
               <li><Link href="/o-nas">O nás</Link></li>
+              <li><Link href="/ochrana-osobnych-udajov">Ochrana osobných údajov</Link></li>
             </ul>
           </div>
           <div>

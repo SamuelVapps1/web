@@ -716,6 +716,32 @@
   color: rgb(149, 52, 52);
 }
 
+.consentBox {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.95rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(176, 141, 87, 0.24);
+  background: rgba(246, 241, 231, 0.82);
+}
+
+.checkboxRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.8rem;
+  align-items: start;
+  color: var(--ink);
+  cursor: pointer;
+  line-height: 1.55;
+}
+
+.checkboxRow input {
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-top: 0.2rem;
+  accent-color: var(--cognac);
+}
+
 .summaryPanel {
   position: sticky;
   top: 1.25rem;
@@ -756,6 +782,22 @@
 
 .recapNote a {
   white-space: nowrap;
+}
+
+.privacyNote {
+  padding: 0.95rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(176, 141, 87, 0.24);
+  background: rgba(246, 241, 231, 0.72);
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.privacyNote a {
+  color: var(--cognac);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 .phoneInline {
