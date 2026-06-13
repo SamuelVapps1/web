@@ -80,7 +80,7 @@ const CUT_TYPE_OPTIONS = [
     value: 'A_LA_CARTE',
     label: 'A la carte',
     note: 'Nadštandardná úprava.',
-    priceLabel: 'Cena dohodou',
+    priceLabel: 'Orientačne 80 €',
   },
   {
     value: 'ADVICE',
