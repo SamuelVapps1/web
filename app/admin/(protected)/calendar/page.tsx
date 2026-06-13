@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+﻿export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import type { CSSProperties, ReactNode } from 'react';
@@ -261,10 +261,7 @@ export default async function AdminCalendarPage({
                     <strong>{day.label}</strong>
                     <span>{dayReservations.length} položiek</span>
                   </div>
-                  <Link
-                    className="btn btn--ghost"
-                    href={getSlotHref(baseReservationHref, day.dateKey, '10:00')}
-                  >
+                  <Link className="btn btn--ghost" href={getSlotHref(baseReservationHref, day.dateKey, '10:00')}>
                     + Rezervácia
                   </Link>
                 </article>
@@ -399,9 +396,7 @@ export default async function AdminCalendarPage({
                     </Link>
                   ))}
                   {dayReservations.length > 3 ? (
-                    <span className={styles.calendarMonthCellMore}>
-                      +{dayReservations.length - 3} ďalších
-                    </span>
+                    <span className={styles.calendarMonthCellMore}>+{dayReservations.length - 3} ďalších</span>
                   ) : null}
                 </div>
               </article>

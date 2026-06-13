@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -781,3 +781,4 @@ export function SubmitPanel({
     </section>
   );
 }
+

@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+﻿export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import {
@@ -107,7 +107,7 @@ function ActionMenu({ todayKey }: { todayKey: string }) {
   );
 }
 
-function PendingRequestRow({
+function PendingRequestCard({
   reservation,
 }: {
   reservation: Awaited<ReturnType<typeof listAdminReservations>>[number];
@@ -117,19 +117,25 @@ function PendingRequestRow({
 
   return (
     <article className={styles.requestListItem}>
+      <div className={styles.requestCardTop}>
+        <div className={styles.requestCardIcon} aria-hidden="true">
+          <Clock3 size={18} strokeWidth={1.8} />
+        </div>
+        <span className={styles.requestAge}>{formatRelativeAge(reservation.createdAt)}</span>
+      </div>
+
       <div className={styles.requestListCopy}>
         <strong>{reservation.dogName}</strong>
         <span>
           {reservation.dogBreed ?? 'Bez plemena'} · {reservation.dogSizeLabel}
         </span>
-        <span>
-          {reservation.dateLabel} · {reservation.timeLabel}
-        </span>
       </div>
 
       <div className={styles.requestListSlot}>
-        <span>{formatRelativeAge(reservation.createdAt)}</span>
-        <strong>{reservation.cutTypeLabel}</strong>
+        <strong>
+          {reservation.dateLabel} · {reservation.timeLabel}
+        </strong>
+        <span>{reservation.cutTypeLabel}</span>
       </div>
 
       <div className={styles.requestActions}>
@@ -241,11 +247,11 @@ export default async function AdminHomePage() {
     <div className={styles.dashboardPage}>
       <section className={styles.dashboardHeader}>
         <div className={styles.dashboardHeaderCopy}>
-          <p className={styles.eyebrow}>Dnes</p>
           <div className={styles.dashboardTitleRow}>
-            <h1 className={styles.heroTitle}>Dnes</h1>
+            <p className={styles.eyebrow}>Dnes</p>
             <div className={styles.dashboardDateChip}>{formatDashboardDate(todayKey)}</div>
           </div>
+          <h1 className={styles.heroTitle}>Dnes</h1>
           <p className={styles.heroLead}>
             Rýchly prehľad dňa, čakajúcich žiadostí a aktuálne otvoreného termínu.
           </p>
@@ -271,9 +277,8 @@ export default async function AdminHomePage() {
       <section className={styles.requestsSection}>
         <div className={styles.sectionHeader}>
           <div>
-            <p className={styles.sectionKicker}>Čakajúce žiadosti</p>
             <div className={styles.sectionTitleRow}>
-              <h2 className={styles.sectionTitle}>Čakajúce žiadosti</h2>
+              <p className={styles.sectionKicker}>Čakajúce žiadosti</p>
               <span className={styles.sectionCountBadge}>{pendingReservations.length}</span>
             </div>
             <p className={styles.sectionSubcopy}>Vyžadujú vašu pozornosť</p>
@@ -286,7 +291,7 @@ export default async function AdminHomePage() {
         {visiblePending.length > 0 ? (
           <div className={styles.requestList}>
             {visiblePending.map((reservation) => (
-              <PendingRequestRow key={reservation.id} reservation={reservation} />
+              <PendingRequestCard key={reservation.id} reservation={reservation} />
             ))}
           </div>
         ) : (
@@ -303,9 +308,9 @@ export default async function AdminHomePage() {
       <div className={styles.dashboardLayout}>
         <section className={styles.scheduleSection}>
           <div className={styles.sectionHeader}>
-            <div>
+            <div className={styles.scheduleHeaderTitle}>
               <p className={styles.sectionKicker}>Harmonogram dňa</p>
-              <h2 className={styles.sectionTitle}>{dashboard.today.length} rezervácií</h2>
+              <h2 className={styles.scheduleHeaderCount}>{dashboard.today.length} rezervácií</h2>
             </div>
             <div className={styles.sectionTools}>
               <Link className="btn btn--ghost" href={`/admin/calendar?date=${todayKey}&view=week`}>
@@ -344,7 +349,6 @@ export default async function AdminHomePage() {
             <article className={styles.detailHero}>
               <div className={styles.detailHeroTop}>
                 <div>
-                  <p className={styles.sectionKicker}>Vybraný termín</p>
                   <h2 className={styles.detailName}>{selectedReservation.dogName}</h2>
                   <p className={styles.detailMeta}>
                     {selectedReservation.dogBreed ?? 'Bez plemena'} · {selectedReservation.dogSizeLabel}
@@ -360,8 +364,7 @@ export default async function AdminHomePage() {
                 <div className={styles.detailFactRow}>
                   <Clock3 size={16} strokeWidth={1.8} aria-hidden="true" />
                   <span>
-                    {selectedReservation.dateLabel} · {selectedReservation.timeLabel} ·{' '}
-                    {selectedReservation.durationMin} min
+                    {selectedReservation.dateLabel} · {selectedReservation.timeLabel} · {selectedReservation.durationMin} min
                   </span>
                 </div>
                 <div className={styles.detailFactRow}>
@@ -412,11 +415,10 @@ export default async function AdminHomePage() {
                     Otvoriť detail
                   </Link>
                 )}
+                <Link className="btn btn--ghost" href={`/admin/reservations/${selectedReservation.id}`}>
+                  Upraviť rezerváciu
+                </Link>
               </div>
-
-              <Link className="btn btn--ghost" href={`/admin/reservations/${selectedReservation.id}`}>
-                Upraviť rezerváciu
-              </Link>
             </article>
           ) : (
             <article className={styles.detailHero}>

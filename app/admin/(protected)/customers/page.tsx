@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+﻿export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import styles from '../../admin.module.css';
@@ -27,3 +27,4 @@ export default async function AdminCustomersPage() {
     </div>
   );
 }
+
