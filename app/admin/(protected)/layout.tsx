@@ -31,7 +31,7 @@ export default async function ProtectedAdminLayout({
             <div className={styles.sidebarMetaCard}>
               <p className={styles.sidebarMetaLabel}>Prevádzka</p>
               <p className={styles.sidebarMetaValue}>Po – Pia 10:00 – 13:00 · 14:00 – 18:00</p>
-              <p className={styles.sidebarMetaValue}>+421 944 240 116</p>
+              <p className={`${styles.sidebarMetaValue} ${styles.phoneInline}`}>+421 944 240 116</p>
             </div>
 
             <div className={styles.userCard}>

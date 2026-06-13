@@ -3,8 +3,6 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import {
   ArrowRight,
-  Bell,
-  CalendarDays,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -109,7 +107,7 @@ function ActionMenu({ todayKey }: { todayKey: string }) {
   );
 }
 
-function QuickRequestCard({
+function PendingRequestRow({
   reservation,
 }: {
   reservation: Awaited<ReturnType<typeof listAdminReservations>>[number];
@@ -118,22 +116,20 @@ function QuickRequestCard({
   const timeValue = toTimeInputValue(reservation.requestedStart);
 
   return (
-    <article className={styles.requestCard}>
-      <div className={styles.requestIconWrap} aria-hidden="true">
-        <CalendarDays size={18} strokeWidth={1.8} />
+    <article className={styles.requestListItem}>
+      <div className={styles.requestListCopy}>
+        <strong>{reservation.dogName}</strong>
+        <span>
+          {reservation.dogBreed ?? 'Bez plemena'} · {reservation.dogSizeLabel}
+        </span>
+        <span>
+          {reservation.dateLabel} · {reservation.timeLabel}
+        </span>
       </div>
 
-      <div className={styles.requestCopy}>
-        <div className={styles.requestHead}>
-          <h3>{reservation.dogName}</h3>
-          <span className={styles.requestAge}>{formatRelativeAge(reservation.createdAt)}</span>
-        </div>
-        <p className={styles.requestMeta}>
-          {reservation.dogBreed ?? 'Bez plemena'} · {reservation.dogSizeLabel}
-        </p>
-        <p className={styles.requestMeta}>
-          {reservation.dateLabel} · {reservation.timeLabel}
-        </p>
+      <div className={styles.requestListSlot}>
+        <span>{formatRelativeAge(reservation.createdAt)}</span>
+        <strong>{reservation.cutTypeLabel}</strong>
       </div>
 
       <div className={styles.requestActions}>
@@ -238,6 +234,7 @@ export default async function AdminHomePage() {
   const nextDateKey = shiftDateKey(todayKey, 1);
   const selectedReservation = dashboard.today[0] ?? pendingReservations[0] ?? dashboard.tomorrow[0] ?? null;
   const visibleTimeline = dashboard.today.slice(0, 5);
+  const visiblePending = pendingReservations.slice(0, 3);
   const tomorrowPreview = dashboard.tomorrow.slice(0, 4);
 
   return (
@@ -249,7 +246,9 @@ export default async function AdminHomePage() {
             <h1 className={styles.heroTitle}>Dnes</h1>
             <div className={styles.dashboardDateChip}>{formatDashboardDate(todayKey)}</div>
           </div>
-          <p className={styles.heroLead}>Rýchly prehľad dňa, čakajúcich žiadostí a aktuálne otvoreného termínu.</p>
+          <p className={styles.heroLead}>
+            Rýchly prehľad dňa, čakajúcich žiadostí a aktuálne otvoreného termínu.
+          </p>
         </div>
 
         <div className={styles.dashboardHeaderActions}>
@@ -284,26 +283,21 @@ export default async function AdminHomePage() {
           </Link>
         </div>
 
-        <div className={styles.requestBanner}>
-          <div className={styles.requestBannerIconWrap} aria-hidden="true">
-            <Bell size={18} strokeWidth={1.8} />
+        {visiblePending.length > 0 ? (
+          <div className={styles.requestList}>
+            {visiblePending.map((reservation) => (
+              <PendingRequestRow key={reservation.id} reservation={reservation} />
+            ))}
           </div>
-          <div className={styles.requestBannerCopy}>
-            <strong>
-              {pendingReservations.length > 0
-                ? `${pendingReservations.length} čakajúcich žiadostí čaká na schválenie`
-                : 'Momentálne nemáte čakajúce žiadosti'}
-            </strong>
-            <p>
-              {pendingReservations.length > 0
-                ? 'Otvorte zoznam a prejdite ich jednu po druhej.'
-                : 'Keď príde nová rezervácia, objaví sa tu hneď ako prvá.'}
-            </p>
+        ) : (
+          <div className={styles.emptyBanner}>
+            <Clock3 size={20} strokeWidth={1.8} aria-hidden="true" />
+            <div>
+              <strong>Momentálne nemáte čakajúce žiadosti.</strong>
+              <p>Keď príde nová rezervácia, zobrazí sa tu automaticky.</p>
+            </div>
           </div>
-          <Link className={`btn btn--ghost ${styles.requestBannerLink}`} href="/admin/reservations?tab=pending">
-            Zobraziť všetky
-          </Link>
-        </div>
+        )}
       </section>
 
       <div className={styles.dashboardLayout}>
@@ -311,7 +305,7 @@ export default async function AdminHomePage() {
           <div className={styles.sectionHeader}>
             <div>
               <p className={styles.sectionKicker}>Harmonogram dňa</p>
-              <h2 className={styles.sectionTitle}>{visibleTimeline.length} rezervácií</h2>
+              <h2 className={styles.sectionTitle}>{dashboard.today.length} rezervácií</h2>
             </div>
             <div className={styles.sectionTools}>
               <Link className="btn btn--ghost" href={`/admin/calendar?date=${todayKey}&view=week`}>
@@ -366,7 +360,8 @@ export default async function AdminHomePage() {
                 <div className={styles.detailFactRow}>
                   <Clock3 size={16} strokeWidth={1.8} aria-hidden="true" />
                   <span>
-                    {selectedReservation.dateLabel} · {selectedReservation.timeLabel} · {selectedReservation.durationMin} min
+                    {selectedReservation.dateLabel} · {selectedReservation.timeLabel} ·{' '}
+                    {selectedReservation.durationMin} min
                   </span>
                 </div>
                 <div className={styles.detailFactRow}>
@@ -379,7 +374,7 @@ export default async function AdminHomePage() {
                 </div>
                 <div className={styles.detailFactRow}>
                   <MapPin size={16} strokeWidth={1.8} aria-hidden="true" />
-                  <span>Petžalka · Laura salón pre psov</span>
+                  <span>Petržalka · Laura salón pre psov</span>
                 </div>
               </div>
 
@@ -393,7 +388,7 @@ export default async function AdminHomePage() {
 
               <div className={styles.detailActions}>
                 {selectedReservation.status === 'CONFIRMED' ? (
-          <form action={submitCompleteReservation}>
+                  <form action={submitCompleteReservation}>
                     <input type="hidden" name="id" value={selectedReservation.id} />
                     <button className="btn btn--primary" type="submit">
                       <Check size={18} strokeWidth={1.8} aria-hidden="true" />
@@ -456,7 +451,6 @@ export default async function AdminHomePage() {
               )}
             </div>
           </article>
-
         </aside>
       </div>
     </div>

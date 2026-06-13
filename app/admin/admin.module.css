@@ -1545,6 +1545,7 @@
   border-right: 1px solid rgba(33, 30, 26, 0.09);
   background: rgba(248, 243, 234, 0.78);
   backdrop-filter: blur(14px);
+  box-sizing: border-box;
 }
 
 .sidebarNav {
@@ -1610,6 +1611,7 @@
   margin-top: auto;
   display: grid;
   gap: 0.9rem;
+  min-width: 0;
 }
 
 .sidebarMetaCard {
@@ -1619,6 +1621,9 @@
   border-radius: 18px;
   border: 1px solid rgba(33, 30, 26, 0.08);
   background: rgba(251, 248, 241, 0.88);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .sidebarMetaLabel {
@@ -1631,7 +1636,7 @@
 
 .sidebarMetaValue {
   color: #4a443c;
-  white-space: nowrap;
+  line-height: 1.5;
 }
 
 .userCard {
@@ -1643,6 +1648,9 @@
   border-radius: 18px;
   border: 1px solid rgba(33, 30, 26, 0.08);
   background: rgba(251, 248, 241, 0.9);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .userAvatar {
@@ -1862,6 +1870,14 @@
   font-family: var(--serif-display);
   font-size: 1rem;
   line-height: 1.05;
+}
+
+.requestActions {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .requestMoreLink {
@@ -2756,6 +2772,18 @@
 }
 
 @media (max-width: 1180px) {
+  .requestListItem {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .requestListSlot,
+  .requestActions {
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+  }
+
   .requestBanner,
   .detailPage .detailLayout,
   .calendarBoardHeader,
