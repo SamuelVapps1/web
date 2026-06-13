@@ -2329,6 +2329,25 @@
   flex-wrap: wrap;
 }
 
+.scheduleToggle {
+  display: grid;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  border: 1px dashed rgba(156, 107, 61, 0.24);
+  background: rgba(156, 107, 61, 0.06);
+  text-align: left;
+  color: #211e1a;
+  cursor: pointer;
+}
+
+.scheduleToggle strong {
+  font-family: var(--serif-display);
+  font-size: 1.08rem;
+  line-height: 1.1;
+}
+
 .reservationNoteBox {
   display: grid;
   gap: 0.3rem;

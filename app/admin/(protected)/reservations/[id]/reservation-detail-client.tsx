@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useActionState, useMemo, useState } from 'react';
+import { useActionState, useEffect, useMemo, useState } from 'react';
 import styles from '../../../admin.module.css';
 import {
   cancelReservation,
@@ -80,6 +80,10 @@ function ReservationTimingForm({
   action,
   submitLabel,
   callHref,
+  smsHref,
+  dateLabel,
+  expanded,
+  onToggleExpanded,
 }: {
   reservation: {
     id: string;
@@ -101,6 +105,10 @@ function ReservationTimingForm({
   action: ReservationAction;
   submitLabel: string;
   callHref: string;
+  smsHref?: string;
+  dateLabel: string;
+  expanded: boolean;
+  onToggleExpanded: () => void;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [selectedDate, setSelectedDate] = useState(() => toDateInputValue(reservation.startIso));
@@ -122,19 +130,32 @@ function ReservationTimingForm({
         <input type="hidden" name="durationMin" value={selectedDuration} />
 
         <div className={`${styles.field} ${styles.fieldFull}`}>
-          <ReservationAvailabilityPanel
-            reservations={reservation.availabilityReservations}
-            date={selectedDate}
-            time={selectedTime}
-            durationMin={selectedDuration}
-            availabilityCursor={availabilityCursor}
-            onDateChange={setSelectedDate}
-            onTimeChange={setSelectedTime}
-            onDurationChange={setSelectedDuration}
-            onAvailabilityCursorChange={setAvailabilityCursor}
-            durationOptions={durationOptions}
-          />
+          <button
+            type="button"
+            className={styles.scheduleToggle}
+            onClick={onToggleExpanded}
+          >
+            <span className={styles.sectionKicker}>{expanded ? 'Skryť termín' : 'Zmeniť termín'}</span>
+            <strong>{dateLabel}</strong>
+          </button>
         </div>
+
+        {expanded ? (
+          <div className={`${styles.field} ${styles.fieldFull}`}>
+            <ReservationAvailabilityPanel
+              reservations={reservation.availabilityReservations}
+              date={selectedDate}
+              time={selectedTime}
+              durationMin={selectedDuration}
+              availabilityCursor={availabilityCursor}
+              onDateChange={setSelectedDate}
+              onTimeChange={setSelectedTime}
+              onDurationChange={setSelectedDuration}
+              onAvailabilityCursorChange={setAvailabilityCursor}
+              durationOptions={durationOptions}
+            />
+          </div>
+        ) : null}
 
         <div className={`${styles.field} ${styles.fieldFull}`}>
           <label htmlFor={`${reservation.id}-internalNote`}>Interná poznámka</label>
@@ -149,7 +170,16 @@ function ReservationTimingForm({
           <a className="btn btn--ghost" href={callHref}>
             Zavolať
           </a>
-          <button className="btn btn--primary" type="submit" disabled={pending}>
+          <button
+            className="btn btn--primary"
+            type="submit"
+            disabled={pending}
+            onClick={() => {
+              if (smsHref) {
+                window.open(smsHref, '_blank', 'noopener,noreferrer');
+              }
+            }}
+          >
             {submitLabel}
           </button>
         </div>
@@ -163,11 +193,13 @@ function SimpleAction({
   action,
   label,
   tone = 'ghost',
+  smsHref,
 }: {
   reservationId: string;
   action: ReservationAction;
   label: string;
   tone?: 'ghost' | 'primary';
+  smsHref?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
 
@@ -179,6 +211,11 @@ function SimpleAction({
         className={`btn ${tone === 'primary' ? 'btn--primary' : 'btn--ghost'}`}
         type="submit"
         disabled={pending}
+        onClick={() => {
+          if (smsHref) {
+            window.open(smsHref, '_blank', 'noopener,noreferrer');
+          }
+        }}
       >
         {label}
       </button>
@@ -238,9 +275,32 @@ export default function ReservationDetailClient({
     }[];
   };
 }) {
+  const [showScheduler, setShowScheduler] = useState(false);
   const startIso = reservation.confirmedStartIso ?? reservation.requestedStartIso;
   const callHref = `tel:${reservation.customerPhone.replace(/\s+/g, '')}`;
+  const smsConfirmHref = `sms:${reservation.customerPhone.replace(/\s+/g, '')}?body=${encodeURIComponent(
+    'Potvrdzujeme Váš termín. Tešíme sa na vás.',
+  )}`;
+  const smsDeclineHref = `sms:${reservation.customerPhone.replace(/\s+/g, '')}?body=${encodeURIComponent(
+    'Ospravedlňujeme sa, ale váš termín nemôžeme potvrdiť. Ozveme sa vám s ďalším návrhom.',
+  )}`;
   const isFree = reservation.collisions.length === 0;
+  const startLabel = new Intl.DateTimeFormat('sk-SK', {
+    timeZone: 'Europe/Bratislava',
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(startIso));
+
+  useEffect(() => {
+    if (!showScheduler) {
+      return;
+    }
+
+    document.getElementById('schedule')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [showScheduler]);
+
   const reservationTimingDefaults = {
     id: reservation.id,
     startIso,
@@ -287,7 +347,7 @@ export default function ReservationDetailClient({
             <div>
               <span>Termín</span>
               <strong>{reservation.startLabel}</strong>
-              <p>{isFree ? 'Termín je voľný' : 'Termín je obsadený'}</p>
+              <p>{isFree ? 'Nič nekoliduje' : 'Termín je obsadený'}</p>
             </div>
             <div>
               <span>Služba</span>
@@ -305,9 +365,9 @@ export default function ReservationDetailClient({
             <a className="btn btn--ghost" href={callHref}>
               Zavolať
             </a>
-            <a className="btn btn--ghost" href="#schedule">
-              Zmeniť čas
-            </a>
+            <button className="btn btn--ghost" type="button" onClick={() => setShowScheduler(true)}>
+              Zmeniť termín
+            </button>
           </div>
 
           {reservation.internalNote ? (
@@ -327,9 +387,18 @@ export default function ReservationDetailClient({
               action={confirmReservation}
               submitLabel="Potvrdiť"
               callHref={callHref}
+              smsHref={smsConfirmHref}
+              dateLabel={startLabel}
+              expanded={showScheduler}
+              onToggleExpanded={() => setShowScheduler((value) => !value)}
             />
             <section className={styles.detailActionsRow}>
-              <SimpleAction reservationId={reservation.id} action={declineReservation} label="Zamietnuť" />
+              <SimpleAction
+                reservationId={reservation.id}
+                action={declineReservation}
+                label="Zamietnuť"
+                smsHref={smsDeclineHref}
+              />
             </section>
           </div>
         ) : null}
@@ -341,6 +410,9 @@ export default function ReservationDetailClient({
               action={updateReservation}
               submitLabel="Uložiť zmeny"
               callHref={callHref}
+              dateLabel={startLabel}
+              expanded={showScheduler}
+              onToggleExpanded={() => setShowScheduler((value) => !value)}
             />
             <section className={styles.detailActionsRow}>
               <SimpleAction

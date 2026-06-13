@@ -128,8 +128,6 @@ export default function ReservationAvailabilityPanel({
             <p className={styles.availabilityNote}>Najprv vyberte deň v kalendári.</p>
           ) : liveAvailability.blockedLabel ? (
             <p className={styles.availabilityLunch}>Obed 13:00 – 14:00</p>
-          ) : liveAvailability.isFree ? (
-            <p className={styles.availabilityFree}>Termín je voľný.</p>
           ) : (
             <div className={styles.availabilityBanner}>
               <p className={styles.availabilityTitle}>Koliduje s:</p>
