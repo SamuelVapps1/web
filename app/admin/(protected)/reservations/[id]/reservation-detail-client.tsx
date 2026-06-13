@@ -11,6 +11,7 @@ import {
   type AdminActionState,
 } from '@/app/admin/actions';
 import { getCustomerTagSummary, getDefaultDurationForSize } from '@/lib/admin-domain';
+import { getLiveAvailability, mapConfirmedAvailabilityReservations } from '@/lib/admin-availability.js';
 import ReservationAvailabilityPanel from '../_components/reservation-availability-panel';
 
 const initialState: AdminActionState = { kind: 'idle' };
@@ -84,6 +85,14 @@ function ReservationTimingForm({
   dateLabel,
   expanded,
   onToggleExpanded,
+  selectedDate,
+  selectedTime,
+  selectedDuration,
+  availabilityCursor,
+  onDateChange,
+  onTimeChange,
+  onDurationChange,
+  onAvailabilityCursorChange,
 }: {
   reservation: {
     id: string;
@@ -109,12 +118,16 @@ function ReservationTimingForm({
   dateLabel: string;
   expanded: boolean;
   onToggleExpanded: () => void;
+  selectedDate: string;
+  selectedTime: string;
+  selectedDuration: number;
+  availabilityCursor: Date;
+  onDateChange: (value: string) => void;
+  onTimeChange: (value: string) => void;
+  onDurationChange: (value: number) => void;
+  onAvailabilityCursorChange: (value: Date) => void;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
-  const [selectedDate, setSelectedDate] = useState(() => toDateInputValue(reservation.startIso));
-  const [selectedTime, setSelectedTime] = useState(() => toTimeInputValue(reservation.startIso));
-  const [selectedDuration, setSelectedDuration] = useState(reservation.durationMin);
-  const [availabilityCursor, setAvailabilityCursor] = useState(() => new Date(reservation.startIso));
   const durationOptions = useMemo(
     () => Array.from({ length: 8 }, (_, index) => (index + 1) * 30),
     [],
@@ -164,10 +177,10 @@ function ReservationTimingForm({
               durationMin={selectedDuration}
               availabilityCursor={availabilityCursor}
               expanded={expanded}
-              onDateChange={setSelectedDate}
-              onTimeChange={setSelectedTime}
-              onDurationChange={setSelectedDuration}
-              onAvailabilityCursorChange={setAvailabilityCursor}
+              onDateChange={onDateChange}
+              onTimeChange={onTimeChange}
+              onDurationChange={onDurationChange}
+              onAvailabilityCursorChange={onAvailabilityCursorChange}
               durationOptions={durationOptions}
             />
           </div>
@@ -293,6 +306,14 @@ export default function ReservationDetailClient({
 }) {
   const [showScheduler, setShowScheduler] = useState(false);
   const startIso = reservation.confirmedStartIso ?? reservation.requestedStartIso;
+  const [selectedDate, setSelectedDate] = useState(() => toDateInputValue(startIso));
+  const [selectedTime, setSelectedTime] = useState(() => toTimeInputValue(startIso));
+  const [selectedDuration, setSelectedDuration] = useState(
+    reservation.status === 'PENDING'
+      ? getDefaultDurationForSize(reservation.dogSize)
+      : reservation.durationMin,
+  );
+  const [availabilityCursor, setAvailabilityCursor] = useState(() => new Date(startIso));
   const callHref = `tel:${reservation.customerPhone.replace(/\s+/g, '')}`;
   const smsConfirmHref = `sms:${reservation.customerPhone.replace(/\s+/g, '')}?body=${encodeURIComponent(
     'Potvrdzujeme Váš termín. Tešíme sa na vás.',
@@ -300,7 +321,21 @@ export default function ReservationDetailClient({
   const smsDeclineHref = `sms:${reservation.customerPhone.replace(/\s+/g, '')}?body=${encodeURIComponent(
     'Ospravedlňujeme sa, ale váš termín nemôžeme potvrdiť. Ozveme sa vám s ďalším návrhom.',
   )}`;
-  const isFree = reservation.collisions.length === 0;
+  const confirmedAvailabilityReservations = useMemo(
+    () => mapConfirmedAvailabilityReservations(reservation.availabilityReservations),
+    [reservation.availabilityReservations],
+  );
+  const liveCollisions = useMemo(
+    () =>
+      getLiveAvailability({
+        dateKey: selectedDate,
+        timeKey: selectedTime,
+        durationMin: selectedDuration,
+        reservations: confirmedAvailabilityReservations,
+      }).collisions,
+    [confirmedAvailabilityReservations, selectedDate, selectedDuration, selectedTime],
+  );
+  const isFree = liveCollisions.length === 0;
   const startLabel = new Intl.DateTimeFormat('sk-SK', {
     timeZone: 'Europe/Bratislava',
     weekday: 'long',
@@ -320,10 +355,7 @@ export default function ReservationDetailClient({
   const reservationTimingDefaults = {
     id: reservation.id,
     startIso,
-    durationMin:
-      reservation.status === 'PENDING'
-        ? getDefaultDurationForSize(reservation.dogSize)
-        : reservation.durationMin,
+    durationMin: selectedDuration,
     internalNote: reservation.internalNote,
     availabilityReservations: reservation.availabilityReservations,
   };
@@ -372,7 +404,7 @@ export default function ReservationDetailClient({
             </div>
             <div>
               <span>Čas</span>
-              <strong>{reservation.durationMin} min</strong>
+              <strong>{selectedDuration} min</strong>
               <p>Možno meniť v kalendári nižšie</p>
             </div>
           </div>
@@ -407,6 +439,14 @@ export default function ReservationDetailClient({
               dateLabel={startLabel}
               expanded={showScheduler}
               onToggleExpanded={() => setShowScheduler((value) => !value)}
+              selectedDate={selectedDate}
+              selectedTime={selectedTime}
+              selectedDuration={selectedDuration}
+              availabilityCursor={availabilityCursor}
+              onDateChange={setSelectedDate}
+              onTimeChange={setSelectedTime}
+              onDurationChange={setSelectedDuration}
+              onAvailabilityCursorChange={setAvailabilityCursor}
             />
             <section className={styles.detailActionsRow}>
               <SimpleAction
@@ -429,6 +469,14 @@ export default function ReservationDetailClient({
               dateLabel={startLabel}
               expanded={showScheduler}
               onToggleExpanded={() => setShowScheduler((value) => !value)}
+              selectedDate={selectedDate}
+              selectedTime={selectedTime}
+              selectedDuration={selectedDuration}
+              availabilityCursor={availabilityCursor}
+              onDateChange={setSelectedDate}
+              onTimeChange={setSelectedTime}
+              onDurationChange={setSelectedDuration}
+              onAvailabilityCursorChange={setAvailabilityCursor}
             />
             <section className={styles.detailActionsRow}>
               <SimpleAction
@@ -450,11 +498,11 @@ export default function ReservationDetailClient({
           </article>
         ) : null}
 
-        {reservation.collisions.length > 0 ? (
+        {liveCollisions.length > 0 ? (
           <article className={styles.collisionCard}>
             <p className={styles.sectionKicker}>Kolízie</p>
             <div className={styles.collisionList}>
-              {reservation.collisions.map((collision) => (
+              {liveCollisions.map((collision) => (
                 <div key={collision.id} className={styles.collisionItem}>
                   <strong>
                     {collision.start} - {collision.end}

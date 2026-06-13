@@ -8,7 +8,7 @@ import {
   BOOKING_ADDONS,
   BOOKING_CUT_TYPES,
   BOOKING_SIZE_OPTIONS,
-  estimateReservationDurationMin,
+  getBookingEstimate,
   getOpenBookingSlots,
   isBookingDateAllowed,
   normalizeBookingText,
@@ -175,7 +175,7 @@ export async function submitBooking(
 
   const prisma = getPrisma();
   const requestedStart = localDateTimeToUtc(selectedDate, selectedTime);
-  const durationMin = estimateReservationDurationMin(dogSize, cutType, selectedAddonCodes);
+  const { durationMin } = getBookingEstimate(dogSize, cutType, selectedAddonCodes);
   const normalizedPhone = contactValidation.normalizedPhone;
   const normalizedEmail = customerEmail.trim();
 

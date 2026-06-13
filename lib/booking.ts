@@ -35,6 +35,11 @@ export interface BookingBusyInterval {
   end: `${number}:${number}`;
 }
 
+export interface BookingEstimate {
+  durationMin: number;
+  price: number;
+}
+
 export const BOOKING_PHONE_PATTERN =
   /^(?:\+?421[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{3}|0\d{3}[\s-]?\d{3}[\s-]?\d{3})$/;
 
@@ -266,11 +271,11 @@ export function isBookingDayBusy(
   return getFreeBookingSlots(dateKey, busyIntervals).length === 0;
 }
 
-export function estimateReservationDurationMin(
+export function getBookingEstimate(
   size: DogSize,
   cutType: CutType,
   addonCodes: readonly string[],
-): number {
+): BookingEstimate {
   const baseDurationBySize: Record<DogSize, number> = {
     SMALL: 60,
     MEDIUM: 90,
@@ -290,7 +295,18 @@ export function estimateReservationDurationMin(
     0,
   );
 
-  return Math.max(30, toPositiveInteger(baseDurationBySize[size] + cutTypeDelta[cutType] + addonDuration));
+  return {
+    durationMin: Math.max(30, toPositiveInteger(baseDurationBySize[size] + cutTypeDelta[cutType] + addonDuration)),
+    price: getBasePriceForSize(size) + getAddonPriceTotal(addonCodes),
+  };
+}
+
+export function estimateReservationDurationMin(
+  size: DogSize,
+  cutType: CutType,
+  addonCodes: readonly string[],
+): number {
+  return getBookingEstimate(size, cutType, addonCodes).durationMin;
 }
 
 export function estimateReservationPrice(size: DogSize, addonCodes: readonly string[]): number {

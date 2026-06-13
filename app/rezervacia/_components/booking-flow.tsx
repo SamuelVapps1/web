@@ -6,11 +6,11 @@ import { useFormStatus } from 'react-dom';
 import { submitBooking, type BookingSubmitState } from '../actions';
 import styles from '../booking.module.css';
 import {
-  estimateReservationPrice,
   formatBookingCurrency,
   formatBookingDate,
   formatBookingMonthLabel,
   getBasePriceForSize,
+  getBookingEstimate,
   getBookingMinDateKey,
   getFreeBookingSlots,
   isBookingDateAllowed,
@@ -367,7 +367,10 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
   };
 
   const basePrice = dogSize ? getBasePriceForSize(dogSize) : null;
-  const estimatedPrice = dogSize ? estimateReservationPrice(dogSize, selectedAddonCodes) : 0;
+  const bookingEstimate = dogSize && selectedCutType
+    ? getBookingEstimate(dogSize, selectedCutType, selectedAddonCodes)
+    : null;
+  const estimatedPrice = bookingEstimate?.price ?? (dogSize ? getBookingEstimate(dogSize, 'STANDARD', selectedAddonCodes).price : 0);
 
   const selectedCutTypeRecord = useMemo(
     () => CUT_TYPE_OPTIONS.find((option) => option.value === selectedCutType) ?? null,
@@ -787,7 +790,18 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
   ];
 
   return (
-    <div className={styles.wizardShell}>
+    <>
+      <section className={styles.hero}>
+        <div className={styles.heroCard}>
+          <p className={styles.eyebrow}>Rezervácia termínu</p>
+          <h1>Žiadosť o termín pre psí salón</h1>
+          <p className={styles.subtitle}>
+            Vyberte si termín, doplňte údaje o psovi a odošlite žiadosť. Termín vám potvrdíme.
+          </p>
+        </div>
+      </section>
+
+      <div className={styles.wizardShell}>
       <form className={styles.panel} action={formAction} noValidate onSubmit={handleSubmit}>
         <div className={styles.panelInner}>
           <div className={styles.mobileSummary} aria-live="polite">
@@ -1407,6 +1421,7 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
           <span>Po – Pia · 10:00 – 13:00 a 14:00 – 18:00</span>
         </div>
       </aside>
-    </div>
+      </div>
+    </>
   );
 }
