@@ -80,6 +80,8 @@ export function getCutTypeLabel(value: string | null | undefined): string {
       return 'Krátky strih';
     case 'STANDARD':
       return 'Plný / štandardný strih';
+    case 'A_LA_CARTE':
+      return 'A la carte';
     case 'NO_CUT':
       return 'Úprava bez strihania';
     case 'ADVICE':

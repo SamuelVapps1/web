@@ -1,4 +1,4 @@
-import {
+﻿import {
   addDaysToDateKey,
   formatBratislavaDate,
   getBratislavaDateKey,
@@ -10,8 +10,9 @@ import {
 import { OPENING_HOURS, buildWorkingDaySlots } from '@/lib/opening-hours.js';
 
 export type DogSize = 'SMALL' | 'MEDIUM' | 'LARGE';
-export type CutType = 'SHORT' | 'STANDARD' | 'NO_CUT' | 'ADVICE';
+export type CutType = 'SHORT' | 'STANDARD' | 'NO_CUT' | 'A_LA_CARTE' | 'ADVICE';
 export type BookingAddonCode = 'BATH' | 'NAILS' | 'EARS';
+export const BOOKING_SUCCESS_COOKIE = 'booking-request-success';
 
 export interface BookingAddonRecord {
   code: BookingAddonCode;
@@ -25,6 +26,7 @@ export interface BookingCutTypeRecord {
   value: CutType;
   label: string;
   note: string;
+  priceLabel?: string;
 }
 
 export interface BookingBusyInterval {
@@ -43,9 +45,9 @@ export const BOOKING_SIZE_BASE_PRICES: Record<DogSize, number> = {
 };
 
 export const BOOKING_SIZE_OPTIONS = [
-  { value: 'SMALL', label: 'Malý', note: 'Vhodné pre menšie plemená.' },
-  { value: 'MEDIUM', label: 'Stredný', note: 'Pre psy strednej veľkosti.' },
-  { value: 'LARGE', label: 'Veľký', note: 'Pre väčšie plemená.' },
+  { value: 'SMALL', label: 'MalĂ˝', note: 'VhodnĂ© pre menĹˇie plemenĂˇ.' },
+  { value: 'MEDIUM', label: 'StrednĂ˝', note: 'Pre psy strednej veÄľkosti.' },
+  { value: 'LARGE', label: 'VeÄľkĂ˝', note: 'Pre vĂ¤ÄŤĹˇie plemenĂˇ.' },
 ] as const satisfies readonly {
   value: DogSize;
   label: string;
@@ -55,14 +57,24 @@ export const BOOKING_SIZE_OPTIONS = [
 export const BOOKING_CUT_TYPES = [
   { value: 'SHORT', label: 'Krátky strih', note: 'Praktické skrátenie srsti.' },
   { value: 'STANDARD', label: 'Plný / štandardný strih', note: 'Klasická úprava podľa stavu srsti.' },
-  { value: 'NO_CUT', label: 'Úprava bez strihania', note: 'Len kúpanie a vyčesanie.' },
-  { value: 'ADVICE', label: 'Neviem — poradíte mi', note: 'Spoločne vyberieme vhodný postup.' },
+  {
+    value: 'A_LA_CARTE',
+    label: 'A la carte',
+    note: 'Nadštandardná úprava.',
+    priceLabel: 'Cena dohodou',
+  },
+  {
+    value: 'NO_CUT',
+    label: 'Úprava bez strihania',
+    note: 'Len vyčesanie. Kúpanie si pridajte samostatne v doplnkoch, ak ho chcete.',
+  },
+  { value: 'ADVICE', label: 'Neviem — poraďte mi', note: 'Spoločne vyberieme vhodný postup.' },
 ] as const satisfies readonly BookingCutTypeRecord[];
 
 export const BOOKING_ADDONS = [
-  { code: 'BATH', label: 'Kúpanie', price: 15, durationMin: 30, note: 'Starostlivosť podľa stavu srsti.' },
-  { code: 'NAILS', label: 'Pazúriky', price: 5, durationMin: 10, note: 'Rýchla úprava pazúrikov.' },
-  { code: 'EARS', label: 'Čistenie uší', price: 5, durationMin: 10, note: 'Šetrné čistenie podľa potreby.' },
+  { code: 'BATH', label: 'KĂşpanie', price: 15, durationMin: 30, note: 'StarostlivosĹĄ podÄľa stavu srsti.' },
+  { code: 'NAILS', label: 'PazĂşriky', price: 5, durationMin: 10, note: 'RĂ˝chla Ăşprava pazĂşrikov.' },
+  { code: 'EARS', label: 'ÄŚistenie uĹˇĂ­', price: 5, durationMin: 10, note: 'Ĺ etrnĂ© ÄŤistenie podÄľa potreby.' },
 ] as const satisfies readonly BookingAddonRecord[];
 
 const BOOKING_SLOT_STEP_MINUTES = 30;
@@ -268,6 +280,7 @@ export function estimateReservationDurationMin(
   const cutTypeDelta: Record<CutType, number> = {
     SHORT: -15,
     STANDARD: 0,
+    A_LA_CARTE: 0,
     NO_CUT: -20,
     ADVICE: 0,
   };
@@ -283,3 +296,4 @@ export function estimateReservationDurationMin(
 export function estimateReservationPrice(size: DogSize, addonCodes: readonly string[]): number {
   return getBasePriceForSize(size) + getAddonPriceTotal(addonCodes);
 }
+

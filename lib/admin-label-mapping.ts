@@ -14,6 +14,7 @@ const RESERVATION_STATUS_LABELS = {
 const CUT_TYPE_LABELS = {
   SHORT: 'Krátky strih',
   STANDARD: 'Plný / štandardný strih',
+  A_LA_CARTE: 'A la carte',
   NO_CUT: 'Úprava bez strihania',
   ADVICE: 'Neviem - poraďte mi',
 } as const;

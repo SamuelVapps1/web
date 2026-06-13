@@ -22,6 +22,7 @@ enum ReservationStatus {
 enum CutType {
   SHORT
   STANDARD
+  A_LA_CARTE
   NO_CUT
   ADVICE
 }

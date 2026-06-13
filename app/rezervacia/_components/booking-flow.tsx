@@ -36,6 +36,10 @@ type SummaryItem = {
   value: string;
 };
 
+type BookingFlowProps = {
+  initialCompleted?: boolean;
+};
+
 const STEP_DEFINITIONS = [
   { step: 1, title: 'Termín', hint: 'Kalendár a výber času.' },
   { step: 2, title: 'Pes', hint: 'Meno, plemeno a veľkosť.' },
@@ -61,28 +65,35 @@ const SIZE_OPTIONS = [
 const CUT_TYPE_OPTIONS = [
   {
     value: 'SHORT',
-    label: 'Krátky strih',
-    note: 'Praktické skrátenie srsti.',
+    label: 'Kr?tky strih',
+    note: 'Praktick? skr?tenie srsti.',
   },
   {
     value: 'STANDARD',
-    label: 'Plný / štandardný strih',
-    note: 'Klasická úprava podľa stavu srsti.',
+    label: 'Pln? / ?tandardn? strih',
+    note: 'Klasick? ?prava pod?a stavu srsti.',
   },
   {
     value: 'NO_CUT',
-    label: 'Úprava bez strihania',
-    note: 'Kúpanie a vyčesanie bez strihu.',
+    label: '?prava bez strihania',
+    note: 'Len vy?esanie. K?panie si pridajte samostatne v doplnkoch, ak ho chcete.',
+  },
+  {
+    value: 'A_LA_CARTE',
+    label: 'A la carte',
+    note: 'Nad?tandardn? ?prava.',
+    priceLabel: 'Cena dohodou',
   },
   {
     value: 'ADVICE',
-    label: 'Neviem — poradíte mi',
-    note: 'Spolu vyberieme vhodný postup.',
+    label: 'Neviem ? pora?te mi',
+    note: 'Spolu vyberieme vhodn? postup.',
   },
 ] as const satisfies readonly {
   value: CutType;
   label: string;
   note: string;
+  priceLabel?: string;
 }[];
 
 const ADDON_OPTIONS = [
@@ -300,7 +311,7 @@ function getMobileSummaryItem(
 }
 
 
-export function BookingFlow() {
+export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
   const minDateKey = getBookingMinDateKey();
   const maxDateKey = addDaysToDateKey(minDateKey, BOOKING_MAX_ADVANCE_DAYS);
   const minMonthAnchor = getMonthAnchorKey(minDateKey);
@@ -330,6 +341,7 @@ export function BookingFlow() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   const [state, formAction] = useActionState(submitBooking, INITIAL_STATE);
+  const isSuccessView = initialCompleted || state.status === 'success';
   const stepOneRef = useRef<HTMLDivElement | null>(null);
   const stepTwoRef = useRef<HTMLDivElement | null>(null);
   const stepThreeRef = useRef<HTMLDivElement | null>(null);
@@ -423,17 +435,23 @@ export function BookingFlow() {
   }, []);
 
   useEffect(() => {
-    if (state.status === 'success') {
+    if (isSuccessView) {
       setSubmissionError(null);
+      window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
       confirmationRef.current?.focus({ preventScroll: true });
+      return;
     }
 
     if (state.status === 'error') {
       setSubmissionError(GENERIC_SUBMIT_ERROR);
     }
-  }, [state.status]);
+  }, [isSuccessView, prefersReducedMotion, state.status]);
 
   useEffect(() => {
+    if (isSuccessView) {
+      return;
+    }
+
     const target = step === 1 ? stepOneRef.current : step === 2 ? stepTwoRef.current : step === 3 ? stepThreeRef.current : stepFourRef.current;
 
     if (!target) {
@@ -446,9 +464,13 @@ export function BookingFlow() {
     });
 
     target.focus({ preventScroll: true });
-  }, [prefersReducedMotion, step]);
+  }, [isSuccessView, prefersReducedMotion, step]);
 
   useEffect(() => {
+    if (isSuccessView) {
+      return;
+    }
+
     const controller = new AbortController();
     let active = true;
 
@@ -512,9 +534,13 @@ export function BookingFlow() {
       active = false;
       controller.abort();
     };
-  }, [monthAnchorKey]);
+  }, [isSuccessView, monthAnchorKey]);
 
   useEffect(() => {
+    if (isSuccessView) {
+      return;
+    }
+
     if (!selectedDate) {
       setSelectedDateBusyIntervals([]);
       setSelectedDateAvailabilityError(null);
@@ -579,7 +605,7 @@ export function BookingFlow() {
       active = false;
       controller.abort();
     };
-  }, [selectedDate]);
+  }, [isSuccessView, selectedDate]);
 
   useEffect(() => {
     return () => {
@@ -715,7 +741,7 @@ export function BookingFlow() {
     setSubmissionError(null);
   }
 
-  if (state.status === 'success') {
+  if (isSuccessView) {
     return (
       <div className={styles.confirmation}>
         <div ref={confirmationRef} className={styles.confirmationCard} tabIndex={-1}>
@@ -1084,7 +1110,9 @@ export function BookingFlow() {
                       <span className={styles.serviceCardBody}>
                         <span className={styles.serviceCardTitle}>{option.label}</span>
                         <span className={styles.serviceCardMeta}>
-                          {selectedSizeRecord ? `od ${formatBookingCurrency(basePrice ?? 0)}` : 'Vyberte veľkosť psa'}
+                          {selectedSizeRecord
+                            ? ('priceLabel' in option ? option.priceLabel : undefined) ?? `od ${formatBookingCurrency(basePrice ?? 0)}`
+                            : 'Vyberte ve?kos? psa'}
                         </span>
                         <span className={styles.serviceCardNote}>{option.note}</span>
                       </span>

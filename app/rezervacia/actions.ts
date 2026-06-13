@@ -1,12 +1,13 @@
 'use server';
 
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { localDateTimeToUtc } from '@/lib/time';
 import { getPrisma } from '@/lib/prisma';
 import {
   BOOKING_ADDONS,
   BOOKING_CUT_TYPES,
+  BOOKING_SUCCESS_COOKIE,
   BOOKING_SIZE_OPTIONS,
   estimateReservationDurationMin,
   getOpenBookingSlots,
@@ -261,6 +262,12 @@ export async function submitBooking(
         SET "cutType" = ${cutType}
         WHERE "id" = ${reservation.id}
       `;
+    });
+
+    const cookieStore = await cookies();
+    cookieStore.set(BOOKING_SUCCESS_COOKIE, 'success', {
+      path: '/rezervacia',
+      sameSite: 'lax',
     });
 
     revalidatePath('/rezervacia');
