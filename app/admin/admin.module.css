@@ -354,6 +354,45 @@
   flex-wrap: wrap;
 }
 
+.calendarCompactNav {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: center;
+  min-width: min(100%, 24rem);
+}
+
+.calendarCompactArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(33, 30, 26, 0.14);
+  background: rgba(251, 248, 241, 0.96);
+  color: #211e1a;
+  box-shadow: 0 16px 28px -24px rgba(33, 30, 26, 0.35);
+}
+
+.calendarCompactArrow:hover {
+  border-color: rgba(33, 30, 26, 0.24);
+  background: #fffdf9;
+}
+
+.calendarCompactLabel {
+  display: grid;
+  gap: 0.15rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.calendarCompactLabel strong {
+  font-family: var(--serif-display);
+  font-size: 1.1rem;
+  line-height: 1.05;
+}
+
 .calendarRangeNav {
   display: flex;
   gap: 0.75rem;
@@ -2729,6 +2768,21 @@
 
   .calendarMobilePanel {
     gap: 0.85rem;
+  }
+
+  .calendarCompactNav {
+    grid-template-columns: auto 1fr auto;
+    gap: 0.65rem;
+    min-width: 0;
+  }
+
+  .calendarCompactArrow {
+    width: 3.15rem;
+    height: 3.15rem;
+  }
+
+  .calendarCompactLabel strong {
+    font-size: 1rem;
   }
 
   .historyRow,

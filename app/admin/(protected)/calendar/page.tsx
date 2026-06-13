@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import type { CSSProperties, ReactNode } from 'react';
-import { Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import styles from '../../admin.module.css';
 import { getBratislavaDateKey } from '@/lib/time';
 import { getAdminManualReservationContext, listAdminCalendarRange } from '@/lib/admin-data';
@@ -65,17 +65,26 @@ function getEventTone(status: string): string {
   return styles.calendarEventHistory;
 }
 
-function buildCalendarHref(dateKey: string, view: 'day' | 'week' | 'month', dayKey?: string): string {
+function buildCalendarHref(
+  dateKey: string,
+  view: 'day' | 'week' | 'month',
+  dayKey?: string,
+  compactNav = false,
+): string {
   const params = new URLSearchParams({ date: dateKey, view });
 
   if (dayKey) {
     params.set('day', dayKey);
   }
 
+  if (compactNav) {
+    params.set('nav', 'compact');
+  }
+
   return `/admin/calendar?${params.toString()}`;
 }
 
-function buildReservationHref(dateKey: string, dayKey: string, timeKey: string): string {
+function buildReservationHref(dateKey: string, dayKey: string, timeKey: string, compactNav = false): string {
   const params = new URLSearchParams({
     date: dateKey,
     view: 'day',
@@ -83,6 +92,10 @@ function buildReservationHref(dateKey: string, dayKey: string, timeKey: string):
     reservationDate: dayKey,
     reservationTime: timeKey,
   });
+
+  if (compactNav) {
+    params.set('nav', 'compact');
+  }
 
   return `/admin/calendar?${params.toString()}`;
 }
@@ -193,19 +206,37 @@ function ViewButton({
   );
 }
 
+function CompactArrow({
+  href,
+  label,
+  children,
+}: {
+  href: string;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <Link className={styles.calendarCompactArrow} href={href} aria-label={label}>
+      {children}
+    </Link>
+  );
+}
+
 function DaySummaryCard({
   day,
+  compactNav,
 }: {
   day: CalendarDay;
+  compactNav: boolean;
 }) {
   const total = day.reservations.length + day.pending.length + day.history.length;
-  const pendingHref = buildReservationHref(day.dateKey, day.dateKey, '10:00');
+  const pendingHref = buildReservationHref(day.dateKey, day.dateKey, '10:00', compactNav);
 
   return (
     <article className={styles.calendarDaySummaryCard}>
       <div className={styles.calendarDaySummaryTop}>
         <div>
-          <Link className={styles.calendarDaySummaryTitle} href={buildCalendarHref(day.dateKey, 'day', day.dateKey)}>
+          <Link className={styles.calendarDaySummaryTitle} href={buildCalendarHref(day.dateKey, 'day', day.dateKey, compactNav)}>
             {day.label}
           </Link>
           <p className={styles.calendarDaySummaryMeta}>
@@ -214,7 +245,7 @@ function DaySummaryCard({
         </div>
 
         <div className={styles.calendarDaySummaryActions}>
-          <Link className="btn btn--ghost" href={buildCalendarHref(day.dateKey, 'day', day.dateKey)}>
+          <Link className="btn btn--ghost" href={buildCalendarHref(day.dateKey, 'day', day.dateKey, compactNav)}>
             Otvoriť deň
           </Link>
           <Link className="btn btn--primary" href={pendingHref}>
@@ -236,9 +267,11 @@ function DaySummaryCard({
 function DayBoard({
   day,
   anchorDate,
+  compactNav,
 }: {
   day: CalendarDay;
   anchorDate: string;
+  compactNav: boolean;
 }) {
   const dayReservations = getDayReservations(day);
   const laidOutReservations = layoutReservations(dayReservations);
@@ -259,7 +292,7 @@ function DayBoard({
             <strong>{day.label}</strong>
             <span>{dayReservations.length} položiek</span>
           </div>
-          <Link className="btn btn--primary" href={buildReservationHref(anchorDate, day.dateKey, '10:00')}>
+          <Link className="btn btn--primary" href={buildReservationHref(anchorDate, day.dateKey, '10:00', compactNav)}>
             <Plus size={18} strokeWidth={1.8} aria-hidden="true" />
             Pridať termín
           </Link>
@@ -307,7 +340,7 @@ function DayBoard({
               <Link
                 key={`${day.dateKey}-${slot}`}
                 className={styles.calendarSlotLink}
-                href={buildReservationHref(anchorDate, day.dateKey, slot)}
+                href={buildReservationHref(anchorDate, day.dateKey, slot, compactNav)}
                 aria-label={`Pridať rezerváciu na ${day.label} o ${slot}`}
                 style={
                   {
@@ -363,12 +396,14 @@ export default async function AdminCalendarPage({
     date?: string;
     day?: string;
     view?: string;
+    nav?: string;
     reservationDate?: string;
     reservationTime?: string;
   }>;
 }) {
   const params = (await searchParams) ?? {};
   const view = params.view === 'month' || params.view === 'day' ? params.view : 'week';
+  const compactNav = params.nav === 'compact';
   const anchorDate = params.date ?? getBratislavaDateKey();
   const activeDateKey = view === 'day' ? (params.day ?? anchorDate) : anchorDate;
   const data = await listAdminCalendarRange(activeDateKey, view);
@@ -377,9 +412,12 @@ export default async function AdminCalendarPage({
   const reservationTime = params.reservationTime ?? '';
   const showReservationModal = Boolean(reservationDate && reservationTime);
   const reservationContext = showReservationModal ? await getAdminManualReservationContext() : null;
-  const closeHref = buildCalendarHref(activeDateKey, view, view === 'day' ? activeDateKey : effectiveDay?.dateKey);
+  const closeHref = buildCalendarHref(activeDateKey, view, view === 'day' ? activeDateKey : effectiveDay?.dateKey, compactNav);
   const todayKey = getBratislavaDateKey();
-  const todayHref = buildCalendarHref(todayKey, 'day', todayKey);
+  const todayHref = buildCalendarHref(todayKey, 'day', todayKey, true);
+  const previousHref = buildCalendarHref(data.previousDateKey, view, effectiveDay?.dateKey, compactNav);
+  const nextHref = buildCalendarHref(data.nextDateKey, view, effectiveDay?.dateKey, compactNav);
+  const currentPeriodLabel = view === 'day' ? effectiveDay?.label ?? data.titleLabel : data.rangeLabel;
 
   return (
     <div className={styles.calendarPage}>
@@ -391,37 +429,54 @@ export default async function AdminCalendarPage({
             {view === 'day' ? 'Denný prehľad s voľnými a obsadenými slotmi.' : data.rangeLabel}
           </p>
         </div>
-        <div className={styles.calendarHeaderActions}>
-          <ViewButton active={view === 'day' && activeDateKey === todayKey} href={todayHref}>
-            Dnes
-          </ViewButton>
-          <ViewButton active={view === 'week'} href={buildCalendarHref(anchorDate, 'week')}>
-            Týždeň
-          </ViewButton>
-          <ViewButton active={view === 'month'} href={buildCalendarHref(anchorDate, 'month')}>
-            Mesiac
-          </ViewButton>
-        </div>
+        {!compactNav ? (
+          <div className={styles.calendarHeaderActions}>
+            <ViewButton active={view === 'day' && activeDateKey === todayKey} href={todayHref}>
+              Dnes
+            </ViewButton>
+            <ViewButton active={view === 'week'} href={buildCalendarHref(anchorDate, 'week', undefined, true)}>
+              Týždeň
+            </ViewButton>
+            <ViewButton active={view === 'month'} href={buildCalendarHref(anchorDate, 'month', undefined, true)}>
+              Mesiac
+            </ViewButton>
+          </div>
+        ) : (
+          <div className={styles.calendarCompactNav}>
+            <CompactArrow href={previousHref} label="Predchádzajúce obdobie">
+              <ChevronLeft size={30} strokeWidth={2.2} aria-hidden="true" />
+            </CompactArrow>
+            <div className={styles.calendarCompactLabel}>
+              <p className={styles.sectionKicker}>Aktuálne obdobie</p>
+              <strong>{currentPeriodLabel}</strong>
+            </div>
+            <CompactArrow href={nextHref} label="Ďalšie obdobie">
+              <ChevronRight size={30} strokeWidth={2.2} aria-hidden="true" />
+            </CompactArrow>
+          </div>
+        )}
       </section>
 
-      <div className={styles.calendarRangeNav}>
-        <Link className="btn btn--ghost" href={buildCalendarHref(data.previousDateKey, view, effectiveDay?.dateKey)}>
-          Predchádzajúce obdobie
-        </Link>
-        <Link className="btn btn--ghost" href={buildCalendarHref(data.nextDateKey, view, effectiveDay?.dateKey)}>
-          Ďalšie obdobie
-        </Link>
-        <Link className="btn btn--ghost" href={todayHref}>
-          Dnes
-        </Link>
-      </div>
+      {!compactNav ? (
+        <div className={styles.calendarRangeNav}>
+          <Link className="btn btn--ghost" href={previousHref}>
+            Predchádzajúce obdobie
+          </Link>
+          <Link className="btn btn--ghost" href={nextHref}>
+            Ďalšie obdobie
+          </Link>
+          <Link className="btn btn--ghost" href={todayHref}>
+            Dnes
+          </Link>
+        </div>
+      ) : null}
 
       {view === 'day' && effectiveDay ? (
-        <DayBoard day={effectiveDay} anchorDate={activeDateKey} />
+        <DayBoard day={effectiveDay} anchorDate={activeDateKey} compactNav={compactNav} />
       ) : view === 'week' ? (
         <section className={styles.calendarDayList}>
           {data.days.map((day) => (
-            <DaySummaryCard key={day.dateKey} day={day} />
+            <DaySummaryCard key={day.dateKey} day={day} compactNav={compactNav} />
           ))}
         </section>
       ) : (
@@ -439,7 +494,7 @@ export default async function AdminCalendarPage({
                     <strong>{day.label}</strong>
                     <span>{dayReservations.length} položiek</span>
                   </div>
-                  <Link className="btn btn--ghost" href={buildReservationHref(day.dateKey, day.dateKey, '10:00')}>
+                  <Link className="btn btn--ghost" href={buildReservationHref(day.dateKey, day.dateKey, '10:00', compactNav)}>
                     +
                   </Link>
                 </div>
