@@ -50,6 +50,23 @@ function formatSmsDateLabel(date: string): string {
   }).format(new Date(`${date}T12:00:00Z`));
 }
 
+function buildConfirmationSmsBody(params: {
+  originalDate: string;
+  originalTime: string;
+  selectedDate: string;
+  selectedTime: string;
+}): string {
+  const dateLabel = formatSmsDateLabel(params.selectedDate);
+  const isRescheduled =
+    params.originalDate !== params.selectedDate || params.originalTime !== params.selectedTime;
+
+  if (isRescheduled) {
+    return `Dobrý deň. Vašu rezerváciu potvrdzujeme, po vzájomnej dohode bol termín presunutý na ${dateLabel} o ${params.selectedTime}. Tešíme sa na Vás. Laura salón pre psov.`;
+  }
+
+  return `Dobrý deň. Vašu rezerváciu potvrdzujeme, termín máte dňa ${dateLabel} o ${params.selectedTime}. Tešíme sa na Vás. Laura salón pre psov.`;
+}
+
 function StateBanner({ state }: { state: AdminActionState }) {
   if (state.kind === 'idle') {
     return null;
@@ -324,9 +341,16 @@ export default function ReservationDetailClient({
       : reservation.durationMin,
   );
   const [availabilityCursor, setAvailabilityCursor] = useState(() => new Date(startIso));
+  const originalDate = toDateInputValue(reservation.requestedStartIso);
+  const originalTime = toTimeInputValue(reservation.requestedStartIso);
   const callHref = `tel:${reservation.customerPhone.replace(/\s+/g, '')}`;
   const smsConfirmHref = `sms:${reservation.customerPhone.replace(/\s+/g, '')}?body=${encodeURIComponent(
-    `Dobrý deň. Potvrdzujeme Váš termín dňa ${formatSmsDateLabel(selectedDate)} o ${selectedTime}. Tešíme sa na Vás, Laura salón pre psov.`,
+    buildConfirmationSmsBody({
+      originalDate,
+      originalTime,
+      selectedDate,
+      selectedTime,
+    }),
   )}`;
   const smsDeclineHref = `sms:${reservation.customerPhone.replace(/\s+/g, '')}?body=${encodeURIComponent(
     'Ospravedlňujeme sa, ale váš termín nemôžeme potvrdiť. Ozveme sa vám s ďalším návrhom.',
