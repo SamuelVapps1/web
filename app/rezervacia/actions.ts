@@ -119,7 +119,8 @@ export async function submitBooking(
   const selectedDate = normalizeBookingText(formData.get('selectedDate'));
   const selectedTime = normalizeBookingText(formData.get('selectedTime'));
   const cutType = normalizeBookingText(formData.get('cutType'));
-  const customerName = normalizeBookingText(formData.get('customerName'));
+  const customerFirstName = normalizeBookingText(formData.get('customerFirstName'));
+  const customerLastName = normalizeBookingText(formData.get('customerLastName'));
   const customerPhone = normalizeBookingText(formData.get('customerPhone'));
   const customerEmail = normalizeBookingText(formData.get('customerEmail'));
   const privacyConsent = formData.get('privacyConsent') === 'accepted';
@@ -132,7 +133,8 @@ export async function submitBooking(
   );
 
   const contactValidation = validateBookingContactFields({
-    customerName,
+    customerFirstName,
+    customerLastName,
     customerPhone,
     customerEmail,
     privacyConsent,
@@ -178,6 +180,7 @@ export async function submitBooking(
   const { durationMin } = getBookingEstimate(dogSize, cutType, selectedAddonCodes);
   const normalizedPhone = contactValidation.normalizedPhone;
   const normalizedEmail = customerEmail.trim();
+  const customerName = `${customerFirstName.trim()} ${customerLastName.trim()}`.trim();
 
   try {
     await prisma.$transaction(async (transaction) => {

@@ -197,7 +197,8 @@ function formatCompactDateLabel(dateKey: string): string {
 }
 
 function validateContactFields(input: {
-  customerName: string;
+  customerFirstName: string;
+  customerLastName: string;
   customerPhone: string;
   customerEmail: string;
   privacyConsent: boolean;
@@ -206,13 +207,18 @@ function validateContactFields(input: {
   normalizedPhone: string;
 } {
   const fieldErrors: BookingContactFieldErrors = {};
-  const trimmedName = input.customerName.trim();
+  const trimmedFirstName = input.customerFirstName.trim();
+  const trimmedLastName = input.customerLastName.trim();
   const trimmedPhone = input.customerPhone.trim();
   const trimmedEmail = input.customerEmail.trim();
   const normalizedPhone = normalizeSlovakPhone(trimmedPhone);
 
-  if (!trimmedName) {
-    fieldErrors.customerName = 'Zadajte meno.';
+  if (!trimmedFirstName) {
+    fieldErrors.customerFirstName = 'Zadajte meno.';
+  }
+
+  if (!trimmedLastName) {
+    fieldErrors.customerLastName = 'Zadajte priezvisko.';
   }
 
   if (!trimmedPhone) {
@@ -291,10 +297,10 @@ function SubmitButton() {
 function getMobileSummaryItem(
   step: StepKey,
   entries: SummaryItem[],
-  customerName: string,
+  customerFullName: string,
 ): SummaryItem | null {
-  if (step >= 4 && customerName.trim()) {
-    return { label: 'Kontakt', value: customerName.trim() };
+  if (step >= 4 && customerFullName.trim()) {
+    return { label: 'Kontakt', value: customerFullName.trim() };
   }
 
   if (step >= 3) {
@@ -329,7 +335,8 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
   const [selectedAddonCodes, setSelectedAddonCodes] = useState<BookingAddonCode[]>([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
-  const [customerName, setCustomerName] = useState('');
+  const [customerFirstName, setCustomerFirstName] = useState('');
+  const [customerLastName, setCustomerLastName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [privacyConsent, setPrivacyConsent] = useState(false);
@@ -352,7 +359,9 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
   const stepThreeRef = useRef<HTMLDivElement | null>(null);
   const stepFourRef = useRef<HTMLDivElement | null>(null);
   const confirmationRef = useRef<HTMLDivElement | null>(null);
-  const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const timeSectionRef = useRef<HTMLDivElement | null>(null);
+  const firstNameInputRef = useRef<HTMLInputElement | null>(null);
+  const lastNameInputRef = useRef<HTMLInputElement | null>(null);
   const phoneInputRef = useRef<HTMLInputElement | null>(null);
   const emailInputRef = useRef<HTMLInputElement | null>(null);
   const privacyConsentRef = useRef<HTMLInputElement | null>(null);
@@ -367,10 +376,10 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
   };
 
   const basePrice = dogSize ? getBasePriceForSize(dogSize) : null;
-  const bookingEstimate = dogSize && selectedCutType
-    ? getBookingEstimate(dogSize, selectedCutType, selectedAddonCodes)
-    : null;
+  const bookingEstimate =
+    dogSize && selectedCutType ? getBookingEstimate(dogSize, selectedCutType, selectedAddonCodes) : null;
   const estimatedPrice = bookingEstimate?.price ?? (dogSize ? getBookingEstimate(dogSize, 'STANDARD', selectedAddonCodes).price : 0);
+  const customerFullName = [customerFirstName.trim(), customerLastName.trim()].filter(Boolean).join(' ');
 
   const selectedCutTypeRecord = useMemo(
     () => CUT_TYPE_OPTIONS.find((option) => option.value === selectedCutType) ?? null,
@@ -427,7 +436,7 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
     },
   ];
 
-  const mobileSummary = getMobileSummaryItem(step, summaryItems, customerName);
+  const mobileSummary = getMobileSummaryItem(step, summaryItems, customerFullName);
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -645,6 +654,12 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
     setStep(1);
     setStepError(null);
     setSubmissionError(null);
+    window.requestAnimationFrame(() => {
+      timeSectionRef.current?.scrollIntoView({
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+        block: 'start',
+      });
+    });
   }
 
   function handleSelectTime(time: string) {
@@ -702,8 +717,13 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
   }
 
   function focusFirstContactError(errors: BookingContactFieldErrors) {
-    if (errors.customerName) {
-      nameInputRef.current?.focus({ preventScroll: true });
+    if (errors.customerFirstName) {
+      firstNameInputRef.current?.focus({ preventScroll: true });
+      return;
+    }
+
+    if (errors.customerLastName) {
+      lastNameInputRef.current?.focus({ preventScroll: true });
       return;
     }
 
@@ -724,7 +744,8 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const latestContactValidation = validateContactFields({
-      customerName,
+      customerFirstName,
+      customerLastName,
       customerPhone,
       customerEmail,
       privacyConsent,
@@ -911,9 +932,9 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
               </div>
             </div>
 
-            <div className={styles.slots}>
+          <div ref={timeSectionRef} className={styles.slots}>
               <div className={styles.serviceSectionHead}>
-                <h3>Preferovaný čas</h3>
+                <h3>Vyberte preferovaný čas</h3>
                 <p>Vyberte časový slot. Dopoludnia a popoludní sú rozdelené zvlášť.</p>
               </div>
 
@@ -1014,7 +1035,6 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
                   Meno psa
                 </label>
                 <input
-                  ref={nameInputRef}
                   id="dogName"
                   name="dogName"
                   className={styles.input}
@@ -1224,36 +1244,71 @@ export function BookingFlow({ initialCompleted = false }: BookingFlowProps) {
 
             <div className={styles.fieldGrid}>
               <div className={styles.field}>
-                <label className={styles.label} htmlFor="customerName">
+                <label className={styles.label} htmlFor="customerFirstName">
                   Meno
                 </label>
                 <input
-                  ref={nameInputRef}
-                  id="customerName"
-                  name="customerName"
-                  className={`${styles.input} ${clientFieldErrors.customerName ? styles.inputError : ''}`}
-                  value={customerName}
+                  ref={firstNameInputRef}
+                  id="customerFirstName"
+                  name="customerFirstName"
+                  className={`${styles.input} ${clientFieldErrors.customerFirstName ? styles.inputError : ''}`}
+                  value={customerFirstName}
                   onChange={(event) => {
-                    setCustomerName(event.target.value);
+                    setCustomerFirstName(event.target.value);
                     setClientFieldErrors((current) => {
-                      if (!current.customerName) {
+                      if (!current.customerFirstName) {
                         return current;
                       }
 
                       const next = { ...current };
-                      delete next.customerName;
+                      delete next.customerFirstName;
                       return next;
                     });
                     setSubmissionError(null);
                   }}
-                  autoComplete="name"
-                  aria-invalid={Boolean(clientFieldErrors.customerName)}
-                  aria-describedby={clientFieldErrors.customerName ? 'customerName-error' : undefined}
+                  autoComplete="given-name"
+                  aria-invalid={Boolean(clientFieldErrors.customerFirstName)}
+                  aria-describedby={clientFieldErrors.customerFirstName ? 'customerFirstName-error' : undefined}
                   required
                 />
-                {clientFieldErrors.customerName ? (
-                  <p id="customerName-error" className={styles.fieldError}>
-                    {clientFieldErrors.customerName}
+                {clientFieldErrors.customerFirstName ? (
+                  <p id="customerFirstName-error" className={styles.fieldError}>
+                    {clientFieldErrors.customerFirstName}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="customerLastName">
+                  Priezvisko
+                </label>
+                <input
+                  ref={lastNameInputRef}
+                  id="customerLastName"
+                  name="customerLastName"
+                  className={`${styles.input} ${clientFieldErrors.customerLastName ? styles.inputError : ''}`}
+                  value={customerLastName}
+                  onChange={(event) => {
+                    setCustomerLastName(event.target.value);
+                    setClientFieldErrors((current) => {
+                      if (!current.customerLastName) {
+                        return current;
+                      }
+
+                      const next = { ...current };
+                      delete next.customerLastName;
+                      return next;
+                    });
+                    setSubmissionError(null);
+                  }}
+                  autoComplete="family-name"
+                  aria-invalid={Boolean(clientFieldErrors.customerLastName)}
+                  aria-describedby={clientFieldErrors.customerLastName ? 'customerLastName-error' : undefined}
+                  required
+                />
+                {clientFieldErrors.customerLastName ? (
+                  <p id="customerLastName-error" className={styles.fieldError}>
+                    {clientFieldErrors.customerLastName}
                   </p>
                 ) : null}
               </div>

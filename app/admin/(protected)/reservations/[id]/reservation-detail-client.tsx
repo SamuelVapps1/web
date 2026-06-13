@@ -40,6 +40,16 @@ function toTimeInputValue(iso: string): string {
   }).format(new Date(iso));
 }
 
+function formatSmsDateLabel(date: string): string {
+  return new Intl.DateTimeFormat('sk-SK', {
+    timeZone: 'Europe/Bratislava',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(`${date}T12:00:00Z`));
+}
+
 function StateBanner({ state }: { state: AdminActionState }) {
   if (state.kind === 'idle') {
     return null;
@@ -316,7 +326,7 @@ export default function ReservationDetailClient({
   const [availabilityCursor, setAvailabilityCursor] = useState(() => new Date(startIso));
   const callHref = `tel:${reservation.customerPhone.replace(/\s+/g, '')}`;
   const smsConfirmHref = `sms:${reservation.customerPhone.replace(/\s+/g, '')}?body=${encodeURIComponent(
-    'Potvrdzujeme Váš termín. Tešíme sa na vás.',
+    `Dobrý deň. Potvrdzujeme Váš termín dňa ${formatSmsDateLabel(selectedDate)} o ${selectedTime}. Tešíme sa na Vás, Laura salón pre psov.`,
   )}`;
   const smsDeclineHref = `sms:${reservation.customerPhone.replace(/\s+/g, '')}?body=${encodeURIComponent(
     'Ospravedlňujeme sa, ale váš termín nemôžeme potvrdiť. Ozveme sa vám s ďalším návrhom.',

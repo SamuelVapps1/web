@@ -2,7 +2,12 @@ export const SLOVAK_PHONE_E164_PATTERN = /^\+421\d{9}$/;
 
 const CONTACT_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export type BookingContactField = 'customerName' | 'customerPhone' | 'customerEmail' | 'privacyConsent';
+export type BookingContactField =
+  | 'customerFirstName'
+  | 'customerLastName'
+  | 'customerPhone'
+  | 'customerEmail'
+  | 'privacyConsent';
 
 export type BookingContactFieldErrors = Partial<Record<BookingContactField, string>>;
 
@@ -42,7 +47,8 @@ export function isValidSlovakPhone(value: string): boolean {
 }
 
 export function validateBookingContactFields(input: {
-  customerName: string;
+  customerFirstName: string;
+  customerLastName: string;
   customerPhone: string;
   customerEmail: string;
   privacyConsent: boolean;
@@ -52,12 +58,17 @@ export function validateBookingContactFields(input: {
 } {
   const fieldErrors: BookingContactFieldErrors = {};
   const normalizedPhone = normalizeSlovakPhone(input.customerPhone);
-  const trimmedName = input.customerName.trim();
+  const trimmedFirstName = input.customerFirstName.trim();
+  const trimmedLastName = input.customerLastName.trim();
   const trimmedPhone = input.customerPhone.trim();
   const trimmedEmail = input.customerEmail.trim();
 
-  if (!trimmedName) {
-    fieldErrors.customerName = 'Zadajte meno.';
+  if (!trimmedFirstName) {
+    fieldErrors.customerFirstName = 'Zadajte meno.';
+  }
+
+  if (!trimmedLastName) {
+    fieldErrors.customerLastName = 'Zadajte priezvisko.';
   }
 
   if (!trimmedPhone) {
