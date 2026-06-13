@@ -148,6 +148,7 @@ function ReservationTimingForm({
               time={selectedTime}
               durationMin={selectedDuration}
               availabilityCursor={availabilityCursor}
+              expanded={expanded}
               onDateChange={setSelectedDate}
               onTimeChange={setSelectedTime}
               onDurationChange={setSelectedDuration}

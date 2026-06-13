@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import styles from '../../../admin.module.css';
-import { getBratislavaDateKey } from '@/lib/time';
+import { getBratislavaDateKey, shiftDateKey } from '@/lib/time';
 import {
   formatAvailabilitySlotLabel,
   getDailySlotAvailability,
@@ -20,6 +20,7 @@ type ReservationAvailabilityPanelProps = {
   time: string;
   durationMin: number;
   availabilityCursor: Date;
+  expanded?: boolean;
   onDateChange: (value: string) => void;
   onTimeChange: (value: string) => void;
   onDurationChange: (value: number) => void;
@@ -33,6 +34,7 @@ export default function ReservationAvailabilityPanel({
   time,
   durationMin,
   availabilityCursor,
+  expanded = true,
   onDateChange,
   onTimeChange,
   onDurationChange,
@@ -43,6 +45,51 @@ export default function ReservationAvailabilityPanel({
     () => mapConfirmedAvailabilityReservations(reservations),
     [reservations],
   );
+  const timeSectionRef = useRef<HTMLDivElement | null>(null);
+  const previousDateRef = useRef(date);
+  const todayKey = getBratislavaDateKey();
+
+  const dayStripFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat('sk-SK', {
+        timeZone: 'Europe/Bratislava',
+        weekday: 'short',
+        day: '2-digit',
+        month: '2-digit',
+      }),
+    [],
+  );
+
+  const selectedDayFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat('sk-SK', {
+        timeZone: 'Europe/Bratislava',
+        weekday: 'long',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }),
+    [],
+  );
+
+  const dayOptions = useMemo(() => {
+    return Array.from({ length: 14 }, (_, index) => {
+      const dateKey = shiftDateKey(todayKey, index);
+      const candidateSlots = getDailySlotAvailability({
+        dateKey,
+        durationMin,
+        reservations: confirmedReservations,
+      });
+      const occupiedCount = candidateSlots.filter((slot) => slot.busy && !slot.isLunchBreak).length;
+
+      return {
+        dateKey,
+        label: dayStripFormatter.format(new Date(`${dateKey}T12:00:00Z`)),
+        occupiedCount,
+        selected: date === dateKey,
+      };
+    });
+  }, [confirmedReservations, date, dayStripFormatter, durationMin, todayKey]);
 
   const nextFreeSlots = useMemo(
     () =>
@@ -76,108 +123,90 @@ export default function ReservationAvailabilityPanel({
     [confirmedReservations, date, durationMin, time],
   );
 
+  useEffect(() => {
+    if (!expanded || previousDateRef.current === date) {
+      previousDateRef.current = date;
+      return;
+    }
+
+    previousDateRef.current = date;
+    timeSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [date, expanded]);
+
   return (
-    <>
-      <div className={styles.freeSlotsPanel}>
-        <div className={styles.freeSlotsHeader}>
-          <div>
-            <p className={styles.sectionKicker}>Najbližšie voľné termíny</p>
-            <p className={styles.fieldHint}>Klikni na termín a predvyplní sa dátum aj čas.</p>
-          </div>
+    <div className={styles.freeSlotsPanel}>
+      <div className={styles.freeSlotsHeader}>
+        <div>
+          <p className={styles.sectionKicker}>Vyber deň</p>
+          <p className={styles.fieldHint}>Najprv klikni na deň, potom na čas v tom dni.</p>
+        </div>
+      </div>
+
+      <div className={styles.dayMiniCalendar}>
+        {dayOptions.map((day) => (
           <button
+            key={day.dateKey}
             type="button"
-            className="btn btn--ghost"
-            onClick={() => {
-              const lastSlot = nextFreeSlots[nextFreeSlots.length - 1];
-              if (!lastSlot) {
-                return;
-              }
-
-              onAvailabilityCursorChange(new Date(lastSlot.end.getTime() + 30 * 60 * 1000));
-            }}
+            className={`${styles.dayMiniButton} ${day.selected ? styles.dayMiniButtonSelected : ''}`}
+            aria-pressed={day.selected}
+            onClick={() => onDateChange(day.dateKey)}
           >
-            Ďalšie termíny
+            <span className={styles.dayMiniButtonLabel}>{day.label}</span>
+            <span className={styles.dayMiniButtonMeta}>
+              {day.occupiedCount > 0 ? `${day.occupiedCount} obsadených` : 'Voľný deň'}
+            </span>
           </button>
-        </div>
+        ))}
+      </div>
 
-        <div className={styles.freeSlotsGrid}>
-          {nextFreeSlots.map((slot) => {
-            const selected = date === slot.dateKey && time === slot.timeKey;
+      <div className={styles.availabilityStatus}>
+        <p className={styles.availabilityNote}>
+          {date ? selectedDayFormatter.format(new Date(`${date}T12:00:00Z`)) : 'Vyber deň z kalendára vyššie.'}
+        </p>
+      </div>
 
-            return (
-              <button
-                key={`${slot.dateKey}-${slot.timeKey}`}
-                type="button"
-                className={`${styles.freeSlotChip} ${selected ? styles.freeSlotChipSelected : ''}`}
-                aria-pressed={selected}
-                onClick={() => {
-                  onDateChange(slot.dateKey);
-                  onTimeChange(slot.timeKey);
-                }}
-              >
-                <span className={styles.freeSlotChipLabel}>
-                  {formatAvailabilitySlotLabel(slot.start, slot.timeKey)}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className={styles.availabilityStatus}>
-          {!date ? (
-            <p className={styles.availabilityNote}>Najprv vyberte deň v kalendári.</p>
-          ) : liveAvailability.blockedLabel ? (
-            <p className={styles.availabilityLunch}>Obed 13:00 – 14:00</p>
-          ) : (
-            <div className={styles.availabilityBanner}>
-              <p className={styles.availabilityTitle}>Koliduje s:</p>
-              <div className={styles.collisionList}>
-                {liveAvailability.collisions.map((collision) => (
-                  <div key={collision.id} className={styles.collisionItem}>
-                    <span>
-                      {collision.start} · {collision.dogName} · {collision.phone}
-                    </span>
-                  </div>
-                ))}
-              </div>
+      {expanded ? (
+        <div ref={timeSectionRef} className={styles.availabilityDayPanel}>
+          <div className={styles.freeSlotsHeader}>
+            <div>
+              <p className={styles.sectionKicker}>Časy v dni</p>
+              <p className={styles.fieldHint}>Klikni na čas a vyplní sa dole termín.</p>
             </div>
-          )}
-        </div>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => {
+                const lastSlot = nextFreeSlots[nextFreeSlots.length - 1];
+                if (!lastSlot) {
+                  return;
+                }
 
-        <div className={styles.formGrid}>
-          <div className={styles.field}>
-            <label>Dátum</label>
-            <input
-              type="date"
-              min={getBratislavaDateKey()}
-              value={date}
-              onChange={(event) => onDateChange(event.target.value)}
-            />
-          </div>
-          <div className={styles.field}>
-            <label>Čas</label>
-            <input
-              type="time"
-              value={time}
-              onChange={(event) => onTimeChange(event.target.value)}
-            />
-          </div>
-          <div className={styles.field}>
-            <label>Trvanie</label>
-            <select
-              value={durationMin}
-              onChange={(event) => onDurationChange(Number(event.target.value))}
+                onAvailabilityCursorChange(new Date(lastSlot.end.getTime() + 30 * 60 * 1000));
+              }}
             >
-              {durationOptions.map((value) => (
-                <option key={value} value={value}>
-                  {value} min
-                </option>
-              ))}
-            </select>
+              Ďalšie termíny
+            </button>
           </div>
-        </div>
 
-        <div className={styles.availabilitySummary}>
+          <div className={styles.availabilityStatus}>
+            {liveAvailability.blockedLabel ? (
+              <p className={styles.availabilityLunch}>Obed 13:00 – 14:00</p>
+            ) : liveAvailability.collisions.length > 0 ? (
+              <div className={styles.availabilityBanner}>
+                <p className={styles.availabilityTitle}>Koliduje s:</p>
+                <div className={styles.collisionList}>
+                  {liveAvailability.collisions.map((collision) => (
+                    <div key={collision.id} className={styles.collisionItem}>
+                      <span>
+                        {collision.start} · {collision.dogName} · {collision.phone}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
           <div className={styles.slotGrid} role="radiogroup" aria-label="Obsadené sloty dňa">
             {dailySlots.map((slot) => {
               const active = time === slot.timeKey;
@@ -196,9 +225,72 @@ export default function ReservationAvailabilityPanel({
               );
             })}
           </div>
+
+          <div className={styles.durationPanel}>
+            <div className={styles.field}>
+              <label>Trvanie</label>
+              <select
+                value={durationMin}
+                onChange={(event) => onDurationChange(Number(event.target.value))}
+              >
+                {durationOptions.map((value) => (
+                  <option key={value} value={value}>
+                    {value} min
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className={styles.availabilitySummary}>
+        <div className={styles.freeSlotsPanel}>
+          <div className={styles.freeSlotsHeader}>
+            <div>
+              <p className={styles.sectionKicker}>Najbližšie voľné termíny</p>
+              <p className={styles.fieldHint}>Klikni na termín a nastaví sa deň aj čas.</p>
+            </div>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => {
+                const lastSlot = nextFreeSlots[nextFreeSlots.length - 1];
+                if (!lastSlot) {
+                  return;
+                }
+
+                onAvailabilityCursorChange(new Date(lastSlot.end.getTime() + 30 * 60 * 1000));
+              }}
+            >
+              Ďalšie termíny
+            </button>
+          </div>
+
+          <div className={styles.freeSlotsGrid}>
+            {nextFreeSlots.map((slot) => {
+              const selected = date === slot.dateKey && time === slot.timeKey;
+
+              return (
+                <button
+                  key={`${slot.dateKey}-${slot.timeKey}`}
+                  type="button"
+                  className={`${styles.freeSlotChip} ${selected ? styles.freeSlotChipSelected : ''}`}
+                  aria-pressed={selected}
+                  onClick={() => {
+                    onDateChange(slot.dateKey);
+                    onTimeChange(slot.timeKey);
+                  }}
+                >
+                  <span className={styles.freeSlotChipLabel}>
+                    {formatAvailabilitySlotLabel(slot.start, slot.timeKey)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
-

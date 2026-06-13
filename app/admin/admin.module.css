@@ -867,6 +867,41 @@
   background: rgba(251, 248, 241, 0.95);
 }
 
+.dayMiniCalendar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.dayMiniButton {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: 16px;
+  border: 1px solid rgba(33, 30, 26, 0.12);
+  background: rgba(255, 252, 247, 0.96);
+  color: #211e1a;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dayMiniButtonSelected {
+  border-color: #211e1a;
+  background: #211e1a;
+  color: #f6f1e7;
+}
+
+.dayMiniButtonLabel {
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.dayMiniButtonMeta {
+  font-size: 0.82rem;
+  color: inherit;
+  opacity: 0.78;
+}
+
 .freeSlotsHeader {
   display: flex;
   align-items: flex-start;
@@ -913,6 +948,15 @@
   background: rgba(156, 107, 61, 0.08);
 }
 
+.availabilityDayPanel {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border-radius: 18px;
+  border: 1px solid rgba(33, 30, 26, 0.08);
+  background: rgba(255, 252, 247, 0.78);
+}
+
 .availabilityTitle {
   margin: 0;
   font-size: 0.82rem;
@@ -930,6 +974,11 @@
   background: rgba(72, 126, 72, 0.08);
   color: #33543a;
   font-weight: 600;
+}
+
+.durationPanel {
+  display: grid;
+  gap: 0.5rem;
 }
 
 .slotGrid {
