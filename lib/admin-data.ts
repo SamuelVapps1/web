@@ -618,6 +618,21 @@ async function loadCalendarReservations(startKey: string, endKey: string) {
 }
 
 export async function listAdminCalendarRange(anchorDateKey: string, view: AdminCalendarView): Promise<AdminCalendarData> {
+  if (view === 'day') {
+    const reservations = await loadCalendarReservations(anchorDateKey, anchorDateKey);
+    const day = buildCalendarDay(reservations, anchorDateKey, true);
+
+    return {
+      view,
+      anchorDateKey,
+      titleLabel: day.label,
+      rangeLabel: day.label,
+      previousDateKey: shiftDateKey(anchorDateKey, -1),
+      nextDateKey: shiftDateKey(anchorDateKey, 1),
+      days: [day],
+    };
+  }
+
   if (view === 'month') {
     const grid = getMonthGridRange(anchorDateKey);
     const reservations = await loadCalendarReservations(grid.startKey, grid.endKey);

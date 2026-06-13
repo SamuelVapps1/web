@@ -19,6 +19,8 @@ export default function CustomerSearchClient({
   }[];
 }) {
   const [query, setQuery] = useState('');
+  const totalDogs = customers.reduce((sum, customer) => sum + customer.dogs.length, 0);
+  const totalReservations = customers.reduce((sum, customer) => sum + customer.reservationCount, 0);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -28,12 +30,7 @@ export default function CustomerSearchClient({
 
     return customers.filter((customer) => {
       const tags = customer.tags ?? [];
-      const haystack = [
-        customer.name,
-        customer.phone,
-        ...tags,
-        ...customer.dogs.map((dog) => dog.name),
-      ]
+      const haystack = [customer.name, customer.phone, ...tags, ...customer.dogs.map((dog) => dog.name)]
         .join(' ')
         .toLowerCase();
 
@@ -43,13 +40,41 @@ export default function CustomerSearchClient({
 
   return (
     <div className={styles.customerSearchLayout}>
-      <input
-        className={styles.searchInput}
-        type="search"
-        placeholder="Meno, telefón, tag alebo pes"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-      />
+      <section className={styles.customerDirectoryHero}>
+        <div className={styles.customerDirectoryHeroCopy}>
+          <p className={styles.eyebrow}>Zákazníci</p>
+          <h1 className={styles.pageTitle}>Kontakty, psy a história</h1>
+          <p className={styles.pageLead}>Vyhľadaj meno, telefón alebo psa a otvor profil bez zbytočného šumu.</p>
+        </div>
+
+        <div className={styles.customerDirectoryStats}>
+          <div>
+            <strong>{customers.length}</strong>
+            <span>zákazníkov</span>
+          </div>
+          <div>
+            <strong>{totalDogs}</strong>
+            <span>psov</span>
+          </div>
+          <div>
+            <strong>{totalReservations}</strong>
+            <span>rezervácií</span>
+          </div>
+        </div>
+
+        <div className={styles.customerDirectorySearch}>
+          <input
+            className={styles.searchInput}
+            type="search"
+            placeholder="Meno, telefón, tag alebo pes"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <Link className="btn btn--ghost" href="/admin/customers/new">
+            + Nový zákazník
+          </Link>
+        </div>
+      </section>
 
       <div className={styles.customerList}>
         {filtered.length > 0 ? (
@@ -60,10 +85,10 @@ export default function CustomerSearchClient({
                 <span>{customer.phone}</span>
               </div>
               <p className={styles.customerTagSummary}>{getCustomerTagSummary(customer.tags ?? [])}</p>
+              <p>{customer.dogs.map((dog) => `${dog.name} · ${dog.sizeLabel}`).join(', ') || 'Bez psov'}</p>
               <p>
-                {customer.dogs.map((dog) => `${dog.name} · ${dog.sizeLabel}`).join(', ') || 'Bez psov'}
+                {customer.reservationCount} rezervácií · {customer.lastVisitLabel}
               </p>
-              <p>{customer.reservationCount} rezervácií · {customer.lastVisitLabel}</p>
             </Link>
           ))
         ) : (

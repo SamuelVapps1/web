@@ -1103,6 +1103,58 @@
   gap: 1rem;
 }
 
+.customerDirectoryHero {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.15rem;
+  border-radius: 24px;
+  border: 1px solid rgba(33, 30, 26, 0.1);
+  background: rgba(251, 248, 241, 0.95);
+  box-shadow: 0 22px 50px -38px rgba(33, 30, 26, 0.28);
+}
+
+.customerDirectoryHeroCopy {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.customerDirectoryStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.customerDirectoryStats > div {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 18px;
+  background: rgba(255, 252, 247, 0.9);
+  border: 1px solid rgba(33, 30, 26, 0.08);
+}
+
+.customerDirectoryStats strong {
+  font-family: var(--serif-display);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.customerDirectoryStats span {
+  color: #4a443c;
+  font-size: 0.9rem;
+}
+
+.customerDirectorySearch {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.customerDirectorySearch .searchInput {
+  max-width: none;
+  flex: 1;
+}
+
 .customerTagSummary {
   color: #9c6b3d;
   font-weight: 700;
@@ -2210,6 +2262,161 @@
   color: #4a443c;
 }
 
+.reservationSummaryCard {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.15rem;
+  border-radius: 24px;
+  border: 1px solid rgba(33, 30, 26, 0.1);
+  background: rgba(251, 248, 241, 0.95);
+  box-shadow: 0 22px 50px -38px rgba(33, 30, 26, 0.28);
+}
+
+.reservationSummaryTop {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.reservationSummaryTitle {
+  font-family: var(--serif-display);
+  font-size: 1.55rem;
+  line-height: 1.06;
+}
+
+.reservationSummaryLead {
+  margin-top: 0.2rem;
+  color: #4a443c;
+}
+
+.reservationSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.reservationSummaryGrid > div {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.82rem 0.85rem;
+  border-radius: 18px;
+  background: rgba(255, 252, 247, 0.9);
+  border: 1px solid rgba(33, 30, 26, 0.08);
+}
+
+.reservationSummaryGrid span {
+  color: #9c6b3d;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.reservationSummaryGrid strong {
+  font-family: var(--serif-display);
+  font-size: 1.1rem;
+  line-height: 1.08;
+}
+
+.reservationSummaryGrid p {
+  color: #4a443c;
+}
+
+.reservationSummaryActions {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.reservationNoteBox {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 18px;
+  background: rgba(156, 107, 61, 0.06);
+  border: 1px solid rgba(156, 107, 61, 0.12);
+}
+
+.pendingSummaryCard,
+.accountCard,
+.calendarDaySummaryCard {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.15rem;
+  border-radius: 24px;
+  border: 1px solid rgba(33, 30, 26, 0.1);
+  background: rgba(251, 248, 241, 0.95);
+  box-shadow: 0 22px 50px -38px rgba(33, 30, 26, 0.28);
+}
+
+.accountCard {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.accountCardCopy {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.accountEmail {
+  color: #4a443c;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.calendarDayList {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.calendarDaySummaryTop {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.calendarDaySummaryTitle {
+  display: inline-flex;
+  color: #211e1a;
+  text-decoration: none;
+  font-family: var(--serif-display);
+  font-size: 1.35rem;
+  line-height: 1.08;
+}
+
+.calendarDaySummaryMeta {
+  margin-top: 0.25rem;
+  color: #4a443c;
+}
+
+.calendarDaySummaryActions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.calendarDaySummaryCounts {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  color: #4a443c;
+  font-size: 0.92rem;
+}
+
+.calendarDayBoard {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.calendarDayBoard .calendarBoardHeader,
+.calendarDayBoard .calendarBoardBody {
+  grid-template-columns: 132px minmax(0, 1fr);
+}
+
 @media (max-width: 1180px) {
   .adminShell {
     grid-template-columns: 1fr;
@@ -2422,6 +2629,47 @@
   .calendarLunchBand {
     padding: 0.7rem 0.75rem;
     border-radius: 16px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .calendarDayBoard .calendarTimeRail {
+    display: grid;
+  }
+
+  .calendarDayBoard .calendarBoardHeader,
+  .calendarDayBoard .calendarBoardBody {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .accountCard {
+    grid-template-columns: 1fr;
+  }
+
+  .customerDirectoryStats,
+  .reservationSummaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .customerDirectorySearch {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .customerDirectorySearch > * {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .calendarDaySummaryTop {
+    flex-direction: column;
+  }
+
+  .calendarDaySummaryActions {
+    justify-content: flex-start;
+    width: 100%;
   }
 }
 

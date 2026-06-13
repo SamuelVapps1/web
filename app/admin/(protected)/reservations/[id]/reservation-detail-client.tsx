@@ -79,6 +79,7 @@ function ReservationTimingForm({
   reservation,
   action,
   submitLabel,
+  callHref,
 }: {
   reservation: {
     id: string;
@@ -99,6 +100,7 @@ function ReservationTimingForm({
   };
   action: ReservationAction;
   submitLabel: string;
+  callHref: string;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [selectedDate, setSelectedDate] = useState(() => toDateInputValue(reservation.startIso));
@@ -144,6 +146,9 @@ function ReservationTimingForm({
         </div>
 
         <div className={styles.actionsRow}>
+          <a className="btn btn--ghost" href={callHref}>
+            Zavolať
+          </a>
           <button className="btn btn--primary" type="submit" disabled={pending}>
             {submitLabel}
           </button>
@@ -234,6 +239,8 @@ export default function ReservationDetailClient({
   };
 }) {
   const startIso = reservation.confirmedStartIso ?? reservation.requestedStartIso;
+  const callHref = `tel:${reservation.customerPhone.replace(/\s+/g, '')}`;
+  const isFree = reservation.collisions.length === 0;
   const reservationTimingDefaults = {
     id: reservation.id,
     startIso,
@@ -248,48 +255,78 @@ export default function ReservationDetailClient({
   return (
     <div className={styles.detailLayout}>
       <section className={styles.detailSidebar}>
-        <article className={styles.detailCard}>
-          <p className={styles.sectionKicker}>Kontakt</p>
-          <h2 className={styles.detailName}>{reservation.customerName}</h2>
-          <a className={styles.callLink} href={`tel:${reservation.customerPhone.replace(/\s+/g, '')}`}>
-            {reservation.customerPhone}
-          </a>
-          <p className={styles.customerTagSummary}>{getCustomerTagSummary(reservation.customerTags)}</p>
-          <p className={styles.detailMeta}>{reservation.customerEmail ?? 'Bez emailu'}</p>
-          <p className={styles.detailMeta}>{reservation.customerNote ?? 'Bez poznámky'}</p>
-        </article>
+        <article className={styles.reservationSummaryCard}>
+          <div className={styles.reservationSummaryTop}>
+            <div>
+              <p className={styles.sectionKicker}>Žiadosť</p>
+              <h2 className={styles.reservationSummaryTitle}>
+                {reservation.customerName} · {reservation.dogName}
+              </h2>
+              <p className={styles.reservationSummaryLead}>{reservation.startLabel}</p>
+            </div>
+            <span className={styles.statusPill}>{reservation.statusLabel}</span>
+          </div>
 
-        <article className={styles.detailCard}>
-          <p className={styles.sectionKicker}>Pes</p>
-          <h2 className={styles.detailName}>{reservation.dogName}</h2>
-          <p className={styles.detailMeta}>{reservation.dogBreed ?? 'Bez plemena'}</p>
-          <p className={styles.detailMeta}>{reservation.dogSizeLabel}</p>
-          {reservation.dogNote ? <p className={styles.detailMeta}>{reservation.dogNote}</p> : null}
-          {reservation.dogTemperamentNote ? (
-            <p className={styles.detailMeta}>{reservation.dogTemperamentNote}</p>
-          ) : null}
-          {reservation.dogCoatType ? <p className={styles.detailMeta}>Srsť: {reservation.dogCoatType}</p> : null}
-          {reservation.dogHealthNote ? <p className={styles.detailMeta}>{reservation.dogHealthNote}</p> : null}
-          {reservation.dogGroomingNotes ? (
-            <p className={styles.detailMeta}>{reservation.dogGroomingNotes}</p>
-          ) : null}
-        </article>
+          <div className={styles.reservationSummaryGrid}>
+            <div>
+              <span>Majiteľ</span>
+              <strong>{reservation.customerName}</strong>
+              <a className={styles.callLink} href={callHref}>
+                {reservation.customerPhone}
+              </a>
+              <p>{reservation.customerEmail ?? 'Bez emailu'}</p>
+            </div>
+            <div>
+              <span>Pes</span>
+              <strong>{reservation.dogName}</strong>
+              <p>
+                {reservation.dogBreed ?? 'Bez plemena'} · {reservation.dogSizeLabel}
+              </p>
+              <p>{getCustomerTagSummary(reservation.customerTags)}</p>
+            </div>
+            <div>
+              <span>Termín</span>
+              <strong>{reservation.startLabel}</strong>
+              <p>{isFree ? 'Termín je voľný' : 'Termín je obsadený'}</p>
+            </div>
+            <div>
+              <span>Služba</span>
+              <strong>{reservation.cutTypeLabel}</strong>
+              <p>{reservation.serviceLabel}</p>
+            </div>
+            <div>
+              <span>Čas</span>
+              <strong>{reservation.durationMin} min</strong>
+              <p>Možno meniť v kalendári nižšie</p>
+            </div>
+          </div>
 
-        <article className={styles.detailCard}>
-          <p className={styles.sectionKicker}>Služby</p>
-          <p className={styles.detailMeta}>{reservation.cutTypeLabel}</p>
-          <p className={styles.detailMeta}>{reservation.serviceLabel}</p>
-          {reservation.customerMessage ? <p className={styles.detailMeta}>{reservation.customerMessage}</p> : null}
+          <div className={styles.reservationSummaryActions}>
+            <a className="btn btn--ghost" href={callHref}>
+              Zavolať
+            </a>
+            <a className="btn btn--ghost" href="#schedule">
+              Zmeniť čas
+            </a>
+          </div>
+
+          {reservation.internalNote ? (
+            <div className={styles.reservationNoteBox}>
+              <p className={styles.sectionKicker}>Interná poznámka</p>
+              <p className={styles.detailMeta}>{reservation.internalNote}</p>
+            </div>
+          ) : null}
         </article>
       </section>
 
       <section className={styles.detailMain}>
         {reservation.status === 'PENDING' ? (
-          <div className={styles.stack}>
+          <div id="schedule" className={styles.stack}>
             <ReservationTimingForm
               reservation={reservationTimingDefaults}
               action={confirmReservation}
               submitLabel="Potvrdiť"
+              callHref={callHref}
             />
             <section className={styles.detailActionsRow}>
               <SimpleAction reservationId={reservation.id} action={declineReservation} label="Zamietnuť" />
@@ -298,11 +335,12 @@ export default function ReservationDetailClient({
         ) : null}
 
         {reservation.status === 'CONFIRMED' ? (
-          <div className={styles.stack}>
+          <div id="schedule" className={styles.stack}>
             <ReservationTimingForm
               reservation={reservationTimingDefaults}
               action={updateReservation}
               submitLabel="Uložiť zmeny"
+              callHref={callHref}
             />
             <section className={styles.detailActionsRow}>
               <SimpleAction

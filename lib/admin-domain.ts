@@ -19,7 +19,7 @@ export const ADMIN_DURATION_OPTIONS = Array.from({ length: 8 }, (_, index) => (i
 
 export type AdminReservationStatus = 'PENDING' | 'CONFIRMED' | 'DONE' | 'CANCELLED';
 export type AdminReservationTab = 'pending' | 'confirmed' | 'history';
-export type AdminCalendarView = 'week' | 'month';
+export type AdminCalendarView = 'day' | 'week' | 'month';
 
 export const ADMIN_CUSTOMER_TAGS = [
   { value: 'vip', label: '⭐ VIP' },

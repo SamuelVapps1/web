@@ -9,17 +9,16 @@ type NavItem = {
   href: string;
   label: string;
   icon: typeof House;
-  badgeKey?: 'pending';
 };
 
 const navItems: NavItem[] = [
   { href: '/admin', label: 'Dnes', icon: House },
   { href: '/admin/calendar', label: 'Kalendár', icon: CalendarDays },
-  { href: '/admin/reservations', label: 'Žiadosti', icon: ListChecks, badgeKey: 'pending' as const },
+  { href: '/admin/reservations', label: 'Žiadosti', icon: ListChecks },
   { href: '/admin/customers', label: 'Zákazníci', icon: UsersRound },
 ];
 
-export default function AdminSidebarNav({ pendingCount }: { pendingCount: number }) {
+export default function AdminSidebarNav() {
   const pathname = usePathname();
 
   return (
@@ -42,9 +41,6 @@ export default function AdminSidebarNav({ pendingCount }: { pendingCount: number
               <Icon size={18} strokeWidth={1.9} />
             </span>
             <span className={styles.sidebarNavLabel}>{item.label}</span>
-            {item.badgeKey === 'pending' && pendingCount > 0 ? (
-              <span className={styles.sidebarNavBadge}>{pendingCount}</span>
-            ) : null}
           </Link>
         );
       })}
